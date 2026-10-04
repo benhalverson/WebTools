@@ -65,6 +65,7 @@ async function main(): Promise<void> {
     const origins: Record<Application, string> = {
         portal: await start('portal', mode, prefix),
         rotationCheck: await start('rotation-check', mode, prefix),
+        dashboardPlayback: await start('dashboard-playback', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {
         const parsed = requestPath(incoming.url)
