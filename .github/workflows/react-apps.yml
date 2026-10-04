@@ -9,6 +9,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 10.23.0
@@ -23,3 +25,4 @@ jobs:
       - run: pnpm typecheck && pnpm lint
       - run: pnpm test && pnpm test:routing && pnpm test:rotation-check && pnpm test:parameters && pnpm test:react-workflows
       - run: pnpm test:portal && pnpm test:rotation-check:browser && pnpm test:react-workflows:browser
+      - run: pnpm test:log-finder && pnpm test:log-finder:browser && pnpm test:dataflash:browser

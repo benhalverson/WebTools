@@ -35,3 +35,14 @@ test('Vite readiness handles plain, colored and incomplete startup output', () =
     assert.equal(listeningOrigin('http://127.0.0.1:1234/'), 'http://127.0.0.1:1234')
     assert.equal(listeningOrigin('http://127.0.0.1:\u001b['), undefined)
 })
+
+test('LogFinder owns only its public path boundary at each hosting prefix', () => {
+    for (const prefix of ['/', '/Tools/WebTools/']) {
+        const base = applicationBase('logFinder', prefix)
+        assert.equal(base, prefix + 'LogFinder/')
+        for (const suffix of ['', 'index.html', 'dataflash/vendor/parser.js']) assert.equal(applicationForPath(base + suffix, prefix), 'logFinder')
+        assert.equal(applicationForPath(base.slice(0, -1), prefix), 'logFinder')
+        assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'HardwareReport/', prefix), 'portal')
+    }
+})
