@@ -2,7 +2,7 @@
 
 `@webtools/routing` contains URL conventions, not app source. Browser and Worker
 consumers can import `hostingPrefix`, `applicationBase`, `applicationForPath` and
-`serveAssets`. Node/Vite consumers import `stageRuntimeAssets` and `prefixedHtml`
+`serveAssets`. Node/Vite consumers import `stageRuntimeAssets`, `prefixedHtml` and `listeningOrigin`
 from `@webtools/routing/tooling`.
 
 The common prefix is `/` by default. Set `WEBTOOLS_BASE_PATH=/Tools/WebTools/`

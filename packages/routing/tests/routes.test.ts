@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { listeningOrigin } from '../src/tooling.ts'
 import { applicationBase, applicationForPath, hostingPrefix, serveAssets } from '../src/index.ts'
 
 /** A strict fake asset binding exposes accidental rewrites and SPA fallbacks. */
@@ -25,4 +26,12 @@ test('asset routing preserves redirect queries and true missing errors', async (
         const response = await serveAssets(new Request(new URL(path, 'https://test/Tools/RotationCheck/')), binding, routes)
         assert.equal(response.status, 404, path)
     }
+})
+
+test('Vite readiness handles plain, colored and incomplete startup output', () => {
+    assert.equal(listeningOrigin('Starting…'), undefined)
+    assert.equal(listeningOrigin('http://127.0.0.1:45'), undefined)
+    assert.equal(listeningOrigin('http://127.0.0.1:\u001b[1m45695\u001b[22m/Tools/'), 'http://127.0.0.1:45695')
+    assert.equal(listeningOrigin('http://127.0.0.1:1234/'), 'http://127.0.0.1:1234')
+    assert.equal(listeningOrigin('http://127.0.0.1:\u001b['), undefined)
 })

@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { createServer, request as httpRequest, type Server } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { requestPath } from './request-path.ts'
+import { listeningOrigin } from '@webtools/routing/tooling'
 import { applicationForPath, hostingPrefix, type Application } from '@webtools/routing'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -37,7 +38,7 @@ function start(app: string, mode: string, prefix: string): Promise<string> {
         /** Resolve only after Vite reports the listening origin. */
         const read = (chunk: Buffer) => {
             output = (output + chunk.toString()).slice(-65536)
-            const origin = output.match(/http:\/\/127\.0\.0\.1:\d+/)?.[0]
+            const origin = listeningOrigin(output)
             if (origin) { clearTimeout(timer); resolve(origin) }
         }
         child.stdout?.on('data', read)

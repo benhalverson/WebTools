@@ -6,11 +6,13 @@ const path = require('node:path');
 const { test } = require('node:test');
 const { chromium } = require('playwright');
 const assets = require('../legacy-assets.json');
+const { listeningOrigin } = require('@webtools/routing/tooling');
 
 const app = path.resolve(__dirname, '..');
 const root = path.resolve(app, '../..');
 const vite = path.join(app, 'node_modules/vite/bin/vite.js');
 
+/** Starts an owned Worker server and detects readiness with or without terminal colors. */
 async function startServer(mode, base) {
     const child = spawn(process.execPath, [vite, ...(mode === 'preview' ? ['preview'] : []),
         '--host', '127.0.0.1', '--port', '0'], {
@@ -27,10 +29,11 @@ async function startServer(mode, base) {
     try {
         const origin = await new Promise((resolve, reject) => {
             const timer = setTimeout(() => reject(new Error('Server startup timeout: ' + output)), 30000);
+            /** Resolve readiness only after a complete URL arrives, ignoring terminal styling. */
             const read = chunk => {
                 output += chunk.toString();
-                const match = output.match(/http:\/\/127\.0\.0\.1:\d+/);
-                if (match) { clearTimeout(timer); resolve(match[0]); }
+                const origin = listeningOrigin(output);
+                if (origin) { clearTimeout(timer); resolve(origin); }
             };
             child.stdout.on('data', read);
             child.stderr.on('data', read);

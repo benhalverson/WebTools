@@ -1,5 +1,6 @@
 import { copyFile, lstat, mkdir, realpath, rm } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 import type { Plugin } from 'vite'
 
 /** Stage a reviewed runtime allowlist, failing before deletion if an input is absent
@@ -39,4 +40,12 @@ export function prefixedHtml(): Plugin {
             })
         },
     }
+}
+
+/** Extract a listening origin from accumulated Vite output, including ANSI
+ * formatting that CI may insert between the hostname and port. Accumulate chunks
+ * before calling so split escape sequences cannot conceal the readiness URL.
+ */
+export function listeningOrigin(output: string): string | undefined {
+    return stripVTControlCharacters(output).match(/http:\/\/127\.0\.0\.1:\d+(?=\/)/)?.[0]
 }
