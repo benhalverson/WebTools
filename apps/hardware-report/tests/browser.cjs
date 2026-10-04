@@ -22,7 +22,7 @@ async function stopProcess(child) {
     try { await exited; } finally { clearTimeout(timer); }
 }
 
-/** Starts the same-origin gateway and rejects early exits with captured diagnostics. */
+/** Starts the gateway or independent application, rejecting early exits with captured diagnostics. */
 async function startServer(mode, base, independent = false) {
     const args = independent
         ? ['node_modules/vite/bin/vite.js', ...(mode === 'preview' ? ['preview'] : []), '--host', '127.0.0.1', '--port', '0']
@@ -98,6 +98,7 @@ async function report(page) {
         const element = document.getElementById(id);
         const visible = !!element && !element.hidden;
         return [id, { text: visible ? element.textContent.replace(/\s+/g, ' ').trim() : '', visible,
+            heading: visible ? element.previousElementSibling?.textContent : '',
             fieldsets: visible ? [...element.querySelectorAll('fieldset')].map(fieldset => fieldset.innerText) : [] }];
     })), sections);
 }
