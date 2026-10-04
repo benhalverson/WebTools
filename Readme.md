@@ -139,3 +139,31 @@ unchanged test oracles and legacy downloads; the React page does not load them.
 The issue #5 branch also includes prerequisite browser/JSDoc follow-up
 `91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
 identical to the original comparison revision above.
+
+### SimpleGCS telemetry preview
+
+`apps/simplegcs` is the intermediate connection and read-only telemetry slice.
+Open `SimpleGCS-preview/` through `pnpm dev`, or run
+`pnpm --filter simplegcs dev` independently. Its own `build` and `preview`
+commands use the same `WEBTOOLS_BASE_PATH`/`PORTAL_BASE_PATH` convention and
+an independent Worker. The public `SimpleGCS/` destination still serves the
+complete unchanged legacy app; commands, parameters and video remain there
+until the later completion stage.
+
+The preview uses an in-memory MAVLink vehicle and simulated user location.
+Its offline Leaflet surface supports vehicle position/heading, retained pan
+and zoom, recentering and the metric grid. Tile-provider and auto-fetch choices
+retain their existing storage keys for the complete app; the preview makes no
+relay, vehicle, map-provider or device-location requests. Tests can inject
+`SIMPLEGCS_PREVIEW.socket`, `.location`, and `.onMap` before the React entry
+loads. The socket factory receives the submitted URL and immutable settings;
+reconnects never read the in-progress editor draft.
+
+`pnpm test:simplegcs` compares telemetry, grid arithmetic and signed bytes with
+the unchanged integrated baseline `8e1791a` (routing PR #45 and MAVLink PR #41).
+`pnpm test:simplegcs:browser` runs Chromium against the independent development
+and built Worker previews at root and prefix, plus the shared local gateway
+and the actual baseline legacy page. Its CDN replay accepts only pinned npm
+bytes matching the legacy HTML's SHA-384 integrity hashes; all other external
+browser requests are blocked. Fetch full Git history before running the
+comparison tests.
