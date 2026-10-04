@@ -18,7 +18,9 @@
     "test:routing": "node --test packages/routing/tests/*.test.ts tooling/*.test.ts",
     "test:rotation-check": "node --test apps/rotation-check/tests/*.test.*",
     "test:rotation-check:browser": "node --test apps/rotation-check/tests/browser.cjs",
-    "test:numerics:browser": "pnpm --filter @webtools/numerics test:browser"
+    "test:numerics:browser": "pnpm --filter @webtools/numerics test:browser",
+    "test:hardware-parameters": "node --test apps/hardware-report/tests/*.test.*",
+    "test:hardware-parameters:browser": "node --test apps/hardware-report/tests/browser.cjs"
   },
   "engines": {
     "node": ">=24 <25"
