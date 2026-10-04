@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.23.0",
   "scripts": {
-    "dev": "pnpm --filter @webtools/react-workflows... build && node tooling/serve.ts dev",
+    "dev": "pnpm --filter stream-stats^... build && node tooling/serve.ts dev",
     "typecheck": "pnpm -r --if-present typecheck && pnpm --filter portal exec tsc -p ../../tooling/tsconfig.json",
     "lint": "pnpm -r --if-present lint && apps/portal/node_modules/.bin/oxlint --deny-warnings tooling",
     "test": "pnpm --filter @webtools/numerics test && node --test tests/*.test.cjs && pnpm test:dataflash",
@@ -20,7 +20,9 @@
     "test:rotation-check:browser": "node --test apps/rotation-check/tests/browser.cjs",
     "test:numerics:browser": "pnpm --filter @webtools/numerics test:browser",
     "test:dataflash": "pnpm --filter @webtools/dataflash test",
-    "test:dataflash:browser": "pnpm --filter @webtools/dataflash test:browser"
+    "test:dataflash:browser": "pnpm --filter @webtools/dataflash test:browser",
+    "test:stream-stats": "pnpm --filter stream-stats^... build && pnpm --filter stream-stats test",
+    "test:stream-stats:browser": "node --test apps/stream-stats/tests/browser.mjs"
   },
   "engines": {
     "node": ">=24 <25"
