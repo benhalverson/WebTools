@@ -24,6 +24,7 @@ async function stopProcess(child) {
 
 /** Starts the gateway or independent application, rejecting early exits with captured diagnostics. */
 async function startServer(mode, base, independent = false) {
+    const { listeningOrigin } = await import('@webtools/routing/tooling');
     const args = independent
         ? ['node_modules/vite/bin/vite.js', ...(mode === 'preview' ? ['preview'] : []), '--host', '127.0.0.1', '--port', '0']
         : ['tooling/serve.ts', mode, '--port', '0'];
@@ -38,8 +39,8 @@ async function startServer(mode, base, independent = false) {
             /** Parses the gateway readiness URL from complete output chunks. */
             const read = chunk => {
                 output += chunk.toString();
-                const match = output.match(/http:\/\/127\.0\.0\.1:\d+/);
-                if (match) { clearTimeout(timer); resolve(match[0]); }
+                const origin = listeningOrigin(output);
+                if (origin) { clearTimeout(timer); resolve(origin); }
             };
             child.stdout.on('data', read);
             child.stderr.on('data', read);
