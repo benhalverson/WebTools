@@ -12,7 +12,9 @@
     "test:portal": "node --test apps/portal/tests/*.test.cjs",
     "build": "pnpm -r --if-present build",
     "preview": "pnpm --filter portal preview",
-    "test:parameters": "pnpm --filter @webtools/parameters test"
+    "test:parameters": "pnpm --filter @webtools/parameters test",
+    "test:react-workflows": "pnpm --filter @webtools/parameters build && pnpm --filter @webtools/react-workflows test",
+    "test:react-workflows:browser": "pnpm --filter @webtools/parameters build && pnpm --filter @webtools/react-workflows test:browser"
   },
   "engines": {
     "node": ">=24 <25"
