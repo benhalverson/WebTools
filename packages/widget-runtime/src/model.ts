@@ -81,3 +81,22 @@ function record(value: unknown): value is Record<string, unknown> {
 export function serializeLayout(layout: Layout): string {
     return JSON.stringify(layout, null, 2)
 }
+
+/** Standalone widget downloads use the same header and widget shape as the legacy editor. */
+export interface WidgetDocument { header: { version: number }; widget: WidgetModel }
+
+/** Parse a standalone saved widget without rewriting executable source or dynamic schema fields. */
+export function parseWidget(text: string): WidgetDocument {
+    const value: unknown = JSON.parse(text)
+    if (!record(value) || !record(value.header) || typeof value.header.version !== 'number') throw new TypeError('Invalid widget header')
+    const widgets: unknown = { widget: value.widget }
+    assertWidgets(widgets)
+    const widget = widgets.widget
+    if (!widget) throw new TypeError('Invalid widget')
+    return { header: { version: value.header.version }, widget }
+}
+
+/** Match the standalone widget download's exact indentation and no trailing newline. */
+export function serializeWidget(widget: WidgetModel): string {
+    return JSON.stringify({ header: { version: 1 }, widget }, null, 2)
+}

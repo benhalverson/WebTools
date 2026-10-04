@@ -1,4 +1,4 @@
-import type { GridStack, GridStackOptions, GridStackWidget } from 'gridstack'
+import type { GridStack, GridStackOptions, GridStackWidget, GridStackNode } from 'gridstack'
 import type { Message } from '@webtools/mavlink'
 import type { Fields, Layout, WidgetMap, WidgetModel, WidgetOptions, WidgetMessage } from './model.js'
 import { assertLayout, telemetryChannel, widgetSandbox } from './model.js'
@@ -25,6 +25,7 @@ export interface RuntimeDependencies {
 export class WidgetRuntime {
     readonly grid: GridStack
     readonly ready: Promise<void>
+    private static readonly hosts = new WeakMap<Element, WidgetHost>()
     private readonly widgets = new Map<HTMLElement, WidgetHost>()
     private destroyed = false
     private editing = false
@@ -32,14 +33,14 @@ export class WidgetRuntime {
     private channel: BroadcastChannel | undefined
 
     /** Mount a saved layout; readiness includes nested grids and asynchronous Formio initialization. */
-    constructor(readonly element: HTMLElement, readonly dependencies: RuntimeDependencies, layout: Layout) {
+    constructor(readonly element: HTMLElement, readonly dependencies: RuntimeDependencies, layout: Layout, private readonly nestedGrid = false) {
         assertLayout(layout)
         element.style.backgroundColor = layout.grid.color
         const rows = Number.parseInt(String(layout.grid.rows))
         this.grid = dependencies.createGrid({
             float: true, disableDrag: true, disableResize: true,
             column: Number.parseInt(String(layout.grid.columns)), row: rows,
-            cellHeight: `${100 / rows}%`, alwaysShowResizeHandle: true, acceptWidgets: false,
+            cellHeight: `${100 / rows}%`, alwaysShowResizeHandle: true, acceptWidgets: widget => !this.nestedGrid || WidgetRuntime.hosts.get(widget)?.model.type !== 'WidgetMenu',
         }, element)
         try {
             this.grid.batchUpdate(true)
@@ -51,7 +52,10 @@ export class WidgetRuntime {
         }
         this.ready = Promise.all([...this.widgets.values()].map(widget => widget.ready)).then(() => {
             if (!this.destroyed) this.saved()
-        })
+        }).catch(error => { this.destroy(); throw error })
+        // Observe immediately, while preserving the public rejection for callers awaiting ready.
+        void this.ready.catch(error => dependencies.onError?.(error))
+        this.grid.on('dropped', this.handleDrop)
         this.grid.on('change added removed', () => { this.changed = true })
     }
 
@@ -65,12 +69,14 @@ export class WidgetRuntime {
         if (!this.grid.willItFit(position)) {
             position.autoPosition = true
             if (!this.grid.willItFit(position)) {
-                this.dependencies.onNoFit?.(model)
+                if (this.dependencies.onNoFit) this.dependencies.onNoFit(model)
+                else window.alert("Widget won't fit on Grid")
                 return undefined
             }
         }
         const host = new WidgetHost(this, model)
         this.widgets.set(host.element, host)
+        WidgetRuntime.hosts.set(host.element, host)
         try {
             this.grid.addWidget(host.element, position)
             host.mount()
@@ -86,9 +92,24 @@ export class WidgetRuntime {
     /** Remove a host and all nested resources; repeated removal is harmless. */
     remove(host: WidgetHost): void {
         if (!this.widgets.delete(host.element)) return
+        WidgetRuntime.hosts.delete(host.element)
         host.destroy()
         this.grid.removeWidget(host.element)
         this.changed = true
+    }
+
+    /** Transfer by snapshot/recreation, matching the legacy workaround for moved nested grids. */
+    private readonly handleDrop = (_event: Event, _previous: GridStackNode, current: GridStackNode): void => {
+        if (!current.el) return
+        const host = WidgetRuntime.hosts.get(current.el)
+        if (!host) return
+        const snapshot = host.snapshot()
+        host.owner.widgets.delete(host.element)
+        host.owner.changed = true
+        WidgetRuntime.hosts.delete(host.element)
+        host.destroy()
+        this.grid.removeWidget(host.element)
+        this.add(snapshot)
     }
 
     /** Enumerate hosts in the same DOM order used by legacy layout serialization. */
@@ -145,7 +166,10 @@ export class WidgetRuntime {
     destroy(): void {
         if (this.destroyed) return
         this.destroyed = true
-        for (const widget of this.widgets.values()) widget.destroy()
+        for (const widget of this.widgets.values()) {
+            WidgetRuntime.hosts.delete(widget.element)
+            widget.destroy()
+        }
         this.widgets.clear()
         this.channel?.close()
         this.grid.offAll()
@@ -180,7 +204,9 @@ export class WidgetHost {
     private gridElement: HTMLDivElement | undefined
     private menuCleanup: (() => void) | undefined
     private menuGrid: GridStack | undefined
+    /** Initialize each iframe navigation; removal detaches this exact listener. */
     private readonly loadListener = (): void => { this.sendInitialization() }
+    /** Forward only valid changed submissions, preserving live form data for serialization. */
     private readonly formListener = (event: { changed?: unknown }): void => {
         if (this.destroyed || event.changed == null || !this.form?.checkValidity(this.form.submission.data)) return
         const current = JSON.stringify(this.form.submission.data)
@@ -192,10 +218,10 @@ export class WidgetHost {
     }
 
     /** Copy caller data so Formio and widget edits cannot mutate a saved fixture. */
-    constructor(private readonly owner: WidgetRuntime, readonly model: WidgetModel) {
+    constructor(readonly owner: WidgetRuntime, readonly model: WidgetModel) {
         this.options = structuredClone(model.options)
-        if (model.type === 'WidgetMenu') this.options.form = menuForm
-        if (model.type === 'WidgetSubGrid') this.options.form = subgridForm
+        if (model.type === 'WidgetMenu') this.options.form = structuredClone(menuForm)
+        if (model.type === 'WidgetSubGrid') this.options.form = structuredClone(subgridForm)
         if (model.type === 'WidgetSandBox') {
             this.options.sandbox ??= defaultScript
             this.options.about ??= { name: 'Sandbox', info: 'Sandboxed widget allowing user defined functionality with JavaScript. User input using Formio form.' }
@@ -207,8 +233,9 @@ export class WidgetHost {
         this.formData = this.options.form ? structuredClone(this.options.form_content ?? {}) : {}
         this.lastContent = JSON.stringify(this.formData)
         this.element.className = 'grid-stack-item'
-        this.content.className = 'grid-stack-item-content'
+        this.content.className = model.type === 'WidgetMenu' || model.type === 'WidgetSubGrid' ? 'grid-stack-item-content' : 'widget-frame-content'
         this.content.style.cssText = 'display:flex;overflow:hidden;'
+        if (model.type === 'WidgetSandBox' || model.type === 'WidgetCustomHTML') this.content.style.cssText += 'width:100%;height:100%;'
         this.element.append(this.content)
         this.formElement.hidden = true
         this.content.append(this.formElement)
@@ -253,10 +280,10 @@ export class WidgetHost {
 
     /** Initialize Formio in legacy order; every async boundary guards removal during setup. */
     private async initializeForm(): Promise<void> {
-        const form = await this.owner.dependencies.forms.createForm(this.formElement, this.options.form ?? {})
-        if (this.destroyed) { form.destroy(); return }
-        this.form = form
         try {
+            const form = await this.owner.dependencies.forms.createForm(this.formElement, this.options.form ?? {})
+            if (this.destroyed) { form.destroy(); return }
+            this.form = form
             await form.setForm(this.options.form ?? {})
             if (this.destroyed) return
             await form.setSubmission({ data: this.formData })
@@ -283,8 +310,10 @@ export class WidgetHost {
     private applyOptions(): void {
         if (this.destroyed) return
         this.iframe?.contentWindow?.postMessage({ options: this.formData } satisfies WidgetMessage, '*')
-        if (typeof this.formData.borderColor === 'string') this.content.style.borderColor = this.formData.borderColor
-        if (typeof this.formData.backgroundColor === 'string') this.content.style.backgroundColor = this.formData.backgroundColor
+        if (this.model.type === 'WidgetMenu' || this.model.type === 'WidgetSubGrid') {
+            if (typeof this.formData.borderColor === 'string') this.content.style.borderColor = this.formData.borderColor
+            if (typeof this.formData.backgroundColor === 'string') this.content.style.backgroundColor = this.formData.backgroundColor
+        }
         if (this.model.type === 'WidgetSubGrid') this.updateNested()
     }
 
@@ -297,7 +326,7 @@ export class WidgetHost {
             this.nested?.destroy()
             this.nested = new WidgetRuntime(this.gridElement, this.owner.dependencies, {
                 header: { version: 1 }, grid: { rows, columns, color: '' }, widgets,
-            })
+            }, true)
             this.nested.setEditing(this.editing)
         }
         const images = this.formData.backgroundImage
@@ -363,15 +392,37 @@ export class WidgetHost {
         await this.nested?.ready
     }
 
+    /** Expose nested ownership for dashboard editors without exposing private registries. */
+    getNestedRuntime(): WidgetRuntime | undefined { return this.nested }
+
+    /** Read editable JavaScript or HTML without normalizing saved text. */
+    getText(): string | undefined { return this.options.sandbox ?? this.options.custom_HTML }
+
+    /** Return a copy of the live Formio schema, including dynamic field definitions. */
+    getFormDefinition(): Fields { return structuredClone(this.form?.form ?? this.options.form ?? {}) }
+
+    /** Update an editor's schema and await Formio before publishing calculated option values. */
+    async setFormDefinition(schema: Fields): Promise<void> {
+        await this.ready
+        if (this.destroyed) throw new Error('Widget is destroyed')
+        if (JSON.stringify(this.getFormDefinition()) !== JSON.stringify(schema)) this.changed = true
+        this.options.form = structuredClone(schema)
+        await this.form?.setForm(this.options.form)
+        if (this.destroyed) return
+        this.formData = structuredClone(this.form?.submission.data ?? this.formData)
+        this.applyOptions()
+    }
+
     /** Replace editable source, retaining legacy script reinitialization and srcdoc navigation. */
     setText(text: string): void {
         if (this.destroyed) throw new Error('Widget is destroyed')
+        const previous = this.getText()
         if (this.model.type === 'WidgetSandBox') this.options.sandbox = text
         else if (this.model.type === 'WidgetCustomHTML') {
             this.options.custom_HTML = text
             if (this.iframe) this.iframe.srcdoc = text
         } else throw new Error('Widget has no editable source')
-        this.changed = true
+        if (previous !== text) this.changed = true
         this.sendInitialization()
     }
 
@@ -386,11 +437,12 @@ export class WidgetHost {
 
     /** Capture the same per-type option shape and property ordering as the legacy serializer. */
     snapshot(): WidgetModel {
+        const data = this.form?.submission.data ?? this.formData
         let options: WidgetOptions
-        if (this.model.type === 'WidgetMenu') options = { form_content: this.formData }
-        else if (this.model.type === 'WidgetSubGrid') options = { form_content: this.formData, widgets: this.nested?.snapshotWidgets() ?? {} }
+        if (this.model.type === 'WidgetMenu') options = { form_content: data }
+        else if (this.model.type === 'WidgetSubGrid') options = { form_content: data, widgets: this.nested?.snapshotWidgets() ?? {} }
         else {
-            options = { form: this.form?.form ?? this.options.form ?? {}, form_content: this.formData, about: this.options.about ?? { name: this.model.type } }
+            options = { form: this.form?.form ?? this.options.form ?? {}, form_content: data, about: this.options.about ?? { name: this.model.type } }
             if (this.model.type === 'WidgetSandBox') options.sandbox = this.options.sandbox ?? defaultScript
             else options.custom_HTML = this.iframe?.srcdoc ?? this.options.custom_HTML ?? ''
         }

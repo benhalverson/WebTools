@@ -128,12 +128,24 @@ importers:
       '@vitejs/plugin-react':
         specifier: 6.1.1
         version: 6.1.1(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.1))
+      flight-indicators-js:
+        specifier: 1.0.5
+        version: 1.0.5
       formiojs:
         specifier: 4.21.7
         version: 4.21.7
+      leaflet:
+        specifier: 1.9.4
+        version: 1.9.4
+      leaflet-rotatedmarker:
+        specifier: 0.2.0
+        version: 0.2.0
       oxlint:
         specifier: 1.81.0
         version: 1.81.0
+      plotly.js-dist-min:
+        specifier: 2.35.0
+        version: 2.35.0
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -1038,6 +1050,9 @@ packages:
   fetch-ponyfill@7.1.0:
     resolution: {integrity: sha512-FhbbL55dj/qdVO3YNK7ZEkshvj3eQ7EuIGV2I6ic/2YiocvyWv+7jg2s4AyS0wdRU75s3tA8ZxI/xPigb0v5Aw==}
 
+  flight-indicators-js@1.0.5:
+    resolution: {integrity: sha512-e/cHpSRO2UIY3ir+wXD2aazgrSiw+2Je1EF7Cae8Y5KpeNgNML+Hy2FGIGg5cXGFRrvwh7V/R/2RI7j/2aCFnw==}
+
   formiojs@4.21.7:
     resolution: {integrity: sha512-DDXPhXABxdEbpyfv0C8SAS6zt92luGFXqe0usPHxSHvlP960GQkhS//WV7TAMrRsjj1WTIqqv3XZha8qTknG3Q==}
 
@@ -1083,6 +1098,12 @@ packages:
   kleur@4.1.5:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
+
+  leaflet-rotatedmarker@0.2.0:
+    resolution: {integrity: sha512-yc97gxLXwbZa+Gk9VCcqI0CkvIBC9oNTTjFsHqq4EQvANrvaboib4UdeQLyTnEqDpaXHCqzwwVIDHtvz2mUiDg==}
+
+  leaflet@1.9.4:
+    resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
 
   lightningcss-android-arm64@1.33.0:
     resolution: {integrity: sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==}
@@ -1232,6 +1253,9 @@ packages:
     resolution: {integrity: sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==}
     engines: {node: '>=20'}
     hasBin: true
+
+  plotly.js-dist-min@2.35.0:
+    resolution: {integrity: sha512-AWyhctrlBf9ZOnKkgdPWy4AOqiw2LYAJgvM33y4GTApiniiL2OjSwbGizDIb8uhlHbZpWEdnq+y8wnhxYY0yQw==}
 
   postcss@8.5.28:
     resolution: {integrity: sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A==}
@@ -2032,6 +2056,8 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  flight-indicators-js@1.0.5: {}
+
   formiojs@4.21.7:
     dependencies:
       '@formio/bootstrap3': 2.12.4-rc.1
@@ -2103,6 +2129,10 @@ snapshots:
   jwt-decode@3.1.2: {}
 
   kleur@4.1.5: {}
+
+  leaflet-rotatedmarker@0.2.0: {}
+
+  leaflet@1.9.4: {}
 
   lightningcss-android-arm64@1.33.0:
     optional: true
@@ -2225,6 +2255,8 @@ snapshots:
   playwright@1.63.0:
     dependencies:
       playwright-core: 1.63.0
+
+  plotly.js-dist-min@2.35.0: {}
 
   postcss@8.5.28:
     dependencies:

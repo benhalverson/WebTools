@@ -52,3 +52,15 @@ test('sandbox document is unchanged and package has no application-source import
         assert.doesNotMatch(await readFile(new URL(`../src/${name}.ts`, import.meta.url), 'utf8'), /from\s+['"].*(?:apps\/|TelemetryDashboard\/|VideoOverlay\/)/)
     }
 })
+
+/** Match legacy download bytes for each authoritative standalone built-in widget. */
+test('standalone saved widgets retain their download format', async () => {
+    const { parseWidget, serializeWidget } = await import('../dist/index.js')
+    for (const name of ['Value', 'Graph', 'Stats', 'Messages', 'Map', 'Attitude', 'MAVLink_Inspector']) {
+        const source = await readFile(new URL(`TelemetryDashboard/SandBoxWidgets/${name}.json`, root), 'utf8')
+        assert.deepEqual(parseWidget(source), JSON.parse(source))
+        // Some checked-in fixtures have hand-formatted empty objects; legacy downloads
+        // serialize their parsed value rather than copying source whitespace.
+        assert.equal(serializeWidget(parseWidget(source).widget), JSON.stringify(JSON.parse(source), null, 2))
+    }
+})

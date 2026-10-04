@@ -4,6 +4,7 @@ import type { GridStack } from 'gridstack'
 import { MAVLink20Processor, mavlink20 } from '@webtools/mavlink/browser'
 import { WidgetRuntime, parseLayout, registerWidgetFields, serializeLayout, messageFields } from '../../src/index.js'
 import type { FormFactory, FormComponents, Layout } from '../../src/index.js'
+import { runLifecycleChecks } from './lifecycle.js'
 import defaultHtml from '../../assets/CustomHTML.html?raw'
 
 declare global {
@@ -15,11 +16,13 @@ declare global {
         serialized: () => string
         publishFixture: () => void
         runtimeErrors: string[]
+        runLifecycleChecks: typeof runLifecycleChecks
     }
 }
 await mavlink20.ready
 registerWidgetFields(window.Formio, mavlink20.map)
 window.runtimeErrors = []
+window.runLifecycleChecks = runLifecycleChecks
 const initial = parseLayout(await (await fetch(`${import.meta.env.BASE_URL}fixtures/Default_Layout.json`)).text())
 
 /** React owns one runtime per mounted layout and disposes it before replacements and unmount. */
@@ -30,13 +33,14 @@ function Dashboard({ layout }: { layout: Layout }) {
         const runtime = new WidgetRuntime(element.current, {
             createGrid: (options, host) => window.GridStack.init(options, host),
             forms: window.Formio,
-            sandboxUrl: `${import.meta.env.BASE_URL}Widgets/SandBox.html`,
+            sandboxUrl: `${import.meta.env.BASE_URL}runtime/Widgets/SandBox.html`,
             defaultHtml,
             onError: error => window.runtimeErrors.push(String(error)),
             mountMenu: menu => {
                 const button = document.createElement('button')
                 button.textContent = 'Edit layout'
                 let editing = false
+                /** Toggle editing without owning a vehicle or provider connection. */
                 const toggle = (): void => { runtime.setEditing(editing = !editing) }
                 button.addEventListener('click', toggle)
                 menu.append(button)
@@ -54,8 +58,11 @@ function Dashboard({ layout }: { layout: Layout }) {
 function App() {
     const [layout, setLayout] = useState(initial)
     const [mounted, setMounted] = useState(true)
+    /** Replace the controlled layout through React state. */
     window.mountLayout = next => { setLayout(next); setMounted(true) }
+    /** Obtain exact legacy-format download text from the active runtime. */
     window.serialized = () => window.runtime ? serializeLayout(window.runtime.snapshot()) : ''
+    /** Decode an in-memory MAVLink packet before broadcasting it; no vehicle connection. */
     window.publishFixture = () => {
         const encoder = new MAVLink20Processor(null, 1, 1)
         const decoder = new MAVLink20Processor()
