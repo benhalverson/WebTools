@@ -116,3 +116,26 @@ Here is [more information on debugging with VSCode](https://code.visualstudio.co
 <p align="center">
 <img src="images/VSCode%20debug.png" width="80%">
 </p>
+
+### RotationCheck React migration and local app routing
+
+RotationCheck now has its own React/TypeScript app and Worker in
+`apps/rotation-check`. Root `pnpm dev` and `pnpm preview` compose it with the
+portal on one origin at the existing `RotationCheck/` destination. Both apps
+also build and run independently with their own package scripts.
+
+Use `WEBTOOLS_BASE_PATH` as the common prefix (`PORTAL_BASE_PATH` remains an
+alias) for **all** build, development and preview commands. The default is `/`.
+See [the routing API](packages/routing/README.md) for the explicit contract,
+404 behavior, app ownership and future deployment integration boundary.
+
+`pnpm test:routing`, `pnpm test:rotation-check`, and
+`pnpm test:rotation-check:browser` cover URL contracts, legacy numerical parity,
+and real app controls in development and built Worker preview. The comparison
+revision is `753a397e818593ac0943854fd7cea3468f49f095` (issue #4 / draft PR #43,
+which includes issue #3 / PR #39). The retained `RotationCheck/` scripts remain
+unchanged test oracles and legacy downloads; the React page does not load them.
+
+The issue #5 branch also includes prerequisite browser/JSDoc follow-up
+`91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
+identical to the original comparison revision above.
