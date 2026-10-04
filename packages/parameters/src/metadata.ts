@@ -11,6 +11,9 @@ export interface ParameterMetadata {
 /** Ordered prefix traversal, exactly as load_param_inputs uses in the legacy UI.
  * This is a compatibility boundary, not a schema validator: matching entries are
  * returned unchanged, and invalid traversed null nodes still throw TypeError.
+ * Supply acyclic data; recursion follows matching prefixes in enumeration order.
+ * @returns The first match accepted by the legacy traversal, or undefined.
+ * @throws TypeError when Object.entries encounters a null or undefined node.
  */
 export function find_parameter_metadata(data: unknown, name: string): unknown {
     for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
@@ -46,11 +49,17 @@ export function is_parameter_metadata(value: unknown): value is ParameterMetadat
     return true
 }
 
+/** Accept non-null, non-array objects without inspecting their fields or prototype. */
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/** Fetch is injected so callers own cancellation, caching, and rendering. */
+/**
+ * Load metadata with the caller's fetch implementation and return JSON unchanged.
+ * The caller owns cancellation, HTTP status handling, caching, and rendering;
+ * this function does not validate the payload or retain request state.
+ * @throws Propagates request failures and JSON decoding rejections.
+ */
 export async function load_parameter_metadata(
     url: string,
     fetcher: (url: string) => Promise<{ json(): Promise<unknown> }>,
@@ -59,7 +68,12 @@ export async function load_parameter_metadata(
     return response.json()
 }
 
-/** Pure extraction of parameter_get_value's conversion (including 32-bit behavior). */
+/**
+ * Parse a text input with parseFloat and apply the legacy unsigned bitmask view.
+ * When bitmaskSize is supplied below 32, negative values are remapped and masked
+ * using JavaScript's signed 32-bit shifts. Widths are deliberately not validated.
+ * Invalid text remains NaN unless bitwise conversion coerces it to zero.
+ */
 export function parameter_input_value(input: string, bitmaskSize?: number): number {
     let value = parseFloat(input)
     if (bitmaskSize !== undefined && bitmaskSize < 32) {
@@ -72,7 +86,12 @@ export function parameter_input_value(input: string, bitmaskSize?: number): numb
     return value
 }
 
-/** Pure extraction of the metadata checkbox change handler. */
+/**
+ * Combine checked bit indices and interpret the result as a signed bitmask.
+ * Indices use parseFloat and JavaScript shift coercion, so duplicates are harmless
+ * and out-of-range indices wrap. Widths below 32 mask and sign-adjust the result;
+ * neither indices nor widths are validated, matching the legacy checkbox handler.
+ */
 export function parameter_bitmask_value(bits: readonly (string | number)[], size = 32): number {
     let value = 0
     for (const bit of bits) value |= 1 << parseFloat(String(bit))
