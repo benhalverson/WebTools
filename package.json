@@ -14,7 +14,8 @@
     "preview": "pnpm --filter portal preview",
     "test:mavlink:browser": "pnpm --filter @webtools/mavlink test:browser",
     "test:transfers:browser": "pnpm --filter @webtools/transfers test:browser",
-    "test:parameters": "pnpm --filter @webtools/parameters test"
+    "test:parameters": "pnpm --filter @webtools/parameters test",
+    "test:parameters:browser": "pnpm --filter @webtools/parameters test:browser"
   },
   "engines": {
     "node": ">=24 <25"
