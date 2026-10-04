@@ -1,5 +1,11 @@
 import { loadDataflashParser, get_base_log_message_types, get_version_and_board } from './index.js'
-/** Minimal built-asset consumer used by Playwright; files stay in this page. */
+/**
+ * Inspect a local file through the built browser assets using a fresh parser.
+ * @param file Log to read in this page; its bytes are never uploaded.
+ * @returns Discovered base messages, instances, first GPS time and log metadata.
+ * @throws File-read, import and upstream parse/extraction errors are propagated.
+ * The parser and bytes are local to this call; no file reference is retained.
+ */
 export async function inspectFile(file: File) {
   const Parser = await loadDataflashParser()
   const log = new Parser()

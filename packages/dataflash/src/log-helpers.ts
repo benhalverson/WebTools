@@ -7,7 +7,15 @@ interface TextMessage { Message: string[] }
 
 // Useful functions that are used by multiple tools
 
-// Get firmware version and board details
+/**
+ * Extract firmware and board metadata with the legacy VER/MSG heuristics.
+ * @param log Initialized parser whose message types describe the available data.
+ * @returns Metadata with undefined values for details that cannot be discovered.
+ * The first VER record takes precedence; bracketed startup MSG records fill in
+ * missing details. OEM version strings retain the base-firmware suffix behavior.
+ * Malformed expected message shapes and upstream read errors propagate instead
+ * of being repaired here.
+ */
 export function get_version_and_board(log: DataflashLog) {
 
     let flight_controller: string | undefined
@@ -107,7 +115,12 @@ export function get_version_and_board(log: DataflashLog) {
     }
 }
 
-// Take all log and return array of available base message types (no instances)
+/**
+ * List discovered message names without instance-specific entries.
+ * @param log Parser whose messageTypes keys supply the discovery order.
+ * @returns A new array in that order, excluding names matching the legacy
+ * bracketed-instance pattern. The parser and its message types are not mutated.
+ */
 export function get_base_log_message_types(log: DataflashLog) {
     let all_types = Object.keys(log.messageTypes)
     let base_types = []
