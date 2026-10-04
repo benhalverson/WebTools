@@ -18,7 +18,9 @@
     "test:routing": "node --test packages/routing/tests/*.test.ts tooling/*.test.ts",
     "test:rotation-check": "node --test apps/rotation-check/tests/*.test.*",
     "test:rotation-check:browser": "node --test apps/rotation-check/tests/browser.cjs",
-    "test:numerics:browser": "pnpm --filter @webtools/numerics test:browser"
+    "test:numerics:browser": "pnpm --filter @webtools/numerics test:browser",
+    "test:kinematic-tools": "node --experimental-vm-modules --test apps/kinematic-tools/tests/parity.test.mjs",
+    "test:kinematic-tools:browser": "node --experimental-vm-modules --test apps/kinematic-tools/tests/browser.mjs"
   },
   "engines": {
     "node": ">=24 <25"
