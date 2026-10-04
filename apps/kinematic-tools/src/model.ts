@@ -11,7 +11,7 @@ export interface Trace { [key: string]: unknown; x?: number[]; y?: number[]; vis
 export interface Shape { type: string; line: { dash: string }; xref: string; x0: number; x1: number; visible: boolean; y0?: number; y1?: number }
 export interface PlotSnapshot {
     data: [Trace, Trace, Trace]
-    layout: { [key: string]: unknown; shapes?: [Shape] }
+    layout: { [key: string]: unknown; shapes?: [Shape]; xaxis: { title: { text: string } }; yaxis: { title: { text: string } } }
 }
 export type Plots = [PlotSnapshot, PlotSnapshot, PlotSnapshot, PlotSnapshot]
 

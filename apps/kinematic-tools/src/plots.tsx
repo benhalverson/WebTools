@@ -14,6 +14,7 @@ export function TrajectoryPlots({ plots, plotly, onError }: { plots: Plots; plot
         ...(index > 1 ? { shapes: [] } : {}),
         width: 1200, height: 300,
         xaxis: { title: { text: 'Time (s)' }, ...(view.range ? { range: view.range, autorange: false } : { autorange: true }) },
+        yaxis: { ...plot.layout.yaxis, autorange: true },
         uirevision: view.revision,
     })), [plots, view])
 

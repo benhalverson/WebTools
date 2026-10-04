@@ -8,7 +8,7 @@ import { chromium } from 'playwright'
 import { listeningOrigin } from '@webtools/routing/tooling'
 import { root, legacy, controlModule, ruckigModule } from './legacy.mjs'
 import { mainDefaults, planeDefaults } from '../src/model.ts'
-import { scenarios } from './scenarios.mjs'
+import { variantScenarios } from './scenarios.mjs'
 const exec = promisify(execFile)
 const app = root + 'apps/kinematic-tools/'
 
@@ -60,6 +60,9 @@ async function compare(page, expected) {
         return { data: plot.data.map(({ x, y, name, visible }) => ({ x, y, name, visible })), shapes: plot.layout.shapes }
     }))
     assert.equal(JSON.stringify(actual.map(p => p.data)), JSON.stringify(expected.map(p => p.data.map(({ x, y, name, visible }) => ({ x, y, name, visible })))))
+    for (let i = 0; i < 2; i++) {
+        for (const key of ['visible', 'y0', 'y1']) assert.equal(actual[i].shapes[0][key], expected[i].layout.shapes[0][key], `target line ${i}: ${key}`)
+    }
 }
 
 /** Exercise navigation, controls, resource bytes and synchronized view reset. */
@@ -73,7 +76,7 @@ async function exercise(context, origin, prefix, oracles) {
         const defaults = plane ? planeDefaults : mainDefaults, oracle = oracles[plane ? 1 : 0]
         await compare(page, await oracle.run(defaults, 'R', 'angle'))
         for (const [attribute, value] of [['min', '0.1'], ['step', '0.1'], ['max', '10']]) assert.equal(await page.locator('#end_time').getAttribute(attribute), value)
-        for (const [name, axis, mode, overrides] of scenarios) {
+        for (const [name, axis, mode, overrides] of variantScenarios(plane)) {
             await page.reload(); await ready(page)
             await page.locator(`input[name=axis][value="${axis}"]`).check()
             await page.locator(`input[name=mode][value="${mode}"]`).check()
@@ -85,11 +88,12 @@ async function exercise(context, origin, prefix, oracles) {
             assert.equal(await page.locator('#desired_vel').isDisabled(), mode === 'angle', name)
             assert.equal(await page.locator('#desired_pos').isDisabled(), mode === 'rate', name)
         }
+        await page.evaluate(() => window.Plotly.relayout(document.querySelector('#ang_accel .js-plotly-plot'), { 'yaxis.range[0]': -10, 'yaxis.range[1]': 10 }))
         // Zoom propagation and the legacy reset event from a different plot.
         await page.evaluate(() => window.Plotly.relayout(document.querySelector('#ang_pos .js-plotly-plot'), { 'xaxis.range[0]': 0.1, 'xaxis.range[1]': 0.4 }))
         await page.waitForFunction(() => [...document.querySelectorAll('.js-plotly-plot')].every(p => p.layout.xaxis.range?.[0] === 0.1))
         await page.evaluate(() => window.Plotly.relayout(document.querySelector('#ang_vel .js-plotly-plot'), { 'xaxis.autorange': true, 'yaxis.autorange': true }))
-        await page.waitForFunction(() => [...document.querySelectorAll('.js-plotly-plot')].every(p => p.layout.xaxis.autorange === true))
+        await page.waitForFunction(() => [...document.querySelectorAll('.js-plotly-plot')].every(p => p.layout.xaxis.autorange === true && p.layout.yaxis.autorange === true))
         const link = page.getByRole('link', { name: plane ? 'Main Kinematic Tool' : 'ArduPlane Kinematic Tool', exact: true })
         await link.click(); await ready(page)
         assert.equal(page.url(), plane ? base : base + 'plane/')
@@ -168,7 +172,7 @@ test('real Chromium: independent dev/Worker preview, prefixes, legacy parity and
                     await page.goto(`${running.origin}${prefix}RotationCheck/`)
                     await page.locator('#rotations').waitFor()
                     await page.goto(`${running.origin}${prefix}`)
-                    assert.equal(await page.locator('h1').innerText(), 'ArduPilot WebTools')
+                    assert.equal(await page.locator('h1').innerText(), 'ArduPilot Web Tools')
                     await page.close()
                 } finally { await context.close(); await running.stop() }
             }

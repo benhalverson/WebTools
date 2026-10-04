@@ -6,7 +6,7 @@ import { createPlaneSimulator } from '../src/plane-model.ts'
 import { mainDefaults, planeDefaults } from '../src/model.ts'
 import { controlModule, ruckigModule, legacy, original, root } from './legacy.mjs'
 
-import { scenarios, serialize } from './scenarios.mjs'
+import { variantScenarios, serialize } from './scenarios.mjs'
 
 test('actual WASM trajectories serialize byte-for-byte like the immutable legacy revision', async () => {
     const control = await controlModule(), ruckig = await ruckigModule()
@@ -14,11 +14,7 @@ test('actual WASM trajectories serialize byte-for-byte like the immutable legacy
         const oracle = await legacy(plane, control, ruckig)
         const simulate = plane ? createPlaneSimulator(control) : createMainSimulator(control, ruckig)
         const defaults = plane ? planeDefaults : mainDefaults
-        const cases = [...scenarios, ...(!plane ? [
-            ['yaw combined', 'Y', 'angle+rate', { desired_vel: '12', desired_pos: '20' }],
-            ['rate time constant', 'Y', 'rate', { desired_vel: '60', PILOT_Y_RATE_TC: '0.2' }],
-        ] : [['plane angle gain', 'P', 'angle', { PTCH_ANGLE_P: '4', PTCH2SRV_RMAX_UP: '15', PTCH2SRV_RMAX_DN: '40' }]])]
-        for (const [name, axis, mode, overrides] of cases) {
+        for (const [name, axis, mode, overrides] of variantScenarios(plane)) {
             const values = { ...defaults, ...overrides }
             const expected = JSON.stringify(await oracle.run(values, axis, mode))
             assert.equal(serialize(simulate(values, axis, mode)), expected, `${plane ? 'plane' : 'main'}: ${name}`)
