@@ -15,7 +15,9 @@
     "test:parameters": "pnpm --filter @webtools/parameters test",
     "test:react-workflows": "pnpm --filter @webtools/parameters build && pnpm --filter @webtools/react-workflows test",
     "test:react-workflows:browser": "pnpm --filter @webtools/parameters build && pnpm --filter @webtools/react-workflows test:browser",
-    "test:mavlink:browser": "pnpm --filter @webtools/mavlink test:browser"
+    "test:mavlink:browser": "pnpm --filter @webtools/mavlink test:browser",
+    "test:widgets": "pnpm --filter @webtools/widget-runtime test",
+    "test:widgets:browser": "pnpm --filter @webtools/mavlink build && pnpm --filter @webtools/widget-runtime test:browser"
   },
   "engines": {
     "node": ">=24 <25"
