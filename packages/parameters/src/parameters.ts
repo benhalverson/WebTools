@@ -1,11 +1,15 @@
 // Helpers to return parameter values and names
 
-// Helper for Vector3 param names
+/** Append X, Y, and Z to the prefix in axis order, without inserting separators. */
 export function get_param_name_vector3(prefix: string): [string, string, string] {
     return [prefix + "X", prefix + "Y", prefix + "Z"]
 }
 
-// Get Compass params names for given index
+/**
+ * Build the parameter names for a compass instance, including its vector axes.
+ * An index numerically equal to one uses unsuffixed names; other indices retain
+ * their original spelling as a suffix, including the legacy COMPASS_EXTERN form.
+ */
 export function get_compass_param_names(index: number | string) {
 
     let use_name = "COMPASS_USE"
@@ -57,7 +61,14 @@ export interface ParameterReadResult {
     changes: ParameterChange[]
 }
 
-/** Pure counterpart of get_param_value; consumers own alerts/logging. */
+/**
+ * Read matching log entries in order and collect changes without notifications.
+ * Missing entries return undefined. Undefined values do not establish a previous
+ * value for change detection, preserving the legacy handling of sparse logs.
+ * @param allow_change False stops at the first change, retaining the prior value
+ * and recording that change as ignored; otherwise the last matching value wins.
+ * @returns The selected value and ordered changes with legacy notification text.
+ */
 export function read_param_value(param_log: ParameterLog, name: string, allow_change?: boolean): ParameterReadResult {
     let value: number | undefined
     const changes: ParameterChange[] = []
@@ -76,12 +87,21 @@ export function read_param_value(param_log: ParameterLog, name: string, allow_ch
     return { value, changes }
 }
 
-/** Value-only convenience API; use read_param_value for notification details. */
+/**
+ * Read the last matching parameter value, or undefined when it is absent.
+ * With allow_change false, return the value before the first detected change.
+ * This emits no notifications; use read_param_value for the change records.
+ */
 export function get_param_value(param_log: ParameterLog, name: string, allow_change?: boolean): number | undefined {
     return read_param_value(param_log, name, allow_change).value
 }
 
-// Return a string for a given param value
+/**
+ * Format a value after float32 rounding using the legacy 7-to-9-digit search.
+ * Trailing zeros are omitted, signed zero becomes "0", and infinities retain
+ * their JavaScript spelling.
+ * @throws When no representation round-trips to the float32 value, including NaN.
+ */
 export function param_to_string(value: number): string
 {
     // Make sure number can be represented by 32 bit float
@@ -107,7 +127,12 @@ export function param_to_string(value: number): string
     throw new Error("Could not convert " + value.toString() + " to float string")
 }
 
-// Return formatted text for param download
+/**
+ * Serialize own enumerable parameters as naturally sorted name,value lines.
+ * Each value uses param_to_string and each line ends with a newline; an empty
+ * record produces an empty string. Sorting follows the host's default locale.
+ * @throws Propagates formatting errors for values such as NaN.
+ */
 export function get_param_download_text(params: Readonly<Record<string, number>>): string
 {
     // Natural sort to match MAVProxy and Mission Planner param file ordering
