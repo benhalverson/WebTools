@@ -1,0 +1,10 @@
+{
+  "revision": "ac32dd6",
+  "sha256": {
+    "modules/MAVLink/mavlink.js": "b154c5c09a2a56e999d698bee151196c3a9bf6f9af480685d58e09ef81892841",
+    "modules/MAVLink/runtime-fixes.patch": "aa972e4f2a44e09fa1c147591db3129a157cbb91c9b4736ce519a5a55505a573",
+    "modules/MAVLink/local_modules/jspack/jspack.js": "f5d2c53b61e29b50258a803e2a605b4aef26fa7df0305df20e241ac6db56ed0b",
+    "tests/fixtures/mavlink.json": "03651fe00fb94f708d27321a5be7d31ddb02c10552fe09dea85b88a71fa88ed8",
+    "tests/mavlink.test.cjs": "feba2c5f5c13f27202d76db1b235587c774a5950ff70342688dfec42bd7afdf5"
+  }
+}
