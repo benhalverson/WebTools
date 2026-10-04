@@ -21,7 +21,7 @@ const server = http.createServer((req,res) => {
     const directory = production ? buildDirectory : root;
     const file = path.resolve(directory, production ? pathname.slice('/tools/'.length) : '.' + pathname);
     if (!file.startsWith(directory + path.sep)) return res.writeHead(403).end();
-    if (file === path.join(root,'empty.html')) return res.setHeader('Content-Type','text/html'), res.end('<!doctype html><title>MAVLink parity</title>');
+    if (file === path.join(root,'empty.html')) return res.setHeader('Content-Type','text/html'), res.end('<!doctype html><meta charset="utf-8"><title>MAVLink parity</title>');
     fs.readFile(file,(error,bytes) => {
         if (error) return res.writeHead(404).end();
         res.setHeader('Content-Type', /\.(mjs|js)$/.test(file) ? 'text/javascript; charset=utf-8' : 'application/octet-stream');
