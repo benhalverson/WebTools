@@ -2,22 +2,33 @@
 import { array_abs, array_mean, array_mul, array_log10, array_scale } from './array.js';
 import type { ComplexArray, ComplexInput, ComplexStorage } from './array.js';
 export interface RealFFT {
+    /** Allocate a writable interleaved complex buffer for this FFT instance. */
     createComplexArray(): number[];
+    /** Write the real-input transform into out synchronously; implementation
+     * errors propagate to run_fft without translation. */
     realTransform(out: number[], data: readonly number[]): void;
 }
 export interface WindowCorrection { linear: number; energy: number }
 export interface AmplitudeScale {
+    /** Convert amplitudes to power for PSD, otherwise return the same array. */
     fun(x: number[]): number[];
+    /** Apply the selected decibel conversion, or return linear values unchanged. */
     scale(x: number[]): number[];
     label: string;
+    /** Format the named Plotly coordinate with the selected display units. */
     hover(axis: string): string;
     correction_scale?: number;
+    /** Select linear correction or energy-squared correction per bin width
+     * (resolution in hertz) for PSD, without guarding zero resolution. */
     window_correction(correction: WindowCorrection, resolution: number): number;
+    /** Convert the selected window correction to its reciprocal amplitude factor. */
     quantization_correction(window_correction: number): number;
 }
 export interface FrequencyScale {
+    /** Convert hertz to RPM in a new array, or preserve the hertz array identity. */
     fun(x: number[]): number[];
     label: string;
+    /** Format the named Plotly coordinate with the selected display units. */
     hover(axis: string): string;
     type: 'log' | 'linear';
 }
@@ -26,7 +37,9 @@ export type FFTResult<K extends string> = { center: number[] } &
 // Helper functions for FFTs
 // For use with https://github.com/indutny/fft.js
 
-// return hanning window array of given length
+/** Build a symmetric Hann window of len samples.
+ * Zero length returns an empty array and length one returns [NaN], preserving
+ * the legacy formula. Invalid array lengths throw RangeError. */
 export function hanning(len: number): number[] {
     const w = new Array<number>(len)
     const scale = (2*Math.PI) / (len - 1)
@@ -36,9 +49,9 @@ export function hanning(len: number): number[] {
     return w
 }
 
-// Calculate correction factors for linear and energy spectrum
-// linear: 1 / mean(w)
-// energy: 1 / sqrt(mean(w.^2))
+/** Compute reciprocal mean and reciprocal RMS corrections for a window.
+ * Empty windows produce NaN corrections; all-zero windows produce Infinity.
+ * Inputs are neither normalized nor modified. */
 export function window_correction_factors(w: readonly number[]): WindowCorrection {
     return {
         linear: 1/array_mean(w),
@@ -46,12 +59,15 @@ export function window_correction_factors(w: readonly number[]): WindowCorrectio
     }
 }
 
-// Length of real half of fft of len points
+/** Return the nonnegative-frequency bin count floor(len / 2) + 1.
+ * This arithmetic helper does not validate the transform length. */
 export function real_length(len: number): number {
     return Math.floor(len / 2) + 1
 }
 
-// Frequency bins for given fft length and sample period (real only)
+/** Return real-spectrum bin frequencies for a transform length and sample period.
+ * @param d Sample period in seconds when frequencies are required in hertz.
+ * Zero or non-finite periods retain ordinary JavaScript arithmetic. */
 export function rfft_freq(len: number, d: number): number[] {
     const real_len = real_length(len)
     const freq = new Array<number>(real_len)
@@ -61,7 +77,20 @@ export function rfft_freq(len: number, d: number): number[] {
     return freq
 }
 
-// Run fft on arrays in data object with given keys
+/** Compute windowed, single-sided FFTs for the requested data channels.
+ * @param data Channels; the first requested channel must exist and determines
+ * the number of windows. Missing later channels leave sparse result windows.
+ * @param keys Channel names, which must not collide with center or another
+ * channel’s Max property in the flat result object.
+ * @param window_size Samples per window, compatible with the supplied FFT.
+ * @param window_spacing Sample offset between successive windows.
+ * @param windowing_function Multipliers applied before each transform.
+ * @param fft Synchronous FFT implementation; its errors propagate unchanged.
+ * @param take_max Include maximum absolute windowed values only when true.
+ * @returns Sample-index centers and split spectra normalized by window_size,
+ * with interior bins doubled and DC/final bins left undoubled.
+ * @throws When the first channel is absent or an allocation length is invalid.
+ * Invalid sizes and spacing are not clamped or otherwise validated. */
 export function run_fft<K extends string>(data: Partial<Record<K, readonly number[]>>, keys: readonly K[], window_size: number, window_spacing: number, windowing_function: readonly number[], fft: RealFFT, take_max?: boolean): FFTResult<K> {
     const num_points = data[keys[0]!]!.length
     const real_len = real_length(window_size)
@@ -130,7 +159,10 @@ export function run_fft<K extends string>(data: Partial<Record<K, readonly numbe
     return ret as FFTResult<K>
 }
 
-// Take result of above FFT and recreate full double sided spectrum including removing scale
+/** Mirror a single-sided spectrum, halving interior bins and conjugating their
+ * mirrors while copying DC and Nyquist. Normalization by window size remains.
+ * Missing endpoint components are copied as undefined; missing interior
+ * components produce NaN. An empty real component throws RangeError. */
 export function to_double_sided(X: ComplexInput): ComplexStorage {
     const real_len = X[0].length
     const full_len = (real_len - 1) * 2
@@ -159,7 +191,10 @@ export function to_double_sided(X: ComplexInput): ComplexStorage {
     return ret
 }
 
-// Populate target complex array in fft.js interleaved format
+/** Copy split complex components into the supplied interleaved FFT buffer.
+ * The real-component length controls writes; missing imaginary components
+ * become explicit undefined. The target grows as needed and trailing entries
+ * beyond the copied region remain unchanged. */
 export function to_fft_format(target: (number | undefined)[], source: readonly [readonly (number | undefined)[], readonly (number | undefined)[]]): void {
     const len = source[0].length
     for (let i=0;i<len;i++) {
@@ -169,8 +204,10 @@ export function to_fft_format(target: (number | undefined)[], source: readonly [
     }
 }
 
-// Helper function to change the value of a number input in powers of 2
-// Bind to onchange of value input
+/** Handle number-input changes by stepping unit edits to adjacent powers of two.
+ * The input’s data-last attribute tracks the previous value, initially using
+ * defaultValue. Non-unit edits are recorded unchanged; invalid numeric text
+ * retains the legacy parseFloat/NaN behavior. Mutates value and data-last. */
 export function fft_window_size_inc(event: { target: HTMLInputElement }): void {
 
     // Stash the last valid window size as a data attribute
@@ -208,38 +245,58 @@ export function fft_window_size_inc(event: { target: HTMLInputElement }): void {
     event.target.setAttribute(attribute_name, event.target.value)
 }
 
-// Get amplitude scale object
+/** Create spectrum conversion and display helpers for amplitude, dB, or PSD.
+ * @param use_DB Convert amplitude to decibels when PSD is disabled.
+ * @param use_PSD Select power spectral density in dB/Hz, taking precedence.
+ * @returns Conversion, correction and Plotly hover helpers. Identity paths
+ * return their input array; logarithmic and reciprocal paths retain non-finite
+ * results for zero or invalid inputs. */
 export function fft_amplitude_scale(use_DB: boolean, use_PSD: boolean): AmplitudeScale {
 
     let ret: AmplitudeScale
     if (use_PSD) {
         ret = {
+            /** Square amplitudes into a new power array. */
             fun: function (x) { return array_mul(x,x) }, // x.^2
+            /** Convert power to dB without clamping zero or negative values. */
             scale: function (x) { return array_scale(array_log10(x), 10.0) }, // 10 * log10(x)
             label: "PSD (dB/Hz)",
+            /** Format the named Plotly coordinate with this scale’s units. */
             hover: function (axis) { return "%{" + axis + ":.2f} dB/Hz" },
+            /** Scale squared energy correction by half the reciprocal bin width. */
             window_correction: function(correction, resolution) { return ((correction.energy**2) * 0.5) / resolution },
+            /** Undo a power correction in amplitude units; zero is not guarded. */
             quantization_correction: function(window_correction) { return 1 / Math.sqrt(window_correction) },
 
         }
     } else if (use_DB) {
         ret = {
+            /** Return the supplied values unchanged, preserving array identity. */
             fun: function (x) { return x },
+            /** Convert amplitude to dB without clamping zero or negative values. */
             scale: function (x) { return array_scale(array_log10(x), 20.0) }, // 20 * log10(x)
             label: "Amplitude (dB)",
+            /** Format the named Plotly coordinate with this scale’s units. */
             hover: function (axis) { return "%{" + axis + ":.2f} dB" },
             correction_scale: 1.0,
+            /** Use the linear window correction independently of bin width. */
             window_correction: function(correction, _resolution) { return correction.linear },
+            /** Undo a linear correction; zero is not guarded. */
             quantization_correction: function(window_correction) { return 1 / window_correction },
 
         }
     } else {
         ret = {
+            /** Return the supplied values unchanged, preserving array identity. */
             fun: function (x) { return x },
+            /** Return amplitudes unchanged, preserving array identity. */
             scale: function (x) { return x },
             label: "Amplitude",
+            /** Format the named Plotly coordinate with this scale’s units. */
             hover: function (axis) { return "%{" + axis + ":.2f}" },
+            /** Use the linear window correction independently of bin width. */
             window_correction: function(correction, _resolution) { return correction.linear },
+            /** Undo a linear correction; zero is not guarded. */
             quantization_correction: function(window_correction) { return 1 / window_correction },
 
         }
@@ -248,21 +305,28 @@ export function fft_amplitude_scale(use_DB: boolean, use_PSD: boolean): Amplitud
     return ret
 }
 
-// Get frequency scale object
+/** Create frequency conversion and Plotly axis helpers.
+ * @param use_RPM Convert hertz to revolutions per minute by multiplying by 60.
+ * @param log_scale Select the axis type without transforming sample values.
+ * @returns Helpers whose hertz conversion preserves the input array identity. */
 export function fft_frequency_scale(use_RPM: boolean, log_scale: boolean): FrequencyScale {
 
     let ret: FrequencyScale
     if (use_RPM) {
         ret = { type: log_scale ? "log" : "linear",
+            /** Convert hertz to RPM in a newly allocated array. */
             fun: function (x) { return array_scale(x, 60.0) },
             label: "RPM",
+            /** Format the named Plotly coordinate with this scale’s units. */
             hover: function (axis) { return "%{" + axis + ":.2f} RPM" },
 
         }
     } else {
         ret = { type: log_scale ? "log" : "linear",
+            /** Return the supplied values unchanged, preserving array identity. */
             fun: function (x) { return x },
             label: "Frequency (Hz)",
+            /** Format the named Plotly coordinate with this scale’s units. */
             hover: function (axis) { return "%{" + axis + ":.2f} Hz" },
         }
     }
