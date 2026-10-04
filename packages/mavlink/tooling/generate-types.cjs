@@ -2,6 +2,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { mavlink20: mav } = require('../../../modules/MAVLink/mavlink.js');
 const root = path.resolve(__dirname, '..');
+/**
+ * Derive declarations from the pinned codec metadata and handwritten boundary.
+ * Instantiates each message only to inspect its field order and wire format;
+ * this function does not write files or initialize a transport.
+ * @returns Complete deterministic declaration text for build verification or regeneration.
+ * @throws When the boundary cannot be read or a message's format and field count disagree.
+ */
 function generate() {
     const lines = ['// Generated declarations from the pinned runtime metadata; do not hand edit.', fs.readFileSync(path.join(root, 'src/boundary.txt'), 'utf8')];
     const names = Object.keys(mav.messages).filter(name => name !== 'bad_data');
