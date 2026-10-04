@@ -14,6 +14,12 @@ export interface ParameterControlProps {
 
 /** Controlled replacement for the controls owned by ParameterMetadata.js.
  * The parent owns the raw string, including empty/partial numeric input.
+ * Metadata is narrowed before use; absent or unsupported metadata falls back
+ * to a numeric control. Browser input events report their raw DOM string.
+ * Unknown enum values remain unselected after every render. Bitmask changes
+ * use metadata-defined bits and legacy width masking/shift coercions at
+ * bitmaskSize; range constraints are optional HTML attributes.
+ * No parameter write or asynchronous operation is performed.
  */
 export function ParameterControl({ name, metadata: document, value, onChange, disabled = false,
     allowValues = true, constrain = false, bitmaskSize = 32 }: ParameterControlProps) {

@@ -6,6 +6,9 @@ import type { PlotlyApi, SaveAs } from '../../src/index.js'
 declare global { interface Window { Plotly: PlotlyApi; saveAs: SaveAs } }
 const metadata: unknown = { TEST_: { TEST_GAIN: { Description: 'Test gain', Units: 'Hz', Range: { low: '0', high: '10' } },
     TEST_MODE: { Values: { 0: 'Off', 1: 'On' } }, TEST_MASK: { Bitmask: { 0: 'First', 2: 'Third', 7: 'Sign', 9: 'Hidden' } } } }
+/** Exercise controlled metadata inputs, pinned vendor plotting, and legacy file
+ * workflows together. Errors remain visible for browser assertions, including
+ * the intentionally retained loading overlay after a rejected operation. */
 function Workflows() {
     const [gain, setGain] = useState('1')
     const [mode, setMode] = useState('9')
@@ -14,9 +17,12 @@ function Workflows() {
     const [error, setError] = useState('')
     const [events, setEvents] = useState(0)
     const [loaded, setLoaded] = useState('')
+    /** Expose asynchronous workflow errors as stable, browser-readable text. */
     const reportError = useCallback((error: unknown) => setError(String(error)), [])
     const { visible, run } = useLoading(reportError)
+    /** Retain the original received File and display its name without reading it. */
     const receiveFile = useCallback((file: File) => { setFile(file); setLoaded(file.name) }, [])
+    /** Identify an external-viewer payload by its byte count for assertions. */
     const receiveBuffer = useCallback((buffer: ArrayBuffer) => setLoaded(`buffer:${buffer.byteLength}`), [])
     useOpenInReceiver(receiveFile, receiveBuffer)
     const data = useMemo(() => [{ x: [0, 1, 2], y: [0, Number(gain), 2 * Number(gain)], type: 'scatter' }], [gain])
@@ -37,6 +43,7 @@ function Workflows() {
         <LoadingOverlay visible={visible} />
     </>
 }
+/** Toggle the complete workflow subtree to verify cleanup and fresh mounts. */
 function Consumer() {
     const [mounted, setMounted] = useState(true)
     return <><button id="toggle" onClick={() => setMounted(value => !value)}>Toggle workflows</button>{mounted && <Workflows />}</>

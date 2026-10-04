@@ -6,7 +6,7 @@ import { resolve, extname, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { chromium } from 'playwright'
-const root = fileURLToPath(new URL('../../../', import.meta.url))
+const root = resolve(fileURLToPath(new URL('../../../', import.meta.url)))
 const packageRoot = resolve(root, 'packages/react-workflows')
 for (const prefix of ['/', '/Tools/WebTools/']) {
     const build = spawnSync('corepack', ['pnpm', '--filter', '@webtools/react-workflows', 'build:consumer'], {
@@ -127,7 +127,9 @@ for (const prefix of ['/', '/Tools/WebTools/']) {
         await page.getByRole('button', { name: 'Fail loading', exact: true }).click()
         await page.waitForFunction(() => document.querySelector('#error').textContent.includes('Recorded failure'))
         assert.equal(await page.locator('#loading').evaluate(node => node.style.visibility), 'visible', 'preserve separate legacy failure-overlay bug')
-        await page.locator('#toggle').click({ force: true })
+        // The intentionally retained failure overlay intercepts pointer clicks.
+        // Unmount through the host control to exercise lifecycle cleanup.
+        await page.locator('#toggle').dispatchEvent('click')
         assert.equal(await page.locator('#loading').count(), 0)
         // Deterministic vendor promises cover unmounts during both imperative
         // operations, rejection/retry, and receiver readiness after unmount.

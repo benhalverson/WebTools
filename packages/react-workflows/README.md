@@ -82,10 +82,12 @@ ordering, labels, availability, payload/filename/bytes, and wildcard behavior.
 They also check external transport delay/cancellation, control markup contracts,
 and delegation of exact Blob identity to FileSaver. No Jest/Vitest is used.
 
-Validation in the implementation environment: strict workspace typecheck/lint,
-all production builds, 116 retained Node tests, 10 parameter tests and 5 workflow
-Node tests passed. The browser suite is retained but **not verified here**:
-`/usr/bin/chromium` exits before any page loads with `socket() failed: Operation
-not permitted`. The existing portal browser suite is similarly blocked by an
-unavailable Playwright browser. Browser acceptance must pass on a supported
-runner before merging; no live provider, hardware or deployment was used.
+Validation: strict workspace typecheck/lint, production builds, 116 retained
+Node tests, 10 parameter tests and 5 workflow Node tests passed. Real Chromium
+151.0.7922.173 passed the built workflow suite at `/` and `/Tools/WebTools/`,
+including HardwareReport filename/bytes, unknown enum preservation, pending
+Plotly operations, rejection/retry, readiness-delayed receiver cleanup, and
+repeated mounts. The fixture server normalizes its repository root before
+checking path containment. The intentional failure overlay is unmounted with
+a programmatic host-control click because it intercepts pointer input.
+No live provider, hardware or deployment was used.
