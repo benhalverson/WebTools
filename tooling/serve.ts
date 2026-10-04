@@ -65,6 +65,7 @@ async function main(): Promise<void> {
     const origins: Record<Application, string> = {
         portal: await start('portal', mode, prefix),
         rotationCheck: await start('rotation-check', mode, prefix),
+        dfuLoader: await start('dfu-loader', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {
         const parsed = requestPath(incoming.url)

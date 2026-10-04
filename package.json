@@ -17,7 +17,9 @@
     "test:react-workflows:browser": "pnpm --filter @webtools/parameters build && pnpm --filter @webtools/react-workflows test:browser",
     "test:routing": "node --test packages/routing/tests/*.test.ts tooling/*.test.ts",
     "test:rotation-check": "node --test apps/rotation-check/tests/*.test.*",
-    "test:rotation-check:browser": "node --test apps/rotation-check/tests/browser.cjs"
+    "test:rotation-check:browser": "node --test apps/rotation-check/tests/browser.cjs",
+    "test:dfu-loader": "node --test apps/dfu-loader/tests/*.test.ts",
+    "test:dfu-loader:browser": "node --test apps/dfu-loader/tests/browser.cjs"
   },
   "engines": {
     "node": ">=24 <25"
