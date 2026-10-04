@@ -5,6 +5,7 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const { test } = require('node:test');
 const { chromium } = require('playwright');
+const { listeningOrigin } = require('@webtools/routing/tooling');
 const { installDfuMock } = require('./mock-usb.cjs');
 const root = path.resolve(__dirname, '../../..');
 const baseRevision = '0f4607db3dccbc7d06e5847c02465dab38d1eb80';
@@ -36,7 +37,7 @@ async function start(mode, prefix, gateway = false) {
         const origin = await new Promise((resolve, reject) => {
             const timer = setTimeout(() => reject(new Error(output)), 60000);
             /** Capture the server's actual ephemeral listening address. */
-            const read = chunk => { output += chunk; const match = output.match(/http:\/\/127\.0\.0\.1:\d+/); if (match) { clearTimeout(timer); resolve(match[0]); } };
+            const read = chunk => { output += chunk; const origin = listeningOrigin(output); if (origin) { clearTimeout(timer); resolve(origin); } };
             child.stdout.on('data', read); child.stderr.on('data', read);
             child.on('error', error => { clearTimeout(timer); reject(error); });
             child.on('exit', code => { clearTimeout(timer); reject(new Error(`Server exited ${code}: ${output}`)); });
