@@ -1,5 +1,5 @@
 /** Stable public mount names shared by apps, Workers and local tooling. */
-export const applications = { portal: '', rotationCheck: 'RotationCheck/' } as const
+export const applications = { portal: '', rotationCheck: 'RotationCheck/', filterTool: 'FilterTool/' } as const
 export type Application = keyof typeof applications
 
 /** Normalize a common hosting prefix, rejecting encoded paths and traversal. */
@@ -17,8 +17,11 @@ export function applicationBase(application: Application, prefix = '/'): string 
 
 /** Select the owning app at a path boundary; unknown routes remain portal 404s. */
 export function applicationForPath(pathname: string, prefix = '/'): Application {
-    const mount = applicationBase('rotationCheck', prefix)
-    return pathname === mount.slice(0, -1) || pathname.startsWith(mount) ? 'rotationCheck' : 'portal'
+    for (const app of ['rotationCheck', 'filterTool'] as const) {
+        const mount = applicationBase(app, prefix)
+        if (pathname === mount.slice(0, -1) || pathname.startsWith(mount)) return app
+    }
+    return 'portal'
 }
 
 export interface AssetBinding { fetch(request: Request): Promise<Response> }
