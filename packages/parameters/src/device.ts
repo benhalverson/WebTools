@@ -19,6 +19,13 @@ export const DEVICE_TYPE_IMU = 1
 export const DEVICE_TYPE_BARO = 2
 export const DEVICE_TYPE_AIRSPEED = 3
 
+/**
+ * Decode a packed device identifier using the selected DEVICE_TYPE_* lookup.
+ * Signed JavaScript bit shifts and lookup whitespace match the legacy decoder.
+ * DRONECAN reports sensor_id as the decoded type minus one; other buses report
+ * devtype. Unrecognized bus or device codes retain the "Unknown" label.
+ * @returns The decoded fields, or undefined after logging an unsupported type.
+ */
 export function decode_devid(ID: number, type: number): DecodedDevice | undefined {
 
 const bus_type = ID & 0x07
@@ -143,6 +150,7 @@ const airspeed_types: Readonly<Record<number, string>> = {
     0x0B : "AUAV",
 }
 
+/** Resolve a device or bus label, falling back to the legacy "Unknown" label. */
 function get(lookup: Readonly<Record<number, string>>, index: number): string {
     if (lookup[index] != null) {
         return lookup[index]
