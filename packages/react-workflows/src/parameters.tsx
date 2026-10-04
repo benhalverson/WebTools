@@ -9,6 +9,10 @@ export interface ParameterControlProps {
     disabled?: boolean
     allowValues?: boolean
     constrain?: boolean
+    /** Native numeric step; omitted consumers retain unrestricted fractional input. */
+    step?: number | string
+    /** Empty-value hint passed to the native numeric input. */
+    placeholder?: string
     bitmaskSize?: number
 }
 
@@ -22,7 +26,7 @@ export interface ParameterControlProps {
  * No parameter write or asynchronous operation is performed.
  */
 export function ParameterControl({ name, metadata: document, value, onChange, disabled = false,
-    allowValues = true, constrain = false, bitmaskSize = 32 }: ParameterControlProps) {
+    allowValues = true, constrain = false, step = 'any', placeholder, bitmaskSize = 32 }: ParameterControlProps) {
     const raw = find_parameter_metadata(document, name)
     const metadata = is_parameter_metadata(raw) ? raw : undefined
     const values = allowValues ? metadata?.Values : undefined
@@ -40,7 +44,7 @@ export function ParameterControl({ name, metadata: document, value, onChange, di
         {values && !bits ? <select ref={select} id={name} name={name} disabled={disabled} value={value} onChange={event => onChange(event.currentTarget.value)}>
             {Object.entries(values).map(([key, description]) => <option key={key} value={key}>{key}:{description}</option>)}
         </select> : <input id={name} name={name} type="number" title={metadata?.Description} disabled={disabled}
-            value={value} min={range?.low} max={range?.high} step={bits ? 1 : 'any'} data-type={bits ? bitmaskSize : undefined}
+            value={value} placeholder={placeholder} min={range?.low} max={range?.high} step={bits ? 1 : step} data-type={bits ? bitmaskSize : undefined}
             onChange={event => onChange(event.currentTarget.value)} />}
         {!values && metadata?.Units}
         {bits && <><br />{Object.entries(bits).map(([bit, description], index) => {
