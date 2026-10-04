@@ -255,12 +255,13 @@ async function checkLifecycle(context, page, origin, base, oracle) {
 }
 
 /** Exercises the application entry lifecycle disposal against real built vendor resources. */
-async function checkOwnedCleanup(page, origin, base) {
+async function checkOwnedCleanup(page, origin, base, mode) {
     await page.goto(origin + base + 'SCurveTool/');
     await snapshot(page);
-    await page.evaluate(async () => {
-        const script = [...document.querySelectorAll('script[type="module"]')].find(script => /(?:main\.tsx|assets\/index-)/.test(script.src));
-        window.appLifecycle = await import(script.src);
+    const manifest = mode === 'preview' ? JSON.parse(await fs.readFile(path.join(root, 'apps/scurve-tool/dist/client/.vite/manifest.json'), 'utf8')) : null;
+    const modulePath = mode === 'preview' ? manifest['src/main.tsx'].file : 'src/main.tsx';
+    await page.evaluate(async moduleURL => {
+        window.appLifecycle = await import(moduleURL);
         const vendor = window.Plotly;
         const live = new Set(document.querySelectorAll('.js-plotly-plot'));
         const originalNewPlot = vendor.newPlot;
@@ -270,7 +271,7 @@ async function checkOwnedCleanup(page, origin, base) {
         vendor.newPlot = function(node, ...args) { live.add(node); window.lifecycleCounts.created++; return originalNewPlot.call(this, node, ...args); };
         /** Count and dispose actual renderer nodes owned by unmounted apps. */
         vendor.purge = function(node) { if (live.delete(node)) window.lifecycleCounts.purged++; return originalPurge.call(this, node); };
-    });
+    }, origin + base + 'SCurveTool/' + modulePath);
     for (let index = 0; index < 3; index++) {
         await page.evaluate(() => window.appLifecycle.unmount());
         assert.equal(await page.locator('.js-plotly-plot').count(), 0, 'explicit unmount removes all plot nodes');
@@ -343,7 +344,7 @@ test('SCurveTool real WASM and browser workflows at root and configured prefix',
                         console.log(`${mode} ${base}: controls and parity passed`);
                         await checkLifecycle(context, page, server.origin, base, oracle);
                         console.log(`${mode} ${base}: navigation and failures passed`);
-                        await checkOwnedCleanup(page, server.origin, base);
+                        await checkOwnedCleanup(page, server.origin, base, mode);
                         await checkLinkedAxes(page);
                         assert.deepEqual(errors, [], 'no unhandled browser errors');
                     } catch (error) { console.error(error); throw error; } finally { await context.close(); await server.stop(); }

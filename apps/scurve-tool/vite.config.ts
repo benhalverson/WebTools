@@ -11,5 +11,8 @@ export default defineConfig(async ({ isPreview }): Promise<UserConfig> => {
     const base = applicationBase('scurveTool', process.env.WEBTOOLS_BASE_PATH ?? process.env.PORTAL_BASE_PATH)
     const publicDir = fileURLToPath(new URL('./.legacy-assets/', import.meta.url))
     if (!isPreview) await stageRuntimeAssets(fileURLToPath(new URL('../../', import.meta.url)), publicDir, assets)
-    return { build: { rollupOptions: { preserveEntrySignatures: 'strict' } }, base, optimizeDeps: { include: ['@webtools/react-workflows', '@webtools/numerics', '@webtools/parameters'] }, appType: 'mpa', publicDir, plugins: [react(), prefixedHtml(), cloudflare()] }
+    return { build: { manifest: true, rollupOptions: { preserveEntrySignatures: 'strict', input: {
+        index: fileURLToPath(new URL('./index.html', import.meta.url)),
+        application: fileURLToPath(new URL('./src/main.tsx', import.meta.url)),
+    } } }, base, optimizeDeps: { include: ['@webtools/react-workflows', '@webtools/numerics', '@webtools/parameters'] }, appType: 'mpa', publicDir, plugins: [react(), prefixedHtml(), cloudflare()] }
 })
