@@ -77,6 +77,7 @@ async function main(): Promise<void> {
         simplegcsPreview: await start('simplegcs', mode, prefix),
         thrustExpo: await start('thrust-expo', mode, prefix),
         magFit: await start('mag-fit', mode, prefix),
+        filterReviewPreview: await start('filter-review', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {
         const parsed = requestPath(incoming.url)

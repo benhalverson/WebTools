@@ -52,7 +52,11 @@ jobs:
             test:portal \
             test:rotation-check:browser \
             test:react-workflows:browser \
+            test:numerics:browser \
             test:dataflash:browser \
+            test:mavlink:browser \
+            test:transfers:browser \
+            test:parameters:browser \
             test:hardware-parameters:browser \
             test:kinematic-tools:browser \
             test:scurve-tool:browser \
@@ -66,7 +70,8 @@ jobs:
             test:thrust-expo:browser \
             test:mag-fit:browser \
             test:simplegcs:parameters:browser \
-            test:simplegcs:video
+            test:simplegcs:video \
+            test:filter-review:browser
           do
             echo "::group::$suite"
             if pnpm "$suite"; then

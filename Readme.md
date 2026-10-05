@@ -176,6 +176,22 @@ comparison tests.
 desktop/mobile Chromium, exact legacy file and protocol bytes, root/prefix
 routing, rejected or cancelled writes, and asynchronous resource cleanup.
 
+### FilterReview spectrum preview
+
+The independent React preview is at `/FilterReviewPreview/` (under
+`WEBTOOLS_BASE_PATH` or the compatible `PORTAL_BASE_PATH` prefix).
+Run `pnpm --filter filter-review dev`, or `pnpm build && pnpm preview`
+for the same-origin gateway and built Workers. The complete public
+`/FilterReview/` route remains legacy until issue #16.
+
+The preview owns local raw/batch gyro ingestion, IMU/source controls, FFT jobs,
+time selection, spectra and Open In. Each calculation uses a fresh, cancellable
+Worker; the DataFlash package is served as standalone ESM with adjacent vendor
+assets. Filter tracking and tuning remain in the complete tool.
+`pnpm test:filter-review` runs numerical compatibility tests.
+`pnpm test:filter-review:browser` exercises Chromium,
+independent dev/built Workers and the gateway at root and nested prefixes.
+
 ### Linting and formatting
 
 Owned workspace code uses pinned Biome tooling. Run `pnpm lint` for the
