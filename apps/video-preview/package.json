@@ -1,0 +1,43 @@
+{
+  "name": "video-preview",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @webtools/widget-runtime... --filter @webtools/react-workflows... --filter @webtools/dataflash build && vite --host 127.0.0.1",
+    "typecheck": "pnpm --filter @webtools/widget-runtime... --filter @webtools/react-workflows... --filter @webtools/dataflash build && pnpm cf-typegen && tsc -b",
+    "build": "pnpm typecheck && vite build",
+    "lint": "oxlint --deny-warnings src worker tooling tests vite.config.ts",
+    "preview": "vite preview --host 127.0.0.1",
+    "deploy": "pnpm build && wrangler deploy",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "6.6.0",
+    "@webtools/mavlink": "workspace:*",
+    "@webtools/react-workflows": "workspace:*",
+    "@webtools/routing": "workspace:*",
+    "@webtools/widget-runtime": "workspace:*",
+    "bootstrap": "4.6.0",
+    "formiojs": "4.21.7",
+    "gridstack": "10.3.1",
+    "monaco-editor": "0.57.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "@webtools/dataflash": "workspace:*",
+    "mediabunny": "1.40.1",
+    "luxon": "3.7.2"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.62.5",
+    "@types/node": "26.6.4",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@vitejs/plugin-react": "6.1.1",
+    "oxlint": "1.81.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.0",
+    "wrangler": "4.147.0",
+    "@types/luxon": "3.7.1"
+  }
+}

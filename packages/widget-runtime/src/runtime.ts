@@ -15,6 +15,10 @@ export interface RuntimeDependencies {
     /** URL of the exported SandBox.html asset, with its retained MAVLink script path. */
     sandboxUrl: string
     defaultHtml: string
+    /** Consumer-specific default script; saved source always takes precedence. */
+    defaultSandboxScript?: string
+    /** Read current local log bytes and synchronized seconds for newly created or reloaded frames. */
+    playback?: { getLogData(): ArrayBuffer | undefined; getTime(): number }
     /** Connection and application settings remain consumer-owned and explicitly disposable. */
     mountMenu?: (element: HTMLElement, runtime: WidgetRuntime) => (() => void)
     /** Open the consumer editor without embedding application UI in the runtime. */
@@ -196,6 +200,10 @@ export class WidgetHost {
     private options: WidgetOptions
     private form: WidgetForm | undefined
     private iframe: HTMLIFrameElement | undefined
+    private frameLoaded = false
+    private latestTime: number | undefined
+    private rendering: Promise<void> | undefined
+    private readonly pendingFrames = new Set<() => void>()
     private nested: WidgetRuntime | undefined
     private destroyed = false
     private mounted = false
@@ -209,7 +217,7 @@ export class WidgetHost {
     private menuCleanup: (() => void) | undefined
     private menuGrid: GridStack | undefined
     /** Initialize each iframe navigation; removal detaches this exact listener. */
-    private readonly loadListener = (): void => { this.sendInitialization() }
+    private readonly loadListener = (): void => { this.frameLoaded = true; this.sendInitialization(); this.loadLog(); void this.setTime(this.owner.dependencies.playback?.getTime() ?? 0).catch(error => this.owner.dependencies.onError?.(error)) }
     /** Forward only valid changed submissions, preserving live form data for serialization. */
     private readonly formListener = (event: { changed?: unknown }): void => {
         if (this.destroyed || event.changed == null || !this.form?.checkValidity(this.form.submission.data)) return
@@ -231,7 +239,7 @@ export class WidgetHost {
         if (model.type === 'WidgetMenu') this.options.form = structuredClone(menuForm)
         if (model.type === 'WidgetSubGrid') this.options.form = structuredClone(subgridForm)
         if (model.type === 'WidgetSandBox') {
-            this.options.sandbox ??= defaultScript
+            this.options.sandbox ??= owner.dependencies.defaultSandboxScript ?? defaultScript
             this.options.about ??= { name: 'Sandbox', info: 'Sandboxed widget allowing user defined functionality with JavaScript. User input using Formio form.' }
         }
         if (model.type === 'WidgetCustomHTML') {
@@ -326,14 +334,65 @@ export class WidgetHost {
     private sendInitialization(): void {
         if (this.destroyed) return
         const message: WidgetMessage = { options: this.formData }
-        if (this.model.type === 'WidgetSandBox') message.script = this.options.sandbox ?? defaultScript
+        if (this.model.type === 'WidgetSandBox') message.script = this.options.sandbox ?? this.owner.dependencies.defaultSandboxScript ?? defaultScript
         this.iframe?.contentWindow?.postMessage(message, '*')
+    }
+
+    /** Deliver local log bytes recursively using the retained iframe message envelope. */
+    loadLog(): void {
+        if (this.destroyed) return
+        const logData = this.owner.dependencies.playback?.getLogData()
+        if (logData && this.frameLoaded) this.iframe?.contentWindow?.postMessage({ logData }, '*')
+        for (const host of this.nested?.getWidgets() ?? []) host.loadLog()
+    }
+
+    /** Await the established render acknowledgement, with bounded and cancellable listener ownership. */
+    setTime(time: number): Promise<void> {
+        if (this.destroyed) return Promise.resolve()
+        this.latestTime = time
+        if (!this.rendering) {
+            /** Keep at most one outstanding acknowledgement per frame, coalescing newer scrubs. */
+            const render = async (): Promise<void> => {
+                while (!this.destroyed && this.latestTime !== undefined) {
+                    const next = this.latestTime; this.latestTime = undefined
+                    await this.renderTime(next)
+                }
+            }
+            this.rendering = render().finally(() => { this.rendering = undefined })
+        }
+        return this.rendering
+    }
+
+    /** Send one frame request after the preceding acknowledgement has settled. */
+    private async renderTime(time: number): Promise<void> {
+        if (this.destroyed) return
+        if (this.nested) {
+            await Promise.all(this.nested.getWidgets().map(host => host.setTime(time)))
+            return
+        }
+        const target = this.iframe?.contentWindow
+        if (!target || !this.frameLoaded || !this.owner.dependencies.playback) return
+        await new Promise<void>((resolve, reject) => {
+            /** Release this request's listener and timer on reply, timeout or widget disposal. */
+            const cancel = (): void => { cleanup(); resolve() }
+            /** Ignore other frames and messages, preserving the legacy renderDone protocol. */
+            const receive = (event: MessageEvent<unknown>): void => {
+                if (event.source === target && event.data === 'renderDone') { cleanup(); resolve() }
+            }
+            /** Remove the exact callback identities owned by this request. */
+            const cleanup = (): void => { window.removeEventListener('message', receive); window.clearTimeout(timer); this.pendingFrames.delete(cancel) }
+            const timer = window.setTimeout(() => { cleanup(); reject(new Error('Widget render acknowledgement timed out')) }, 5000)
+            this.pendingFrames.add(cancel)
+            window.addEventListener('message', receive)
+            target.postMessage({ time }, '*')
+        })
     }
 
     /** Apply live data to the widget, preserving options-only updates for iframe scripts. */
     private applyOptions(): void {
         if (this.destroyed) return
         this.iframe?.contentWindow?.postMessage({ options: this.formData } satisfies WidgetMessage, '*')
+        if (this.owner.dependencies.playback) this.loadLog()
         if (this.model.type === 'WidgetMenu' || this.model.type === 'WidgetSubGrid') {
             if (typeof this.formData.borderColor === 'string') this.content.style.borderColor = this.formData.borderColor
             if (typeof this.formData.backgroundColor === 'string') this.content.style.backgroundColor = this.formData.backgroundColor
@@ -450,10 +509,16 @@ export class WidgetHost {
         if (this.model.type === 'WidgetSandBox') this.options.sandbox = text
         else if (this.model.type === 'WidgetCustomHTML') {
             this.options.custom_HTML = text
-            if (this.iframe) this.iframe.srcdoc = text
+            if (this.iframe) {
+                this.frameLoaded = false
+                for (const cancel of this.pendingFrames) cancel()
+                this.iframe.srcdoc = text
+            }
         } else throw new Error('Widget has no editable source')
         if (previous !== text) this.changed = true
         this.sendInitialization()
+        this.loadLog()
+        if (this.frameLoaded && this.owner.dependencies.playback) void this.setTime(this.owner.dependencies.playback.getTime()).catch(error => this.owner.dependencies.onError?.(error))
     }
 
     /** Toggle nested handles and iframe interaction, leaving telemetry enabled during editing. */
@@ -474,7 +539,7 @@ export class WidgetHost {
         else if (this.model.type === 'WidgetSubGrid') options = { form_content: data, widgets: this.nested?.snapshotWidgets() ?? {} }
         else {
             options = { form: this.form?.form ?? this.options.form ?? {}, form_content: data, about: this.options.about ?? { name: this.model.type } }
-            if (this.model.type === 'WidgetSandBox') options.sandbox = this.options.sandbox ?? defaultScript
+            if (this.model.type === 'WidgetSandBox') options.sandbox = this.options.sandbox ?? this.owner.dependencies.defaultSandboxScript ?? defaultScript
             else options.custom_HTML = this.iframe?.srcdoc ?? this.options.custom_HTML ?? ''
         }
         return structuredClone({ x: this.element.getAttribute('gs-x'), y: this.element.getAttribute('gs-y'), w: this.element.getAttribute('gs-w'), h: this.element.getAttribute('gs-h'), type: this.model.type, options })
@@ -490,6 +555,7 @@ export class WidgetHost {
     destroy(): void {
         if (this.destroyed) return
         this.destroyed = true
+        for (const cancel of this.pendingFrames) cancel()
         this.owner.dependencies.onWidgetDisposed?.(this)
         this.element.removeEventListener('dblclick', this.showForm)
         this.element.removeEventListener('keydown', this.editKey)

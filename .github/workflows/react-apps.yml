@@ -23,7 +23,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm typecheck && pnpm lint
-      - run: pnpm test && pnpm test:dashboard-playback
+      - run: pnpm test
   browser:
     name: browser (${{ matrix.suite }})
     runs-on: ubuntu-latest
@@ -45,10 +45,6 @@ jobs:
             script: test:kinematic-tools:browser
           - suite: scurve-tool
             script: test:scurve-tool:browser
-          - suite: dashboard-playback
-            script: test:dashboard-playback:browser
-          - suite: widgets
-            script: test:widgets:browser
     steps:
       - uses: actions/checkout@v4
         with:

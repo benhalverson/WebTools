@@ -18,7 +18,20 @@ export type FieldResult<Field extends string> = Field extends ''
 export interface LogStatistics { count: number | undefined; msg_size: number; size: number }
 /** Narrow, consumed surface of the pinned upstream implementation. Missing
  * messages/fields return undefined. Corrupt input can throw; errors are not hidden. */
+/** Retained raw index needed by consumers that inspect timestamp byte positions. */
+export interface FormatIndex {
+  Columns: string[]
+  Format: string
+  FormatOffset: number[]
+  OffsetArray: number[]
+  InstancesOffsetArray?: Record<string, number[]>
+}
 export interface DataflashLog {
+  buffer: ArrayBuffer
+  FMT: (FormatIndex | undefined)[]
+  offset: number
+  /** Read a numeric upstream scalar at offset, advancing the original reader. */
+  parse_type(type: 'Q'): number
   messageTypes: Record<string, MessageType | undefined>
   messages: Record<string, unknown>
   /** Discover types and load the requested messages from local bytes. Pass an
