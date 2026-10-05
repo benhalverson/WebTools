@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "skipLibCheck": false,
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
+    "types": [],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "tests/**/*.mts",
+    "tests/**/*.cts"
+  ],
+  "exclude": [
+    "src/globals.d.ts"
+  ]
+}

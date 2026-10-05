@@ -18,3 +18,7 @@ packages/*/dist/
 # Shared React integration browser consumer
 packages/react-workflows/consumer-dist/
 packages/react-workflows/.consumer-assets/
+
+# Shared widget runtime browser consumer
+packages/widget-runtime/consumer-dist/
+packages/widget-runtime/.consumer-assets/

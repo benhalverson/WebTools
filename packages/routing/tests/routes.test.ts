@@ -8,13 +8,14 @@ const binding = { async fetch(request: Request) { return new Response(new URL(re
 
 test('mount and prefix contracts enforce path boundaries', () => {
     for (const prefix of ['/', '/Tools/WebTools/']) {
-        for (const application of ['rotationCheck', 'thrustExpo'] as const) {
-            const base = applicationBase(application, prefix)
-            assert.equal(applicationForPath(base, prefix), application)
-            assert.equal(applicationForPath(base + 'assets/file.js', prefix), application)
-            assert.equal(applicationForPath(base.slice(0, -1), prefix), application)
+        for (const app of ['rotationCheck', 'hardwareParameters', 'kinematicTools', 'scurveTool', 'pidReview', 'streamStats', 'dfuLoader', 'logFinder', 'filterTool', 'dashboardPlayback', 'simplegcsPreview', 'thrustExpo'] as const) {
+            const base = applicationBase(app, prefix)
+            assert.equal(applicationForPath(base, prefix), app)
+            assert.equal(applicationForPath(base + 'assets/file.js', prefix), app)
+            assert.equal(applicationForPath(base.slice(0, -1), prefix), app)
             assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
         }
+        assert.equal(applicationForPath(prefix + 'HardwareReport/', prefix), 'portal')
     }
     assert.equal(hostingPrefix('/Tools'), '/Tools/')
     for (const value of ['https://bad/', '//bad/', '/../', '/%2e/', '/a?b']) assert.throws(() => hostingPrefix(value))
@@ -40,4 +41,25 @@ test('Vite readiness handles plain, colored and incomplete startup output', () =
     assert.equal(listeningOrigin('http://127.0.0.1:\u001b[1m45695\u001b[22m/Tools/'), 'http://127.0.0.1:45695')
     assert.equal(listeningOrigin('http://127.0.0.1:1234/'), 'http://127.0.0.1:1234')
     assert.equal(listeningOrigin('http://127.0.0.1:\u001b['), undefined)
+})
+
+test('LogFinder owns only its public path boundary at each hosting prefix', () => {
+    for (const prefix of ['/', '/Tools/WebTools/']) {
+        const base = applicationBase('logFinder', prefix)
+        assert.equal(base, prefix + 'LogFinder/')
+        for (const suffix of ['', 'index.html', 'dataflash/vendor/parser.js']) assert.equal(applicationForPath(base + suffix, prefix), 'logFinder')
+        assert.equal(applicationForPath(base.slice(0, -1), prefix), 'logFinder')
+        assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'HardwareReport/', prefix), 'portal')
+    }
+})
+
+test('intermediate SimpleGCS preview never takes over the public complete tool', () => {
+    for (const prefix of ['/', '/Tools/WebTools/']) {
+        assert.equal(applicationBase('simplegcsPreview', prefix), prefix + 'SimpleGCS-preview/')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS-preview/', prefix), 'simplegcsPreview')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS-preview', prefix), 'simplegcsPreview')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS-previewExtra/', prefix), 'portal')
+    }
 })

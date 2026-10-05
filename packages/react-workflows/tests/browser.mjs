@@ -1,3 +1,4 @@
+import { runRegressions } from './regressions.mjs'
 // Built consumer plus unchanged HardwareReport. No provider or hardware access.
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
@@ -50,6 +51,8 @@ for (const prefix of ['/', '/Tools/WebTools/']) {
                 return remove(type, callback, options)
             }
         })
+        await runRegressions(context, origin, prefix, process.env.WORKFLOWS_BASELINE === '1')
+        if (process.env.WORKFLOWS_BASELINE === '1') { await context.close(); continue }
         const page = await context.newPage(), errors = [], missing = []
         page.on('pageerror', error => errors.push(String(error)))
         context.on('response', response => { if (response.status() >= 400) missing.push(response.url()) })
