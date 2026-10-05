@@ -52,6 +52,7 @@ jobs:
             test:portal \
             test:rotation-check:browser \
             test:react-workflows:browser \
+            test:dataflash:browser \
             test:hardware-parameters:browser \
             test:kinematic-tools:browser \
             test:scurve-tool:browser \
