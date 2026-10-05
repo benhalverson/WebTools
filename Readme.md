@@ -211,3 +211,12 @@ file replacement, exports, Open In and resource cleanup.
 the shared gateway with the common hosting prefix. `pnpm test:geofence` and
 `pnpm test:geofence:browser` cover geometry/export compatibility and actual
 map controls, request cancellation and disposal using offline provider fixtures.
+
+### Linting and formatting
+
+Owned workspace code uses pinned Biome tooling. Run `pnpm lint` for the
+read-only lint gate, `pnpm format:check -- <path>` to inspect formatting, and
+`pnpm format -- <path>` to format a selected owned file. See
+[the tooling policy](tooling/biome-policy.md) for source boundaries and the
+explicit compatibility rules. Formatting is opt-in; existing files were not
+mass-reformatted.
