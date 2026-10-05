@@ -61,6 +61,7 @@ jobs:
             test:log-finder:browser \
             test:filter-tool:browser \
             test:dashboard-playback:browser \
+            test:widgets:browser \
             test:browser \
             test:video \
             test:simplegcs:browser \
