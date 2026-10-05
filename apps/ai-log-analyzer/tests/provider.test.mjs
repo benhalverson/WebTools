@@ -180,3 +180,81 @@ test('a tool continuation stream resolving after disposal is immediately aborted
     assert.equal(aborts, 1)
     assert.equal(app.messages.length, before)
 })
+
+/** Issue distinct assistant/thread identifiers for each reconnect, retaining request recordings. */
+function rotatingConnection(mock) {
+    let assistant = 0
+    let thread = 0
+    const list = mock.client.beta.assistants.list
+    const create = mock.client.beta.threads.create
+    mock.client.beta.assistants.list = /** Return a different assistant after each update. */ async (...args) => {
+        await list(...args)
+        return { data: [{ id: `assistant-${++assistant}`, name: 'Log Analyzer' }] }
+    }
+    mock.client.beta.threads.create = /** Return a different conversation after each update. */ async (...args) => {
+        await create(...args)
+        return { id: `thread-${++thread}` }
+    }
+}
+
+/** Hold one SDK operation after recording its request until the test permits completion. */
+function holdOperation(owner, name) {
+    let release
+    let arrived
+    const held = new Promise(/** Capture the operation release hook. */ resolve => { release = resolve })
+    const reached = new Promise(/** Capture the operation arrival hook. */ resolve => { arrived = resolve })
+    const original = owner[name]
+    owner[name] = /** Record the first request and pause its response deterministically. */ async (...args) => {
+        const result = await original(...args)
+        arrived()
+        await held
+        return result
+    }
+    return { reached, release: /** Resolve the held SDK operation. */ () => release() }
+}
+
+/** Drain detached tool continuations without wall-clock polling or provider traffic. */
+async function drainTools() {
+    for (let iteration = 0; iteration < 30; iteration++) await new Promise(/** Yield to queued provider continuations. */ resolve => setImmediate(resolve))
+}
+
+for (const endpoint of ['cancel', 'message']) test(`assistant update during held ${endpoint} preserves legacy current connection reads`, /** Compare reconnect races using distinct IDs and controlled SDK completion. */ async () => {
+    const log = endpoint === 'cancel' ? await fixtureLog() : undefined
+    const runs = endpoint === 'cancel' ? [[toolEvent()], []] : [[]]
+    const old = mockProvider({ existing: true, runs })
+    rotatingConnection(old)
+    const oldGate = holdOperation(endpoint === 'cancel' ? old.client.beta.threads.runs : old.client.beta.threads.messages, endpoint === 'cancel' ? 'cancel' : 'create')
+    const legacy = legacySession(old, log)
+    legacy.context.document.getElementById = /** Supply the legacy update button required by its click handler. */ () => ({
+        classList: { /** Ignore presentation-only class additions. */ add() {}, /** Ignore presentation-only class removal. */ remove() {} },
+    })
+    legacy.context.setTimeout = /** Avoid waiting for the legacy presentation-only button reset. */ () => 0
+    await legacy.run('connectIfNeeded()')
+    const oldSending = vmResult(legacy, 'processUserMessage("Analyze")')
+    await oldGate.reached
+    await legacy.run('updateAssistant()')
+    oldGate.release()
+    await oldSending
+    await drainTools()
+
+    const mock = mockProvider({ existing: true, runs })
+    rotatingConnection(mock)
+    const gate = holdOperation(endpoint === 'cancel' ? mock.client.beta.threads.runs : mock.client.beta.threads.messages, endpoint === 'cancel' ? 'cancel' : 'create')
+    const app = migrated(mock, log)
+    await app.controller.connect('mock-key')
+    const sending = app.controller.send('Analyze')
+    await gate.reached
+    await app.controller.updateAssistant()
+    gate.release()
+    await sending
+    await drainTools()
+    assert.deepEqual(mock.calls, old.calls)
+    const finalRun = JSON.parse(mock.calls.findLast(/** Select the follow-on run issued after updating. */ ([name]) => name === (endpoint === 'cancel' ? 'runs.create' : 'runs.stream'))[1])
+    assert.equal(finalRun[0], 'thread-2')
+    assert.equal(finalRun[1].assistant_id, 'assistant-2')
+    if (endpoint === 'cancel') {
+        const resumedMessage = JSON.parse(mock.calls.findLast(/** Select the extracted-file follow-on message. */ ([name]) => name === 'messages.create')[1])
+        assert.equal(resumedMessage[0], 'thread-2')
+    }
+    app.controller.dispose()
+})

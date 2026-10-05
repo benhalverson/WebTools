@@ -192,7 +192,7 @@ export function createAnalyzerController(options: AnalyzerOptions) {
       } else { failed = true; output.output = 'failure, the function that was called is not supported' }
       outputs.push(output)
     }
-    const { sdk, thread, assistant } = connection()
+    const { sdk, thread } = connection()
     if (failed) {
       const run = await sdk.beta.threads.runs.submitToolOutputs(thread, event.data.id, { tool_outputs: outputs, stream: true }); acceptStream(run)
       if (!run) throw new Error('error occurred while submitting tool outputs')
@@ -202,11 +202,13 @@ export function createAnalyzerController(options: AnalyzerOptions) {
     await sdk.beta.threads.runs.cancel(thread, event.data.id); checkLive()
     thinking(true)
     if (fileId == null) throw new Error('Extracted file is missing')
-    await sdk.beta.threads.messages.create(thread, {
+    const resumed = connection()
+    await resumed.sdk.beta.threads.messages.create(resumed.thread, {
       role: 'user', content: `The data for the requested message has been extracted. Continue processing using the output.json file with id: ${fileId}`,
       attachments: [{ file_id: fileId, tools: [{ type: 'code_interpreter' }] }],
     }); checkLive()
-    const run = await sdk.beta.threads.runs.create(thread, { assistant_id: assistant, stream: true }); acceptStream(run)
+    const next = connection()
+    const run = await next.sdk.beta.threads.runs.create(next.thread, { assistant_id: next.assistant, stream: true }); acceptStream(run)
     if (!run) throw new Error('Error occurred while starting new run')
     void handleRunStream(run)
   }
@@ -259,12 +261,13 @@ export function createAnalyzerController(options: AnalyzerOptions) {
     try {
       setProcessing(true); thinking(true)
       await connect()
-      const { sdk, thread, assistant } = connection()
+      const { sdk, thread } = connection()
       await sdk.beta.threads.messages.create(thread, {
         role: 'user', content: text,
         attachments: fileId && [{ file_id: fileId, tools: [{ type: 'code_interpreter' }] }],
       }); checkLive()
-      await handleRunStream(sdk.beta.threads.runs.stream(thread, { assistant_id: assistant }))
+      const next = connection()
+      await handleRunStream(next.sdk.beta.threads.runs.stream(next.thread, { assistant_id: next.assistant }))
     } catch { message('Sorry, there was an error processing your message. Please try again.', 'error') }
     finally { thinking(false); setProcessing(false) }
   }
