@@ -16,7 +16,7 @@ const html = execFileSync('git', ['show', `${baseRevision}:VideoOverlay/index.ht
 const templates = html.match(/<template[\s\S]*?<\/template>/g).join('\n')
 const palette = JSON.parse(await readFile(resolve(root, 'VideoOverlay/Default_Palette.json'), 'utf8'))
 const scripted = { x: '0', y: '0', w: '3', h: '3', type: 'WidgetSandBoxVideoOverlay', options: { form: {}, form_content: {}, about: { name: 'Known log interpolation' }, sandbox: `div.id='sample';let values, timestamps;loadLog=function(log){const name=log.messageTypes.GPS.instances?'GPS[0]':'GPS';values=log.get(name,'Spd');timestamps=log.get(name,'TimeUS');div.dataset.loads=String(Number(div.dataset.loads||0)+1);div.textContent='loaded'};setTime=function(time){div.dataset.time=String(time);div.textContent=values?String(linear_interp(values,timestamps,time*1000000)):'no log'}` } }
-const custom = { x: '0', y: '0', w: '2', h: '2', type: 'WidgetCustomHTMLVideoOverlay', options: { form: {}, form_content: {}, about: { name: 'Nested custom HTML' }, custom_HTML: `<!doctype html><html><body><output id="custom">waiting</output><script type="module">const {default:Parser}=await import(window.parent.location.href+'../modules/JsDataflashParser/parser.js');let log;addEventListener('message',e=>{if(e.data.logData){log=new Parser();log.processData(e.data.logData,[]);document.querySelector('#custom').dataset.loaded='true'}if('time' in e.data){document.querySelector('#custom').textContent=String(e.data.time);e.source.postMessage('renderDone','*')}})</script></body></html>` } }
+const custom = { x: '0', y: '0', w: '2', h: '2', type: 'WidgetCustomHTMLVideoOverlay', options: { form: {}, form_content: {}, about: { name: 'Nested custom HTML' }, custom_HTML: `<!doctype html><html><body><output id="custom">waiting</output><script type="module">const {default:Parser}=await import(window.parent.location.href+'../modules/JsDataflashParser/parser.js');let log;addEventListener('message',e=>{if(e.data.logData){log=new Parser();log.processData(e.data.logData,[]);document.querySelector('#custom').dataset.loaded='true'}if('time' in e.data){document.querySelector('#custom').textContent=String(e.data.time);e.source.postMessage('renderDone','*')}});document.querySelector('#custom').dataset.ready='true'</script></body></html>` } }
 const layout = { header: { tool: 'videoOverlay', version: 1 }, grid: { columns: 6, rows: 6, color: '' }, widgets: {
     0: scripted,
     1: { x: '3', y: '0', w: '3', h: '3', type: 'WidgetSubGridVideoOverlay', options: { form_content: { rows: 2, columns: 2, borderColor: '#c8c8c8', backgroundColor: '#ffffff', backgroundImage: [] }, widgets: { 0: custom } } },
@@ -66,7 +66,7 @@ async function legacyServer() {
             const pathname = new URL(request.url, 'http://localhost').pathname
             if (pathname === '/VideoOverlay/') {
                 response.setHeader('Content-Type', 'text/html')
-                response.end(`<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/vendor/bootstrap.min.css"><link rel="stylesheet" href="/vendor/gridstack.min.css"><link rel="stylesheet" href="/vendor/gridstack-extra.min.css"><link rel="stylesheet" href="/vendor/formio.full.min.css"><style>body{margin:8px}.video-container{position:relative;width:1184px;height:576px}#dashboard{height:100%;width:100%;position:absolute;inset:0}.grid-stack{background:transparent!important}</style></head><body>${templates}<input id="grid_rows"><input id="grid_columns"><input id="log_offset" value="0"><div class="video-container"><video id="video"></video><div id="dashboard" class="grid-stack"></div></div><div id="palette"></div>
+                response.end(`<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/vendor/bootstrap.min.css"><link rel="stylesheet" href="/vendor/gridstack.min.css"><link rel="stylesheet" href="/vendor/gridstack-extra.min.css"><link rel="stylesheet" href="/vendor/formio.full.min.css"><style>body{margin:8px}.video-container{position:relative;width:1184px;height:576px}video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}#dashboard{height:100%;width:100%;position:absolute;inset:0}.grid-stack{background:transparent!important}</style></head><body>${templates}<input id="grid_rows"><input id="grid_columns"><input id="log_offset" value="0"><div class="video-container"><video id="video"></video><div id="dashboard" class="grid-stack"></div></div><div id="palette"></div>
 <script src="/vendor/gridstack-all.js"></script><script src="/vendor/formio.full.min.js"></script><script src="/modules/build/floating-ui/dist/umd/popper.min.js"></script><script src="/modules/build/tippyjs/dist/tippy-bundle.umd.min.js"></script>
 ${['Base_Class','SandBox','SubGrid','CustomHTML'].map(name => `<script src="../TelemetryDashboard/Widgets/${name}.js"></script>`).join('')}${['SandBox','SubGrid','CustomHTML'].map(name => `<script src="Widgets/${name}.js"></script>`).join('')}<script src="VideoOverlay.js"></script><script>let grid;let grid_changed=false;let palette;const video=document.querySelector('#video');window.boot=async(layout)=>{await Promise.allSettled(import_done);load_layout(layout.grid,layout.widgets)};window.loadFixture=async(bytes)=>{log=new DataflashParser();log.processData(Uint8Array.from(bytes).buffer,[]);setDefaultOffset();for(const widget of grid.getGridItems())widget.loadLog();await setWidgetTime(video.currentTime)};window.scrub=async(time,offset)=>{document.querySelector('#log_offset').value=offset;video.currentTime=time;await setWidgetTime(time)}</script></body></html>`)
                 return
@@ -102,7 +102,7 @@ async function values(page, expectedTime) {
             await frame.waitForFunction(time => document.querySelector('#sample')?.dataset.time === String(time), expectedTime)
             output.push({ sample: await sample.textContent() })
         } else if (await custom.count()) {
-            await frame.waitForFunction(time => document.querySelector('#custom')?.textContent === String(time) && document.querySelector('#custom')?.dataset.loaded === 'true', expectedTime)
+            await frame.waitForFunction(time => document.querySelector('#custom')?.textContent === String(time) && document.querySelector('#custom')?.dataset.loaded === 'true', expectedTime).catch(async error=>{console.log('custom failure',page.url(),expectedTime,await custom.evaluate(e=>e.outerHTML));throw error})
             output.push({ custom: await custom.textContent() })
         } else {
             await frame.locator('body > div').waitFor()
@@ -136,7 +136,7 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
         await build(prefix)
         const server = await start(mode, prefix), legacy = await legacyServer()
         const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, headless: true })
-        const context = await browser.newContext({ viewport: { width: 1200, height: 720 }, acceptDownloads: true })
+        const context = await browser.newContext({ viewport: { width: 1200, height: 900 }, acceptDownloads: true })
         context.setDefaultTimeout(15000)
         const errors = [], blocked = []
         try {
@@ -153,20 +153,23 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
                 window.liveObjectUrls = new Set(); const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL)
                 URL.createObjectURL = blob => { const url = create(blob); window.liveObjectUrls.add(url); return url }
                 URL.revokeObjectURL = url => { window.liveObjectUrls.delete(url); revoke(url) }
-                window.liveMessageListeners = new Set(); const add = window.addEventListener.bind(window), remove = window.removeEventListener.bind(window)
-                window.addEventListener = (type, callback, options) => { if (type === 'message') window.liveMessageListeners.add(callback); add(type, callback, options) }
-                window.removeEventListener = (type, callback, options) => { if (type === 'message') window.liveMessageListeners.delete(callback); remove(type, callback, options) }
+                window.liveResizeListeners = new Set();window.liveObservers = new Set();const NativeObserver=window.ResizeObserver;window.ResizeObserver=class extends NativeObserver{constructor(callback){super(callback);window.liveObservers.add(this)}disconnect(){window.liveObservers.delete(this);super.disconnect()}};window.liveMessageListeners = new Set(); const add = window.addEventListener.bind(window), remove = window.removeEventListener.bind(window)
+                window.addEventListener = (type, callback, options) => { if (type === 'message') window.liveMessageListeners.add(callback);if(type==='resize')window.liveResizeListeners.add(callback); add(type, callback, options) }
+                window.removeEventListener = (type, callback, options) => { if (type === 'message') window.liveMessageListeners.delete(callback);if(type==='resize')window.liveResizeListeners.delete(callback); remove(type, callback, options) }
             })
             const page = await context.newPage(), old = await context.newPage()
             page.on('pageerror', error => errors.push(String(error))); old.on('pageerror', error => errors.push(String(error)))
             page.on('dialog', dialog => dialog.accept()); old.on('dialog', dialog => {console.log('legacy dialog',dialog.message());return dialog.accept()})
-            await page.goto(server.origin + prefix + 'VideoOverlayPreview/')
+            await page.goto(server.origin + prefix + 'VideoOverlayPreview/index.html')
+            assert.equal(new URL(page.url()).pathname,prefix+'VideoOverlayPreview/')
             await page.locator('#dashboard[data-ready=true]').waitFor()
             await page.locator('.palette-grid[data-ready=true]').waitFor()
             assert.equal(await page.locator('.palette-grid > .grid-stack-item').count(), 7)
             await replace(page, layout)
             await old.goto(legacy.origin + '/VideoOverlay/')
             await old.waitForFunction(() => typeof window.boot === 'function')
+            const size = await page.locator('.video-container').boundingBox()
+            await old.locator('.video-container').evaluate((element,size)=>{element.style.position='absolute';element.style.left=size.x+'px';element.style.top=size.y+'px';element.style.width=size.width+'px';element.style.height=size.height+'px'},size)
             await old.evaluate(layout => window.boot(layout), layout)
             await page.locator('#dashboard iframe').first().contentFrame().locator('#sample').waitFor()
             await old.locator('#dashboard iframe').first().contentFrame().locator('#sample').waitFor()
@@ -175,20 +178,26 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
             await page.waitForFunction(() => Number.isFinite(document.querySelector('video').duration))
             await old.evaluate(async bytes => { const video=document.querySelector('video'); video.src=URL.createObjectURL(new Blob([Uint8Array.from(bytes)],{type:'video/webm'})); await new Promise(resolve=>{video.onloadedmetadata=resolve}) }, Array.from(video))
             for (const file of ['pymavlink-test.BIN', 'plane-4.6.2-prefix.BIN']) {
+                console.log('fixture',file)
+                if(file==='plane-4.6.2-prefix.BIN'){await replace(page,layout);await old.evaluate(layout=>window.boot(layout),layout);await old.locator('#dashboard iframe').first().contentFrame().locator('#sample').waitFor()}
+                await page.locator('#dashboard iframe').nth(1).contentFrame().locator('#custom[data-ready=true]').waitFor()
+                await old.locator('#dashboard iframe').nth(1).contentFrame().locator('#custom[data-ready=true]').waitFor()
                 const bytes = await readFile(resolve(root,'packages/dataflash/fixtures',file))
                 await page.getByLabel('Log file', { exact:true }).setInputFiles({ name:file, mimeType:'application/octet-stream', buffer:bytes })
                 await page.getByText('Loading log…',{exact:true}).waitFor({ state:'hidden' })
-                await old.evaluate(bytes => window.loadFixture(bytes), Array.from(bytes))
+                await old.evaluate(bytes => Promise.race([window.loadFixture(bytes),new Promise((_,reject)=>setTimeout(()=>reject(new Error('legacy load acknowledgement timeout')),10000))]), Array.from(bytes))
                 const offset = Number(await page.getByLabel('Log offset', { exact:true }).inputValue())
                 assert.equal(offset, await old.locator('#log_offset').evaluate(element => Number(element.value)))
                 for (const time of [0, .125, 1, 3.75]) for (const adjustment of [offset, -12.5, 2.25]) {
                     await page.getByLabel('Log offset', { exact:true }).fill(String(adjustment))
                     await page.locator('video').evaluate((video,time) => { video.currentTime=time;video.dispatchEvent(new Event('timeupdate')) }, time)
-                    await old.evaluate(([time,offset]) => window.scrub(time,offset), [time,adjustment])
-                    const expected = await values(old,time-adjustment), actual = await values(page,time-adjustment)
+                    await old.evaluate(([time,offset]) => Promise.race([window.scrub(time,offset),new Promise((_,reject)=>setTimeout(()=>reject(new Error('legacy scrub acknowledgement timeout')),10000))]), [time,adjustment])
+                    console.log('scrub',file,time,adjustment);const expected = await values(old,time-adjustment), actual = await values(page,time-adjustment)
                     assert.deepEqual(actual, expected, `${file} t=${time} offset=${adjustment}`)
                 }
                 // Reload with the same timestamp/offset; a new log must always receive a new time.
+                await page.getByLabel('Log offset',{exact:true}).fill(String(offset))
+                await values(page, await page.locator('video').evaluate(video=>video.currentTime) - offset)
                 const sample = page.locator('#dashboard iframe').first().contentFrame().locator('#sample')
                 const before = await sample.getAttribute('data-loads')
                 await page.getByLabel('Log file',{exact:true}).setInputFiles({name:file,mimeType:'application/octet-stream',buffer:bytes})
@@ -197,34 +206,67 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
                 assert.notEqual(await sample.getAttribute('data-loads'),before)
                 await page.waitForFunction(() => document.querySelector('#dashboard iframe').contentDocument?.querySelector('#sample')?.textContent !== 'loaded')
             }
+            const bytes=await readFile(resolve(root,'packages/dataflash/fixtures/plane-4.6.2-prefix.BIN'))
+            await page.evaluate(() => {
+                const original=FileReader.prototype.readAsArrayBuffer, abort=FileReader.prototype.abort, timers=new WeakMap()
+                FileReader.prototype.readAsArrayBuffer=function(file){if(file.name==='delayed.BIN'){timers.set(this,setTimeout(()=>original.call(this,file),2000))}else original.call(this,file)}
+                FileReader.prototype.abort=function(){clearTimeout(timers.get(this));abort.call(this)}
+            })
+            await page.getByLabel('Log file',{exact:true}).setInputFiles({name:'delayed.BIN',mimeType:'application/octet-stream',buffer:bytes})
+            await page.getByRole('button',{name:'Cancel loading',exact:true}).click()
+            await page.getByText('Loading log…',{exact:true}).waitFor({state:'hidden'})
+            await page.getByLabel('Log file',{exact:true}).setInputFiles({name:'delayed.BIN',mimeType:'application/octet-stream',buffer:bytes})
+            await page.getByLabel('Log file',{exact:true}).setInputFiles({name:'replacement.BIN',mimeType:'application/octet-stream',buffer:bytes})
+            await page.getByText('Loading log…',{exact:true}).waitFor({state:'hidden'})
+            console.log('differential complete'); const finalTime=await page.locator('video').evaluate(video=>video.currentTime),finalOffset=Number(await page.getByLabel('Log offset',{exact:true}).inputValue())
+            await old.evaluate(([time,offset])=>window.scrub(time,offset),[finalTime,finalOffset]);await values(page,finalTime-finalOffset);await values(old,finalTime-finalOffset)
+            // Settled dimensions and pixels must match the same legacy widget documents.
+            const actualFrames = page.locator('#dashboard iframe'), legacyFrames = old.locator('#dashboard iframe')
+            for (let index=0;index<4;index++) {
+                const a=await actualFrames.nth(index).boundingBox(), b=await legacyFrames.nth(index).boundingBox()
+                assert.ok(Math.abs(a.width-b.width)<=.5 && Math.abs(a.height-b.height)<=.5,'iframe geometry rounding tolerance')
+                assert.deepEqual(await actualFrames.nth(index).screenshot(),await legacyFrames.nth(index).screenshot(),`iframe ${index} pixels`)
+            }
             const download = page.waitForEvent('download'); await page.getByRole('button',{name:'Save layout',exact:true}).click()
-            const saved = await download, savedBytes = await readFile(await saved.path(),'utf8')
-            const expectedBytes = await old.evaluate(() => JSON.stringify(get_layout(),null,2))
+            console.log('clicked save'); const saved = await download, savedBytes = await readFile(await saved.path(),'utf8')
+            console.log('downloaded save'); const expectedBytes = await old.evaluate(() => JSON.stringify(get_layout(),null,2))
             assert.equal(savedBytes,expectedBytes)
-            await replace(page,JSON.parse(savedBytes))
+            console.log('JSON compared'); await replace(page,JSON.parse(savedBytes))
             await page.locator('#dashboard > .grid-stack-item').first().press('Enter')
-            await page.getByRole('region',{name:'Widget settings'}).waitFor()
+            console.log('settings opening'); await page.getByRole('region',{name:'Widget settings'}).waitFor()
             await page.getByLabel('Column',{exact:true}).fill('1')
             await page.getByRole('button',{name:'Close widget settings'}).click()
-            const target = page.locator('#dashboard > .grid-stack-item').first(), box = await target.boundingBox()
+            console.log('settings geometry done'); const target = page.locator('#dashboard > .grid-stack-item').first(), box = await target.boundingBox(); const beforePosition = await target.getAttribute('gs-x')
             await page.mouse.move(box.x+15,box.y+15);await page.mouse.down();await page.mouse.move(box.x+200,box.y+100,{steps:12});await page.mouse.up()
-            await target.press('Enter');await page.getByRole('button',{name:'Edit source and form'}).click()
-            await page.getByRole('button',{name:'Apply and close'}).waitFor({state:'visible'})
+            assert.notEqual(await target.getAttribute('gs-x'),beforePosition,'real pointer drag changes column');console.log('pointer done'); await target.press('Enter');await page.getByRole('button',{name:'Edit source and form'}).click()
+            console.log('editor opening'); await page.getByRole('button',{name:'Apply and close'}).waitFor({state:'visible'})
             await page.waitForFunction(() => !document.querySelector('.source-editor button:nth-last-child(2)').disabled)
             await page.getByRole('button',{name:'Cancel',exact:true}).click()
             await page.getByRole('button',{name:'Close widget settings'}).click()
-            await page.getByRole('button',{name:'🔊',exact:true}).click();await page.getByLabel('Volume',{exact:true}).fill('.2');await page.getByLabel('Speed',{exact:true}).selectOption('2')
+            const hanging={...custom,x:'0',y:'0',w:'3',h:'3',options:{...custom.options,custom_HTML:'<!doctype html><html><body><output>deferred</output><script>addEventListener("message",e=>{if("time" in e.data){/* Deliberately omit the reply while this document is replaced. */}})</script></body></html>'}}
+            await replace(page,{...layout,widgets:{0:hanging}})
+            await page.locator('#dashboard > .grid-stack-item').first().press('Enter')
+            await page.getByRole('button',{name:'Edit source and form'}).click()
+            await page.getByRole('button',{name:'Apply and close'}).waitFor()
+            const source=page.locator('.code-editor .view-line').first();await source.waitFor();await source.click();await page.keyboard.press('ControlOrMeta+a')
+            await page.keyboard.insertText('<!doctype html><html><body><output id="replacement">ready</output><script>addEventListener("message",e=>{if("time" in e.data){document.querySelector("#replacement").textContent=String(e.data.time);e.source.postMessage("renderDone","*")}})</script></body></html>')
+            await page.getByRole('button',{name:'Apply and close'}).click()
+            const synchronized=await page.locator('video').evaluate(video=>video.currentTime)-Number(await page.getByLabel('Log offset',{exact:true}).inputValue())
+            await page.locator('#dashboard iframe').first().contentFrame().getByText(String(synchronized),{exact:true}).waitFor({timeout:3000})
+            assert.equal(await page.evaluate(()=>window.monaco.editor.getModels().length),0)
+            await page.getByRole('button',{name:'Close widget settings'}).click()
+            await page.getByRole('button',{name:'🔊',exact:true}).click();await page.getByLabel('Volume',{exact:true}).fill('0.2');await page.getByLabel('Speed',{exact:true}).selectOption('2')
             for (let attempt=0;attempt<3;attempt++) {
                 await page.getByRole('button',{name:'Unmount preview'}).click()
                 assert.equal(await page.locator('#dashboard iframe').count(),0)
-                await page.waitForFunction(() => window.liveMessageListeners.size === 0 && window.liveObjectUrls.size === 0)
+                await page.waitForFunction(() => window.liveMessageListeners.size === 0 && window.liveObjectUrls.size === 0 && window.liveObservers.size === 0)
                 await page.getByRole('button',{name:'Mount preview'}).click();await page.locator('#dashboard[data-ready=true]').waitFor()
                 assert.deepEqual(await page.locator('video').evaluate(video=>[video.muted,video.volume,video.playbackRate]),[true,.2,2])
                 await page.getByLabel('Video file',{exact:true}).setInputFiles({name:'again.webm',mimeType:'video/webm',buffer:video})
                 await page.waitForFunction(() => Number.isFinite(document.querySelector('video').duration))
             }
             await page.getByRole('button',{name:'Unmount preview'}).click()
-            await page.waitForFunction(() => window.liveMessageListeners.size === 0 && window.liveObjectUrls.size === 0)
+            await page.waitForFunction(() => window.liveMessageListeners.size === 0 && window.liveObjectUrls.size === 0 && window.liveObservers.size === 0)
             for (const path of ['missing','Widgets/missing.html']) assert.equal((await context.request.get(server.origin+prefix+'VideoOverlayPreview/'+path)).status(),404)
             assert.equal((await context.request.get(server.origin+prefix+'modules/JsDataflashParser/parser.js')).status(),200)
             const allowed = 'Failed to fetch dynamically imported module: https://unpkg.com/flight-indicators-js@1.0.5/esm/module-flight-indicators.mjs'

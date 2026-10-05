@@ -4,22 +4,11 @@ import { WidgetRuntime, type Layout, type WidgetHost } from '@webtools/widget-ru
 import { ALL_FORMATS, BlobSource, Input } from 'mediabunny'
 import { parseVideoLayout, parseVideoWidget, serializeVideoLayout } from './format'
 import { defaultOffset, formatTime, logInformation, logTime } from './mapping'
-import { defaultHtml } from './default-html'
+import { defaultHtml, defaultScript } from './default-html'
 import { Palette } from './Palette'
 import { WidgetSettings } from './WidgetSettings'
 import { SourceEditor } from './SourceEditor'
 import { download } from './download'
-
-const defaultScript = `div.appendChild(document.createTextNode("Widget Example:"))
-div.appendChild(document.createElement("br"))
-message_report = document.createTextNode("No Log")
-div.appendChild(message_report)
-div.appendChild(document.createElement("br"))
-logTime = document.createTextNode("")
-div.appendChild(logTime)
-loadLog = function (log) { message_report.nodeValue = "Got log starting at: " + log.extractStartTime() }
-setTime = function(time) { logTime.nodeValue = "Log Time: " + time.toFixed(2) }
-`
 
 /** Read one local file with explicit cancellation; no bytes leave the browser. */
 function read(file: File, kind: 'buffer' | 'text', signal: AbortSignal): Promise<string | ArrayBuffer> {

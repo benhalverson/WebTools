@@ -388,8 +388,8 @@ importers:
         specifier: 10.3.1
         version: 10.3.1
       luxon:
-        specifier: 3.7.2
-        version: 3.7.2
+        specifier: 3.4.4
+        version: 3.4.4
       mediabunny:
         specifier: 1.40.1
         version: 1.40.1
@@ -407,8 +407,8 @@ importers:
         specifier: 1.62.5
         version: 1.62.5(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.1))(wrangler@4.147.0(@types/node@26.6.4))
       '@types/luxon':
-        specifier: 3.7.1
-        version: 3.7.1
+        specifier: 3.4.2
+        version: 3.4.2
       '@types/node':
         specifier: 26.6.4
         version: 26.6.4
@@ -1231,8 +1231,8 @@ packages:
   '@types/dom-webcodecs@0.1.13':
     resolution: {integrity: sha512-O5hkiFIcjjszPIYyUSyvScyvrBoV3NOEEZx/pMlsu44TKzWNkLVBBxnxJz42in5n3QIolYOcBYFCPZZ0h8SkwQ==}
 
-  '@types/luxon@3.7.1':
-    resolution: {integrity: sha512-H3iskjFIAn5SlJU7OuxUmTEpebK6TKB8rxZShDslBMZJ5u9S//KM1sbdAisiSrqwLQncVjnpi2OK2J51h+4lsg==}
+  '@types/luxon@3.4.2':
+    resolution: {integrity: sha512-TifLZlFudklWlMBfhubvgqTXRzLDI5pCbGa4P8a3wPyUQSW+1xQ5eDsreP9DWHX3tjq1ke96uYG/nwundroWcA==}
 
   '@types/node@26.6.4':
     resolution: {integrity: sha512-ldVPDCzj7fsaGZrLB0NuHuTvJcsNasysBAqMolr/cgxrLd1xbqxIr3XJiPnHHJUCxj5sNF1vnRj9aWnrVh5Jcg==}
@@ -1654,8 +1654,8 @@ packages:
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
-  luxon@3.7.2:
-    resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
+  luxon@3.4.4:
+    resolution: {integrity: sha512-zobTr7akeGHnv7eBOXcRgMeCP6+uyYsczwmeRCauvpvaAltgNyTbLH/+VaEAPUeWBT+1GuNmz4wC/6jtQzbbVA==}
     engines: {node: '>=12'}
 
   marked@14.0.0:
@@ -2337,7 +2337,7 @@ snapshots:
 
   '@types/dom-webcodecs@0.1.13': {}
 
-  '@types/luxon@3.7.1': {}
+  '@types/luxon@3.4.2': {}
 
   '@types/node@26.6.4':
     dependencies:
@@ -2697,7 +2697,7 @@ snapshots:
 
   lodash@4.18.1: {}
 
-  luxon@3.7.2: {}
+  luxon@3.4.4: {}
 
   marked@14.0.0: {}
 

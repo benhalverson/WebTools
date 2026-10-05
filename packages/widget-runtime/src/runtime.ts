@@ -358,7 +358,11 @@ export class WidgetHost {
                     await this.renderTime(next)
                 }
             }
-            this.rendering = render().finally(() => { this.rendering = undefined })
+            this.rendering = render().finally(() => {
+                this.rendering = undefined
+                // A request can arrive after the loop exits but before this finalizer runs.
+                if (!this.destroyed && this.latestTime !== undefined) return this.setTime(this.latestTime)
+            })
         }
         return this.rendering
     }
