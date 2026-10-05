@@ -1,0 +1,8 @@
+div.plotly-notifier { visibility: hidden; }
+.stream-header { width: 1200px; }
+.github-logo { width: 60px; }
+.composition { width: 800px; height: 800px; margin-left: 200px; }
+.setup { margin-left: 300px; width: 550px; height: 40px; }
+.setup input[type=number] { width: 75px; }
+.setup label { margin-right: 16px; }
+.open-menu { position: absolute; z-index: 2; background: white; border: 1px solid #aaa; padding: 8px; }

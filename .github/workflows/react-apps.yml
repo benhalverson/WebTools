@@ -25,6 +25,7 @@ jobs:
       - run: pnpm typecheck && pnpm lint
       - run: pnpm test
       - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:stream-stats:browser
       - run: pnpm test:dfu-loader:browser
   browser:
     name: browser (${{ matrix.suite }})
