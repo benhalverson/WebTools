@@ -216,6 +216,12 @@ test('LogFinder actual legacy parity, independent dev/build Workers, prefixes an
                     for (let iteration = 0; iteration < 2; iteration++) {
                         await page.goto(server.origin + prefix + 'LogFinder/'); await page.click('#get_dir'); await snapshot(page);
                         assert.ok(await page.locator('#tables img').count() > 0, 'controlled disabled-arming fixture produces warning');
+                        // Table rows and the loading overlay settle before asynchronously loaded icons.
+                        // Wait for terminal image state; broken images still fail the naturalWidth assertion.
+                        await page.waitForFunction(() => {
+                            const images = [...document.querySelectorAll('#tables img')];
+                            return images.length > 0 && images.every(image => image.complete);
+                        }, undefined, { timeout: 5000 });
                         for (const image of await page.locator('#tables img').all()) assert.equal(await image.evaluate(node => node.complete && node.naturalWidth > 0), true, 'warning icon resolves inside app');
                         await page.evaluate(() => {
                             window.mapRemoved = 0; window.mapCreated = 0;
