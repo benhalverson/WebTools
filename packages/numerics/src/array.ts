@@ -3,7 +3,13 @@
 export type ComplexArray = [number[], number[]];
 /** Copy/conversion helpers can preserve missing components as explicit undefined. */
 export type ComplexStorage = [(number | undefined)[], (number | undefined)[]];
-export type ComplexInput = readonly [readonly number[], readonly number[]];
+/** Read-only samples accepted by legacy indexing/slicing: ordinary arrays may
+ * contain holes or explicit undefined; floating typed arrays retain their storage. */
+export type NumericInput = readonly (number | undefined)[] | Float32Array | Float64Array;
+/** Writable copy destinations; typed arrays coerce undefined to NaN and never grow. */
+export type NumericStorage = (number | undefined)[] | Float32Array | Float64Array;
+/** Split samples accepted throughout complex arithmetic, including converted spectra. */
+export type ComplexInput = readonly [NumericInput, NumericInput];
 // Indexed assertions intentionally retain legacy undefined arithmetic for sparse or
 // mismatched inputs. They neither validate nor replace missing values at runtime.
 // Helpers for Array and complex maths
@@ -92,8 +98,11 @@ export function complex_phase(C: ComplexInput): number[] {
 
 /** Copy the real components and negate the imaginary components.
  * Each component keeps its own length; real holes survive slice, while
- * imaginary holes become NaN during scaling. */
-export function complex_conj(C: ComplexInput): ComplexArray {
+ * imaginary holes become NaN during scaling. Typed real components retain their
+ * typed-array class; explicit undefined in ordinary real arrays is preserved. */
+export function complex_conj<T extends NumericInput>(C: readonly [T, NumericInput]): [ReturnType<T['slice']>, number[]];
+/** Copy real storage using its native slice; allocate ordinary imaginary storage. */
+export function complex_conj(C: ComplexInput): [NumericInput, number[]] {
     return [ C[0].slice(), array_scale(C[1], -1) ]
 }
 
@@ -101,7 +110,7 @@ export function complex_conj(C: ComplexInput): ComplexArray {
  * @param freq Frequencies in the same units as the sampling rate.
  * @param rate Sampling rate; zero and non-finite rates are not rejected.
  * @returns Newly allocated real cosine and imaginary sine components. */
-export function exp_jw(freq: readonly number[], rate: number): ComplexArray {
+export function exp_jw(freq: NumericInput, rate: number): ComplexArray {
     const scale = (2*Math.PI) / rate
     const len = freq.length
     const ret: ComplexArray = [new Array<number>(len), new Array<number>(len)]
@@ -117,7 +126,7 @@ export function exp_jw(freq: readonly number[], rate: number): ComplexArray {
 
 /** Return pairwise maxima with A determining the output length.
  * Missing operands yield NaN; Math.max retains its signed-zero behavior. */
-export function array_max(A: readonly number[], B: readonly number[]): number[] {
+export function array_max(A: NumericInput, B: NumericInput): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -128,7 +137,7 @@ export function array_max(A: readonly number[], B: readonly number[]): number[] 
 
 /** Return pairwise minima with A determining the output length.
  * Missing operands yield NaN; Math.min retains its signed-zero behavior. */
-export function array_min(A: readonly number[], B: readonly number[]): number[] {
+export function array_min(A: NumericInput, B: NumericInput): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -138,7 +147,7 @@ export function array_min(A: readonly number[], B: readonly number[]): number[] 
 }
 
 /** Multiply every entry by scale into a new array; holes become NaN. */
-export function array_scale(A: readonly number[], scale: number): number[] {
+export function array_scale(A: NumericInput, scale: number): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -149,7 +158,7 @@ export function array_scale(A: readonly number[], scale: number): number[] {
 
 /** Return elementwise reciprocals in a new array.
  * Signed zeros become signed infinities and holes become NaN. */
-export function array_inverse(A: readonly number[]): number[] {
+export function array_inverse(A: NumericInput): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -160,7 +169,7 @@ export function array_inverse(A: readonly number[]): number[] {
 
 /** Return elementwise products with A determining the output length.
  * Missing operands become NaN; neither input is padded or modified. */
-export function array_mul(A: readonly number[], B: readonly number[]): number[] {
+export function array_mul(A: NumericInput, B: NumericInput): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -171,7 +180,7 @@ export function array_mul(A: readonly number[], B: readonly number[]): number[] 
 
 /** Return elementwise quotients with A determining the output length.
  * Missing operands and zero divisors retain JavaScript non-finite arithmetic. */
-export function array_div(A: readonly number[], B: readonly number[]): number[] {
+export function array_div(A: NumericInput, B: NumericInput): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -181,7 +190,7 @@ export function array_div(A: readonly number[], B: readonly number[]): number[] 
 }
 
 /** Add offset to every entry in a new array; holes become NaN. */
-export function array_offset(A: readonly number[], offset: number): number[] {
+export function array_offset(A: NumericInput, offset: number): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -192,7 +201,7 @@ export function array_offset(A: readonly number[], offset: number): number[] {
 
 /** Add corresponding entries into a new array of A.length.
  * Missing operands become NaN; neither input is padded or modified. */
-export function array_add(A: readonly number[], B: readonly number[]): number[] {
+export function array_add(A: NumericInput, B: NumericInput): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -203,7 +212,7 @@ export function array_add(A: readonly number[], B: readonly number[]): number[] 
 
 /** Subtract B from A into a new array of A.length.
  * Missing operands become NaN; neither input is padded or modified. */
-export function array_sub(A: readonly number[], B: readonly number[]): number[] {
+export function array_sub(A: NumericInput, B: NumericInput): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -214,7 +223,7 @@ export function array_sub(A: readonly number[], B: readonly number[]): number[] 
 
 /** Return base-10 logarithms without clamping the input.
  * Zero yields -Infinity; negative entries and holes yield NaN. */
-export function array_log10(A: readonly number[]): number[] {
+export function array_log10(A: NumericInput): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -225,7 +234,7 @@ export function array_log10(A: readonly number[]): number[] {
 
 /** Test every entry against val using the legacy loose-equality comparison.
  * Empty arrays return true; NaN does not compare equal to itself. */
-export function array_all_equal(A: readonly number[], val: number): boolean {
+export function array_all_equal(A: NumericInput, val: number): boolean {
     const len = A.length
     for (let i = 0; i < len; i++) {
         if (A[i]! != val) {
@@ -237,7 +246,7 @@ export function array_all_equal(A: readonly number[], val: number): boolean {
 
 /** Test every entry with the coercing global isNaN predicate.
  * Holes count as NaN and empty arrays return true. */
-export function array_all_NaN(A: readonly number[]): boolean {
+export function array_all_NaN(A: NumericInput): boolean {
     const len = A.length
     for (let i = 0; i < len; i++) {
         if (!isNaN(A[i]!)) {
@@ -249,7 +258,7 @@ export function array_all_NaN(A: readonly number[]): boolean {
 
 /** Return absolute values in a new array; negative zero becomes positive zero
  * and holes become NaN. */
-export function array_abs(A: readonly number[]): number[] {
+export function array_abs(A: NumericInput): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -260,7 +269,7 @@ export function array_abs(A: readonly number[]): number[] {
 
 /** Return square roots without clamping negative inputs.
  * Negative entries and holes yield NaN; negative zero remains negative zero. */
-export function array_sqrt(A: readonly number[]): number[] {
+export function array_sqrt(A: NumericInput): number[] {
     const len = A.length
     const ret = new Array<number>(len)
     for (let i = 0; i<len; i++) {
@@ -271,7 +280,7 @@ export function array_sqrt(A: readonly number[]): number[] {
 
 /** Sum entries from left to right starting at zero.
  * Empty arrays return zero; holes propagate NaN without being skipped. */
-export function array_sum(A: readonly number[]): number {
+export function array_sum(A: NumericInput): number {
     const len = A.length
     let ret = 0
     for (let i = 0; i<len; i++) {
@@ -282,7 +291,7 @@ export function array_sum(A: readonly number[]): number {
 
 /** Return the left-to-right sum divided by the array length.
  * Empty arrays and arrays containing holes yield NaN. */
-export function array_mean(A: readonly number[]): number {
+export function array_mean(A: NumericInput): number {
     return array_sum(A) / A.length
 }
 
@@ -308,22 +317,22 @@ export function array_from_range(start: number, end: number, step: number): numb
  * the interpolation cursor only advances. Inputs are never sorted.
  * @returns One slot per query; unmatched queries can leave holes and missing
  * endpoint values can be undefined. Missing arithmetic operands produce NaN. */
-export function linear_interp(values: readonly number[], index: readonly number[], query_index: readonly number[]): (number | undefined)[] {
+export function linear_interp(values: NumericInput, index: NumericInput, query_index: NumericInput): (number | undefined)[] {
 
     const len = query_index.length
-    const ret = new Array<number>(len)
+    const ret = new Array<number | undefined>(len)
 
     const last_value_index = index.length - 1
     let interpolate_index = 0
     for (let i = 0; i < len; i++) {
         if (query_index[i]! <= index[0]!) {
             // Before start
-            ret[i] = values[0]!
+            ret[i] = values[0]
             continue
         }
         if (query_index[i]! >= index[last_value_index]!) {
             // After end
-            ret[i] = values[last_value_index]!
+            ret[i] = values[last_value_index]
             continue
         }
 

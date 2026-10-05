@@ -22,3 +22,9 @@ test('FFT transform boundary round trips complex input',()=>{
     fft.transform(spectrum,input);fft.inverseTransform(result,spectrum);
     for(let i=0;i<input.length;i++)assert.ok(Math.abs(result[i]-input[i])<1e-12);
 });
+
+test('PIDReview chain and floating parser storage match unchanged legacy exactly', async () => {
+    const { compositions } = await import('./compositions.mjs');
+    const { api, FFT } = legacy();
+    assert.deepEqual(encode(compositions(numerics, numerics.FFT)), encode(compositions(api, FFT)));
+});
