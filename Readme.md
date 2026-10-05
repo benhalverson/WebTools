@@ -8,12 +8,12 @@ For general review see [UAVLogViewer](https://github.com/ArduPilot/UAVLogViewer)
 
 ### React portal and pnpm workspace
 
-The workspace contains `apps/portal`, a React/TypeScript portal for the existing
-landing page and `/Dev/` listing, and `packages/dataflash`, a typed, lazy-loaded
-boundary for the unchanged upstream Dataflash parser and owned log helpers.
+The workspace contains the React/TypeScript portal in `apps/portal`, independent
+RotationCheck and SimpleGCS preview apps, and shared typed packages.
+`packages/dataflash` provides a lazy-loaded boundary for the pinned upstream
+Dataflash parser and owned log helpers.
 See [the package guide](packages/dataflash/README.md) for its browser asset
-contract, recorded fixtures, and validation commands. Existing tools and their
-shared browser libraries still run their original JavaScript. The portal was scaffolded with
+contract, recorded fixtures, and validation commands. Tools without a React route continue using their legacy JavaScript. The portal was scaffolded with
 [Cloudflare's React/Vite template](https://developers.cloudflare.com/workers/framework-guides/web-apps/react/)
 using C3 2.73.2, with TypeScript, deployment disabled, and no nested Git repository.
 
@@ -38,10 +38,10 @@ Run these commands from the repository root:
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm dev` | Serve the portal and unchanged tools together, normally at http://127.0.0.1:5173/ |
+| `pnpm dev` | Serve the portal, React apps and retained legacy tools together, normally at http://127.0.0.1:5173/ |
 | `pnpm typecheck` | Generate Worker types and check strict browser, Node, and Worker TypeScript |
-| `pnpm lint` | Lint only the new portal, tooling, and portal tests |
-| `pnpm test` | Run the existing protocol tests and recorded Dataflash differential tests |
+| `pnpm lint` | Lint workspace apps, shared packages, tooling and tests |
+| `pnpm test` | Run protocol, parameter, typed transfer and recorded Dataflash differential tests |
 | `pnpm test:browser` | Run the existing SimpleGCS Playwright suite with a simulated vehicle |
 | `pnpm test:video` | Run the existing video suite; leave `SIMPLEGCS_WHEP_TEST_URL` unset to skip live MediaMTX |
 | `pnpm test:portal` | Build and test development and production preview at both root and a hosting prefix |
@@ -120,11 +120,11 @@ Here is [more information on debugging with VSCode](https://code.visualstudio.co
 <img src="images/VSCode%20debug.png" width="80%">
 </p>
 
-### RotationCheck React migration and local app routing
+### RotationCheck and local app routing
 
-RotationCheck now has its own React/TypeScript app and Worker in
+RotationCheck has its own React/TypeScript app and Worker in
 `apps/rotation-check`. Root `pnpm dev` and `pnpm preview` compose it with the
-portal on one origin at the existing `RotationCheck/` destination. Both apps
+portal on one origin at the existing `RotationCheck/` destination. The apps
 also build and run independently with their own package scripts.
 
 Use `WEBTOOLS_BASE_PATH` as the common prefix (`PORTAL_BASE_PATH` remains an
@@ -134,39 +134,41 @@ See [the routing API](packages/routing/README.md) for the explicit contract,
 
 `pnpm test:routing`, `pnpm test:rotation-check`, and
 `pnpm test:rotation-check:browser` cover URL contracts, legacy numerical parity,
-and real app controls in development and built Worker preview. The comparison
-revision is `753a397e818593ac0943854fd7cea3468f49f095` (issue #4 / draft PR #43,
-which includes issue #3 / PR #39). The retained `RotationCheck/` scripts remain
-unchanged test oracles and legacy downloads; the React page does not load them.
+and real app controls in development and built Worker preview. The retained
+`RotationCheck/` scripts provide test oracles and legacy downloads; the React
+page does not load them.
 
-The issue #5 branch also includes prerequisite browser/JSDoc follow-up
-`91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
-identical to the original comparison revision above.
+### SimpleGCS preview
 
-### SimpleGCS telemetry preview
-
-`apps/simplegcs` is the intermediate connection and read-only telemetry slice.
+`apps/simplegcs` provides connection, telemetry, command and mission/fence flows.
 Open `SimpleGCS-preview/` through `pnpm dev`, or run
 `pnpm --filter simplegcs dev` independently. Its own `build` and `preview`
 commands use the same `WEBTOOLS_BASE_PATH`/`PORTAL_BASE_PATH` convention and
-an independent Worker. The public `SimpleGCS/` destination still serves the
-complete unchanged legacy app; commands, parameters and video remain there
-until the later completion stage.
+an independent Worker. The public `SimpleGCS/` destination serves the complete
+legacy app, including parameter and video workflows.
 
 The preview uses an in-memory MAVLink vehicle and simulated user location.
 Its offline Leaflet surface supports vehicle position/heading, retained pan
-and zoom, recentering and the metric grid. Tile-provider and auto-fetch choices
-retain their existing storage keys for the complete app; the preview makes no
-relay, vehicle, map-provider or device-location requests. Tests can inject
-`SIMPLEGCS_PREVIEW.socket`, `.location`, and `.onMap` before the React entry
-loads. The socket factory receives the submitted URL and immutable settings;
-reconnects never read the in-progress editor draft.
+and zoom, recentering, the metric grid, downloaded missions and fence layers.
+Toolbar commands include arm/disarm and boat/rover modes; hold the map to send a
+guided reposition. The settings menu provides downloads, fence controls and
+confirmed force/reboot actions. Automatic-download choices take effect on the
+first heartbeat after connecting; manual fetch buttons are also available.
 
-`pnpm test:simplegcs` compares telemetry, grid arithmetic and signed bytes with
-the unchanged integrated baseline `8e1791a` (routing PR #45 and MAVLink PR #41).
-`pnpm test:simplegcs:browser` runs Chromium against the independent development
-and built Worker previews at root and prefix, plus the shared local gateway
-and the actual baseline legacy page. Its CDN replay accepts only pinned npm
-bytes matching the legacy HTML's SHA-384 integrity hashes; all other external
-browser requests are blocked. Fetch full Git history before running the
-comparison tests.
+Display and connection choices retain their legacy storage keys. The preview
+makes no relay, vehicle, map-provider or device-location requests. Tests can
+inject `SIMPLEGCS_PREVIEW.socket`, `.location`, and `.onMap` before the React
+entry loads. The socket factory receives the submitted URL and immutable
+settings; reconnects never read the in-progress editor draft. Disconnect and
+unmount release command, transfer, gesture and map resources.
+
+`pnpm test:simplegcs` checks telemetry, command bytes, ACK handling, mission
+filtering and resource cleanup against retained legacy contracts.
+`pnpm test:simplegcs:browser` and `pnpm test:simplegcs:commands:browser` run
+Chromium against independent development and built Worker previews at root and
+prefix. The telemetry suite also checks the shared local gateway. Both compare
+with actual legacy pages from the revisions specified in their test sources.
+CDN replay accepts only pinned npm bytes matching the legacy HTML's SHA-384
+integrity hashes; all other external browser requests are blocked. Fetch full
+Git history before running comparison tests. Set `CHROME_PATH` to use an
+installed Chromium binary.
