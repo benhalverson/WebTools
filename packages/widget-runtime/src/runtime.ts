@@ -217,7 +217,11 @@ export class WidgetHost {
         this.applyOptions()
     }
 
-    /** Copy caller data so Formio and widget edits cannot mutate a saved fixture. */
+    /**
+     * Copy caller data so edits cannot mutate a saved fixture, and create a
+     * bounded settings scrollport above the widget's independently sized content.
+     * Keeping settings out of flex layout preserves iframe and nested-grid sizes.
+     */
     constructor(readonly owner: WidgetRuntime, readonly model: WidgetModel) {
         this.options = structuredClone(model.options)
         if (model.type === 'WidgetMenu') this.options.form = structuredClone(menuForm)
@@ -235,8 +239,9 @@ export class WidgetHost {
         this.element.className = 'grid-stack-item'
         this.content.className = model.type === 'WidgetMenu' || model.type === 'WidgetSubGrid' ? 'grid-stack-item-content' : 'widget-frame-content'
         this.content.style.cssText = 'display:flex;overflow:hidden;'
-        if (model.type === 'WidgetSandBox' || model.type === 'WidgetCustomHTML') this.content.style.cssText += 'width:100%;height:100%;'
+        if (model.type === 'WidgetSandBox' || model.type === 'WidgetCustomHTML') this.content.style.cssText += 'position:relative;width:100%;height:100%;'
         this.element.append(this.content)
+        this.formElement.style.cssText = 'position:absolute;inset:0;z-index:1;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;padding:5px;background:white;cursor:auto;'
         this.formElement.hidden = true
         this.content.append(this.formElement)
         this.element.addEventListener('dblclick', this.showForm)
@@ -260,7 +265,8 @@ export class WidgetHost {
             this.content.style.cssText += 'border:5px solid #c8c8c8;border-radius:10px;padding:5px;'
             if (type === 'WidgetSubGrid') {
                 this.gridElement = document.createElement('div')
-                this.gridElement.style.cssText = 'position:absolute;inset:0;'
+                // Contain nested handles and child settings below this host's settings.
+                this.gridElement.style.cssText = 'position:absolute;inset:0;z-index:0;'
                 this.content.append(this.gridElement)
                 this.updateNested()
             } else {
@@ -357,7 +363,7 @@ export class WidgetHost {
     /** Render the retained icon templates; the consumer owns settings and connection actions. */
     private mountMenu(): void {
         const menu = document.createElement('div')
-        menu.style.cssText = 'width:100%;height:100%'
+        menu.style.cssText = 'position:relative;z-index:0;width:100%;height:100%'
         this.content.append(menu)
         const grid = this.owner.dependencies.createGrid({ float: true, staticGrid: true }, menu)
         this.menuGrid = grid

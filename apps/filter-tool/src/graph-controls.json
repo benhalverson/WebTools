@@ -1,0 +1,122 @@
+[
+  {
+    "id": "ScaleLog",
+    "name": "Scale",
+    "value": "Log",
+    "type": "radio"
+  },
+  {
+    "id": "ScaleLinear",
+    "name": "Scale",
+    "value": "Linear",
+    "type": "radio"
+  },
+  {
+    "id": "ScaleUnWrap",
+    "name": "PhaseScale",
+    "value": "unwrap",
+    "type": "radio"
+  },
+  {
+    "id": "ScaleWrap",
+    "name": "PhaseScale",
+    "value": "wrap",
+    "type": "radio"
+  },
+  {
+    "id": "freq_ScaleLog",
+    "name": "feq_scale",
+    "value": "Log",
+    "type": "radio"
+  },
+  {
+    "id": "freq_ScaleLinear",
+    "name": "feq_scale",
+    "value": "Linear",
+    "type": "radio"
+  },
+  {
+    "id": "freq_Scale_Hz",
+    "name": "feq_unit",
+    "value": "Hz",
+    "type": "radio"
+  },
+  {
+    "id": "freq_Scale_RPM",
+    "name": "feq_unit",
+    "value": "RPM",
+    "type": "radio"
+  },
+  {
+    "id": "ShowComponents",
+    "name": "ShowComponents",
+    "value": "true",
+    "type": "checkbox"
+  },
+  {
+    "id": "PID_ScaleLog",
+    "name": "PID_Scale",
+    "value": "Log",
+    "type": "radio"
+  },
+  {
+    "id": "PID_ScaleLinear",
+    "name": "PID_Scale",
+    "value": "Linear",
+    "type": "radio"
+  },
+  {
+    "id": "PID_ScaleUnWrap",
+    "name": "PID_PhaseScale",
+    "value": "unwrap",
+    "type": "radio"
+  },
+  {
+    "id": "PID_ScaleWrap",
+    "name": "PID_PhaseScale",
+    "value": "wrap",
+    "type": "radio"
+  },
+  {
+    "id": "PID_freq_ScaleLog",
+    "name": "PID_feq_scale",
+    "value": "Log",
+    "type": "radio"
+  },
+  {
+    "id": "PID_freq_ScaleLinear",
+    "name": "PID_feq_scale",
+    "value": "Linear",
+    "type": "radio"
+  },
+  {
+    "id": "PID_freq_Scale_Hz",
+    "name": "PID_feq_unit",
+    "value": "Hz",
+    "type": "radio"
+  },
+  {
+    "id": "PID_freq_Scale_RPM",
+    "name": "PID_feq_unit",
+    "value": "RPM",
+    "type": "radio"
+  },
+  {
+    "id": "PID_filtering_Pre",
+    "name": "filtering",
+    "value": "Pre",
+    "type": "radio"
+  },
+  {
+    "id": "PID_filtering_Post",
+    "name": "filtering",
+    "value": "Post",
+    "type": "radio"
+  },
+  {
+    "id": "PID_ShowComponents",
+    "name": "PID_ShowComponents",
+    "value": "true",
+    "type": "checkbox"
+  }
+]
