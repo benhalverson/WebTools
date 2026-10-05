@@ -1,6 +1,6 @@
 # Shared React workflows
 
-Shared React controls and resource-owning hooks for the WebTools apps. The package depends on `@webtools/parameters` and accepts the existing pinned vendor libraries through explicit interfaces.
+React controls and lifecycle helpers backed by `@webtools/parameters` and the pinned browser libraries.
 
 ## Supported API
 
@@ -12,11 +12,16 @@ Shared React controls and resource-owning hooks for the WebTools apps. The packa
   Labels, units, values, optional range constraints, disabled controls, and
   signed bitmasks use the typed parameter package. `allowValues=false` retains
   a number input; `bitmaskSize` controls signed conversion and hidden bits.
+  Optional `step` and `placeholder` preserve native numeric input attributes.
   Unknown enumerated values remain unselected, matching the native legacy select.
 - `Plot`: inject the existing pinned `Plotly` bundle through `PlotlyApi`. Creates
   a plot, uses `Plotly.react` for changed data/layout/config, and owns only its
   relayout listener and vendor DOM node. Updates are serialized; pending work is
   isolated from a subsequent mount. Purge and listener disposal run on unmount.
+  `deferInitialData=true` initializes with undefined data before applying the first
+  snapshot with `react`, preserving the pinned vendor's initial Reset axes behavior
+  for consumers such as Thrust Expo. Disposal is checked between both operations;
+  the default initializes with the first data snapshot as before.
   `PlotFields` is an open vendor-options record with `unknown` field values, not
   a claim that the entire vendor library is statically described. Consumers
   narrow relayout payloads. `onError` exposes vendor failures without wrapping
@@ -89,22 +94,22 @@ ordering, labels, availability, payload/filename/bytes, and wildcard behavior.
 They also check external transport delay/cancellation, control markup contracts,
 and delegation of exact Blob identity to FileSaver. No Jest/Vitest is used.
 
-## Regression maintenance
+## Regression test maintenance
 
-`tests/regressions.mjs` checks nullish metadata loading and external transfer
-ownership while React remains mounted. It stores only WeakRefs and primitive
-delivery observations; retaining payloads or remote object handles in the test
-would invalidate its garbage-collection checks. The external recipient is a
-local stand-in that discards messages. Forced GC runs in a separate CDP task
-before dereferencing WeakRefs.
+`tests/regressions.mjs` stores only WeakRefs and primitive delivery evidence;
+it never keeps sent payloads or remote object handles alive. The external
+recipient is a local stand-in that discards messages; no external provider is
+contacted. Forced GC uses a separate CDP task before dereferencing WeakRefs.
+The test also keeps pending buffers/recipients live, repeats concurrent sends,
+changes file props, cancels multiple recipients on unmount, and deliberately
+retains a completed public disposer to check its cleared references. The
+unchanged HardwareReport browser test still checks an actual recipient window,
+original filename and exact bytes. Deterministic Node tests cover read
+cancellation/error/abort, blocked windows, throwing open/read/postMessage calls,
+settlement counts and same-origin repeat loads. Metadata browser regressions
+cover null/undefined through enum/bitmask/range loading and back, unknown enum
+rerenders, preserved controlled values, and no change callbacks during loading.
 
-The suite also checks concurrent pending sends, file-prop changes, unmount
-cancellation, a retained completed disposer, and metadata transitions through
-numeric, enum, and bitmask controls. The unchanged HardwareReport browser test
-checks an actual recipient window and original filename/bytes. Node tests cover
-read cancellation/error/abort, blocked windows, throwing browser operations,
-settlement callbacks, and same-origin repeat loads.
-
-`WORKFLOWS_BASELINE=1` is only for applying this regression harness to the
-original implementation; it asserts the pre-fix failures. The normal command
-asserts the supported behavior and legacy parity.
+The `WORKFLOWS_BASELINE=1` browser-runner mode is only for applying this regression
+harness to the original implementation; it asserts the two pre-fix failures.
+The normal command asserts corrected behavior and legacy parity.

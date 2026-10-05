@@ -19,5 +19,6 @@ packages/*/dist/
 packages/react-workflows/consumer-dist/
 packages/react-workflows/.consumer-assets/
 
-# Test-only mounted geofence lifecycle host
-apps/geofence-generator/.lifecycle-dist/
+# Shared widget runtime browser consumer
+packages/widget-runtime/consumer-dist/
+packages/widget-runtime/.consumer-assets/
