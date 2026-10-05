@@ -72,7 +72,8 @@ jobs:
             test:simplegcs:parameters:browser \
             test:simplegcs:video \
             test:filter-review:browser \
-            test:airspeed-fit:browser
+            test:airspeed-fit:browser \
+            test:simplegcs:commands:browser
           do
             echo "::group::$suite"
             if pnpm "$suite"; then

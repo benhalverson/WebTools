@@ -624,6 +624,9 @@ importers:
       '@webtools/routing':
         specifier: workspace:*
         version: link:../../packages/routing
+      '@webtools/transfers':
+        specifier: workspace:*
+        version: link:../../packages/transfers
       leaflet:
         specifier: 1.9.4
         version: 1.9.4

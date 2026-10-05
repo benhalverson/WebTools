@@ -140,7 +140,7 @@ the React page does not load them.
 
 ### SimpleGCS preview
 
-`apps/simplegcs` provides simulated connection, telemetry and parameter editing.
+`apps/simplegcs` provides simulated connection, telemetry, parameter editing, video, commands, and mission/fence downloads.
 Open `SimpleGCS-preview/` through `pnpm dev`, or run
 `pnpm --filter simplegcs dev` independently. Its own `build` and `preview`
 commands use the same `WEBTOOLS_BASE_PATH`/`PORTAL_BASE_PATH` convention and
@@ -175,6 +175,11 @@ comparison tests.
 `pnpm test:simplegcs:parameters:browser` covers the React parameter editor in
 desktop/mobile Chromium, exact legacy file and protocol bytes, root/prefix
 routing, rejected or cancelled writes, and asynchronous resource cleanup.
+
+`pnpm test:simplegcs:commands:browser` checks command acknowledgements, mission
+and fence transfers, map gestures and disposal with an in-memory vehicle.
+The command/mission/fence runtime owns one serialized FTP manager; completion-stage
+parameter integration must share that manager for operations on a real connection.
 
 ### FilterReview spectrum preview
 
