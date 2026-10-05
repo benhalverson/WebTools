@@ -1,13 +1,14 @@
 # Typed parameters
 
 DOM-free extraction of `Libraries/Param_Helpers.js`, `DecodeDevID.js`, and the
-lookup/conversion portions of `ParameterMetadata.js`.
+lookup/conversion portions of `ParameterMetadata.js` at comparison revision
+`ac32dd6`. Legacy files and existing authoritative protocol fixtures are unchanged.
 
 Build with `pnpm --filter @webtools/parameters build`; consume only the explicit
 `@webtools/parameters` entry point. The emitted declarations enforce strict types.
 Run `pnpm test:parameters` for Node built-in tests against the compiled public
 entry point. No browser is required for this DOM-free package; rendering and
-browser lifecycle coverage belong to `@webtools/react-workflows`.
+browser lifecycle coverage belong to issue #4.
 
 ## API
 

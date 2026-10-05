@@ -1,8 +1,9 @@
 # @webtools/mavlink
 
-Typed boundary for the pinned MAVLink codec. Consumers own transports, connection
-lifetimes and signing state; the package retains the codec’s wire formats and
-malformed-frame recovery semantics.
+Typed boundary for the existing MAVLink codec, compared with fork `main` at
+`ac32dd6`. No generated protocol definitions, runtime fixes, jspack sources, or
+checked-in authoritative fixtures are changed. This package does not connect to
+vehicles, provide a transport, or change malformed-frame recovery.
 
 ## Build and consume
 
@@ -102,5 +103,6 @@ and rerun all protocol tests. The handwritten runtime-boundary template is
   Set `CHROME_PATH` for an installed Chromium. Requests outside the local fixture
   server are aborted.
 
-The VM browser check covers initialization and wire/CRC/fragmentation/64-bit/
-signing/replay behavior, but does not replace the real browser suite.
+The original root Node and application browser suites remain intact. The VM
+browser check covers initialization and all 21 wire/CRC/fragmentation/64-bit/
+signing/replay cases, but does not replace the real browser suite.

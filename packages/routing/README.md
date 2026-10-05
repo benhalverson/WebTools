@@ -34,5 +34,5 @@ the migrated page. Apps import only shared packages, never another app's source.
 
 Build outputs remain separate deployable Workers. A future hosting deployment
 must apply the same prefix and ownership table to dispatch requests to these
-Workers. The local gateway does not publish applications, change domains, or
-configure production bindings.
+Workers. This change provides local composition only and does not publish,
+change domains, or configure production bindings.
