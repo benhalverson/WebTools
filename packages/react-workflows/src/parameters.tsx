@@ -11,6 +11,10 @@ export interface ParameterControlProps {
     allowValues?: boolean
     constrain?: boolean
     bitmaskSize?: number
+    /** Native number-input increment; bitmask controls always retain integer steps. */
+    step?: string | number
+    /** Empty-value hint passed to the native numeric input. */
+    placeholder?: string
 }
 
 /** Controlled replacement for the controls owned by ParameterMetadata.js.
@@ -26,7 +30,7 @@ export interface ParameterControlProps {
  * loading state.
  */
 export function ParameterControl({ name, metadata: document, value, onChange, disabled = false,
-    allowValues = true, constrain = false, bitmaskSize = 32 }: ParameterControlProps) {
+    allowValues = true, constrain = false, bitmaskSize = 32, step = 'any', placeholder }: ParameterControlProps) {
     const raw = document == null ? undefined : find_parameter_metadata(document, name)
     const metadata = is_parameter_metadata(raw) ? raw : undefined
     const values = allowValues ? metadata?.Values : undefined
@@ -44,7 +48,7 @@ export function ParameterControl({ name, metadata: document, value, onChange, di
         {values && !bits ? <select ref={select} id={name} name={name} disabled={disabled} value={value} onChange={event => onChange(event.currentTarget.value)}>
             {Object.entries(values).map(([key, description]) => <option key={key} value={key}>{key}:{description}</option>)}
         </select> : <input id={name} name={name} type="number" title={metadata?.Description} disabled={disabled}
-            value={value} min={range?.low} max={range?.high} step={bits ? 1 : 'any'} data-type={bits ? bitmaskSize : undefined}
+            value={value} placeholder={placeholder} min={range?.low} max={range?.high} step={bits ? 1 : step} data-type={bits ? bitmaskSize : undefined}
             onChange={event => onChange(event.currentTarget.value)} />}
         {!values && metadata?.Units}
         {bits && <><br />{Object.entries(bits).map(([bit, description], index) => {

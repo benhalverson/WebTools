@@ -20,20 +20,29 @@ export interface LogStatistics { count: number | undefined; msg_size: number; si
 export interface FormatIndex {
   Columns: string[]
   Format: string
-  FormatOffset: number[]
-  OffsetArray: number[]
+  /** Absent on the initial FMT entry before indexing. */
+  FormatOffset?: number[]
+  /** Absent before indexing and removed when records are indexed by instance. */
+  OffsetArray?: number[]
   InstancesOffsetArray?: Record<string, number[]>
 }
 /** Narrow, consumed surface of the pinned upstream implementation. Missing
  * messages/fields return undefined. Corrupt input can throw; errors are not hidden. */
 export interface DataflashLog {
-  buffer: ArrayBuffer
+  /** Null until processData receives local bytes. */
+  buffer: ArrayBuffer | null
   FMT: (FormatIndex | undefined)[]
   offset: number
   /** Read a numeric upstream scalar at offset, advancing the original reader. */
   parse_type(type: 'Q'): number
   messageTypes: Record<string, MessageType | undefined>
   messages: Record<string, unknown>
+  /** Embedded FILE payloads after processFiles; consumers may release them once copied. */
+  files?: Record<string, Uint8Array> | null
+  /** Parse the indexed records for a discovered message without posting results. */
+  parseAtOffset(name: string): void
+  /** Assemble FILE records in upstream order, retaining its offset and length semantics. */
+  processFiles(): void
   /** Discover types and load the requested messages from local bytes. Pass an
    * empty list for discovery only; omitted messages use upstream defaults.
    * Use a fresh parser per input. Corrupt input may throw or yield partial data. */

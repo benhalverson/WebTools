@@ -1,4 +1,4 @@
-import type { DataflashLog, FieldValues, Message } from '../src/index.js'
+import type { DataflashLog, FieldValues, FormatIndex, Message } from '../src/index.js'
 
 declare const log: DataflashLog
 declare const dynamicField: string
@@ -33,3 +33,20 @@ const wrongCount: number = log.stats().FMT!.count
 
 void [whole, instance, values, instanceValues, dynamic, union, count,
   wrongEmpty, wrongDynamic, wrongInstance, wrongCount, lowercase, uppercase, wrongLower, wrongUpper]
+
+
+// The constructor and instance indexing expose partial raw-reader state.
+const initialFormat: FormatIndex = { Columns: ['TimeUS'], Format: 'Q' }
+const instancedFormat: FormatIndex = { ...initialFormat, FormatOffset: [0], InstancesOffsetArray: { '0': [3] } }
+const rawBytes: ArrayBuffer | null = log.buffer
+const byteLength: number | undefined = log.buffer?.byteLength
+const fieldOffset: number | undefined = log.FMT[128]?.FormatOffset?.[0]
+const recordOffset: number | undefined = log.FMT[128]?.OffsetArray?.[0]
+// @ts-expect-error A newly constructed parser has no buffer.
+const unsafeBytes: ArrayBuffer = log.buffer
+// @ts-expect-error Initial FMT entries have no format offsets.
+const unsafeFieldOffset: number | undefined = initialFormat.FormatOffset[0]
+// @ts-expect-error Instance indexing removes the flat record offsets.
+const unsafeRecordOffset: number | undefined = instancedFormat.OffsetArray[0]
+void [initialFormat, instancedFormat, rawBytes, byteLength, fieldOffset, recordOffset,
+  unsafeBytes, unsafeFieldOffset, unsafeRecordOffset]

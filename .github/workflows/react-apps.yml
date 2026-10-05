@@ -52,7 +52,6 @@ jobs:
             test:portal \
             test:rotation-check:browser \
             test:react-workflows:browser \
-            test:widget-consumers:browser \
             test:numerics:browser \
             test:dataflash:browser \
             test:mavlink:browser \
@@ -64,7 +63,25 @@ jobs:
             test:pid-review:browser \
             test:stream-stats:browser \
             test:dfu-loader:browser \
-            test:log-finder:browser
+            test:log-finder:browser \
+            test:filter-tool:browser \
+            test:widget-consumers:browser \
+            test:browser \
+            test:video \
+            test:simplegcs:browser \
+            test:simplegcs:commands:browser \
+            test:simplegcs:parameters:browser \
+            test:simplegcs:video \
+            test:simplegcs:integration:browser \
+            test:thrust-expo:browser \
+            test:mag-fit:browser \
+            test:filter-review:browser \
+            test:airspeed-fit:browser \
+            test:geofence:browser \
+            test:hardware-report:browser \
+            test:sysid:browser \
+            test:ai-log-analyzer:browser \
+            test:analytic-tune:browser
           do
             echo "::group::$suite"
             if pnpm "$suite"; then
