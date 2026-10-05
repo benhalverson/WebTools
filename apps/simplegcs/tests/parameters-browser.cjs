@@ -249,7 +249,7 @@ async function scenarios(browser, origin, prefix, compare) {
         const page = await context.newPage(), errors = []; page.on('pageerror', error => { errors.push(error.message); console.error(error.message); });
         page.on('response', response => { if (response.status() >= 400) console.error(response.status(), response.url()); });
         page.on('console', message => { if (message.type() === 'error') console.error(message.text()); });
-        await page.goto(origin + prefix + 'SimpleGCS-preview/'); await page.locator('#connectBtn').click(); await page.locator('#connection_button').click();
+        await page.goto(origin + prefix + 'SimpleGCS/?simulate=1'); await page.locator('#connectBtn').click(); await page.locator('#connection_button').click();
         await page.waitForFunction(() => window.session); await page.getByRole('button', { name: 'Parameters', exact: true }).click();
         let actual;
         try { actual = await editorScenarios(page); } catch (error) { console.error(await page.locator('.mavparam-dialog').innerText()); console.error(await page.evaluate(() => ({ connected: session?.model.connected, busy: session?.model.busy, uploads }))); throw error; }
@@ -263,7 +263,7 @@ async function scenarios(browser, origin, prefix, compare) {
             assert.deepEqual(actualUploads, await legacy.evaluate(() => uploads), 'all edited values produce identical serialized protocol bytes'); await legacy.close();
         }
         await faults(page); assert.deepEqual(errors, []);
-        assert.equal((await page.request.get(origin + prefix + 'SimpleGCS-preview/no-such-page')).status(), 404);
+        assert.equal((await page.request.get(origin + prefix + 'SimpleGCS/no-such-page')).status(), 404);
     } finally { await context.close(); }
 }
 /** Run independent root/prefix dev and production Worker previews, then the same-origin gateway. */
@@ -278,9 +278,9 @@ async function main() {
         const server = await start('dev', '/Tools/WebTools/', true);
         try {
             await scenarios(browser, server.origin, '/Tools/WebTools/', false);
-            const response = await fetch(server.origin + '/Tools/WebTools/SimpleGCS/app.js'); assert.equal(response.status, 200);
-            assert.deepEqual(Buffer.from(await response.arrayBuffer()), legacySource('SimpleGCS/app.js'));
-            console.log('PASS parameters same-origin gateway; public legacy bytes unchanged');
+            const response = await fetch(server.origin + '/Tools/WebTools/SimpleGCS/cli_test.js'); assert.equal(response.status, 200);
+            assert.deepEqual(Buffer.from(await response.arrayBuffer()), legacySource('SimpleGCS/cli_test.js'));
+            console.log('PASS parameters same-origin gateway; public React route with unchanged Node helper bytes');
         } finally { await stop(server.child); }
     } finally { await browser.close(); }
 }

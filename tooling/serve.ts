@@ -1,9 +1,9 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createServer, request as httpRequest, type Server } from 'node:http'
 import { fileURLToPath } from 'node:url'
-import { requestPath } from './request-path.ts'
+import { gatewayRoute, selectedApplications } from './gateway-apps.ts'
 import { listeningOrigin } from '@webtools/routing/tooling'
-import { applicationForPath, hostingPrefix, type Application } from '@webtools/routing'
+import { hostingPrefix, type Application } from '@webtools/routing'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const children: ChildProcess[] = []
@@ -62,27 +62,35 @@ async function main(): Promise<void> {
     const portIndex = process.argv.indexOf('--port')
     const port = portIndex < 0 ? (mode === 'dev' ? 5173 : 4173) : Number(process.argv[portIndex + 1])
     if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid port')
-    const origins: Record<Application, string> = {
-        portal: await start('portal', mode, prefix),
-        rotationCheck: await start('rotation-check', mode, prefix),
-        hardwareParameters: await start('hardware-report', mode, prefix),
-        kinematicTools: await start('kinematic-tools', mode, prefix),
-        scurveTool: await start('scurve-tool', mode, prefix),
-        pidReview: await start('pid-review', mode, prefix),
-        streamStats: await start('stream-stats', mode, prefix),
-        dfuLoader: await start('dfu-loader', mode, prefix),
-        logFinder: await start('log-finder', mode, prefix),
-        filterTool: await start('filter-tool', mode, prefix),
-        dashboardPlayback: await start('dashboard-playback', mode, prefix),
-        simplegcsPreview: await start('simplegcs', mode, prefix),
-        thrustExpo: await start('thrust-expo', mode, prefix),
-        magFit: await start('mag-fit', mode, prefix),
+    const appDirectories: Record<Application, string> = {
+        portal: 'portal',
+        rotationCheck: 'rotation-check',
+        hardwareReport: 'hardware-report',
+        kinematicTools: 'kinematic-tools',
+        scurveTool: 'scurve-tool',
+        pidReview: 'pid-review',
+        streamStats: 'stream-stats',
+        dfuLoader: 'dfu-loader',
+        logFinder: 'log-finder',
+        filterTool: 'filter-tool',
+        dashboardPlayback: 'dashboard-playback',
+        simplegcs: 'simplegcs',
+        thrustExpo: 'thrust-expo',
+        magFit: 'mag-fit',
+        filterReview: 'filter-review',
+        airspeedFit: 'airspeed-fit',
+        geofenceGenerator: 'geofence-generator',
+        sysid: 'sysid',
+        aiLogAnalyzer: 'ai-log-analyzer',
+        analyticTune: 'analytic-tune',
+        videoOverlay: 'video-preview',
     }
+    const origins: Partial<Record<Application, string>> = {}
+    for (const app of selectedApplications(process.argv.slice(3))) origins[app] = await start(appDirectories[app], mode, prefix)
     server = createServer((incoming, outgoing) => {
-        const parsed = requestPath(incoming.url)
-        if (!parsed) { outgoing.writeHead(400); outgoing.end('Invalid request path'); return }
-        const { path, pathname } = parsed
-        const target = origins[applicationForPath(pathname, prefix)]
+        const route = gatewayRoute(incoming.url, prefix, origins)
+        if ('status' in route) { outgoing.writeHead(route.status); outgoing.end(route.status === 400 ? 'Invalid request path' : 'App unavailable'); return }
+        const { target, path } = route
         const upstream = httpRequest(target + path, { method: incoming.method, headers: { ...incoming.headers, host: new URL(target).host } }, response => {
             const headers = { ...response.headers }
             if (headers.location?.startsWith(target)) headers.location = headers.location.slice(target.length)
@@ -96,10 +104,9 @@ async function main(): Promise<void> {
     })
     server.on('connection', socket => { sockets.add(socket); socket.on('close', () => sockets.delete(socket)) })
     server.on('upgrade', (incoming, socket, head) => {
-        const parsed = requestPath(incoming.url)
-        if (!parsed) { socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n'); return }
-        const { path, pathname } = parsed
-        const target = origins[applicationForPath(pathname, prefix)]
+        const route = gatewayRoute(incoming.url, prefix, origins)
+        if ('status' in route) { socket.end(`HTTP/1.1 ${route.status} ${route.status === 400 ? 'Bad Request' : 'Service Unavailable'}\r\nConnection: close\r\n\r\n`); return }
+        const { target, path } = route
         const upstream = httpRequest(target + path, { headers: { ...incoming.headers, host: new URL(target).host } })
         upstream.on('upgrade', (response, peer, first) => {
             socket.write(`HTTP/1.1 ${response.statusCode} Switching Protocols\r\n` + Object.entries(response.headers).map(([name, value]) => `${name}: ${value}\r\n`).join('') + '\r\n')

@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
-const baseline = '8e1791a';
+const baseline = '2ce2994419c96d5912f952c3cd659d1b6e630aff';
 /** Read an unchanged tracked file at the actual integrated prerequisite revision. */
 function source(file) { return execFileSync('git', ['show', `${baseline}:${file}`], { maxBuffer: 20 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] }); }
 /** Replay only exact pinned CDN bundles whose bytes match the repository's SHA-384 integrity. */

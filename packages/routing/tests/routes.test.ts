@@ -8,14 +8,16 @@ const binding = { async fetch(request: Request) { return new Response(new URL(re
 
 test('mount and prefix contracts enforce path boundaries', () => {
     for (const prefix of ['/', '/Tools/WebTools/']) {
-        for (const app of ['rotationCheck', 'hardwareParameters', 'kinematicTools', 'scurveTool', 'pidReview', 'streamStats', 'dfuLoader', 'logFinder', 'filterTool', 'dashboardPlayback', 'simplegcsPreview', 'thrustExpo', 'magFit'] as const) {
+        for (const app of ['rotationCheck', 'hardwareReport', 'kinematicTools', 'scurveTool', 'pidReview', 'streamStats', 'dfuLoader', 'logFinder', 'filterTool', 'dashboardPlayback', 'simplegcs', 'thrustExpo', 'magFit', 'filterReview', 'airspeedFit', 'geofenceGenerator', 'sysid', 'aiLogAnalyzer', 'analyticTune', 'videoOverlay'] as const) {
             const base = applicationBase(app, prefix)
             assert.equal(applicationForPath(base, prefix), app)
             assert.equal(applicationForPath(base + 'assets/file.js', prefix), app)
             assert.equal(applicationForPath(base.slice(0, -1), prefix), app)
             assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
         }
-        assert.equal(applicationForPath(prefix + 'HardwareReport/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'HardwareReportParameters/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'FilterReviewPreview/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'DashboardPlayback/', prefix), 'portal')
     }
     assert.equal(hostingPrefix('/Tools'), '/Tools/')
     for (const value of ['https://bad/', '//bad/', '/../', '/%2e/', '/a?b']) assert.throws(() => hostingPrefix(value))
@@ -50,16 +52,28 @@ test('LogFinder owns only its public path boundary at each hosting prefix', () =
         for (const suffix of ['', 'index.html', 'dataflash/vendor/parser.js']) assert.equal(applicationForPath(base + suffix, prefix), 'logFinder')
         assert.equal(applicationForPath(base.slice(0, -1), prefix), 'logFinder')
         assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
-        assert.equal(applicationForPath(prefix + 'HardwareReport/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'HardwareReportParameters/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'FilterReviewPreview/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'DashboardPlayback/', prefix), 'portal')
     }
 })
 
-test('intermediate SimpleGCS preview never takes over the public complete tool', () => {
+test('complete SimpleGCS owns the public route and retires its preview', () => {
     for (const prefix of ['/', '/Tools/WebTools/']) {
-        assert.equal(applicationBase('simplegcsPreview', prefix), prefix + 'SimpleGCS-preview/')
-        assert.equal(applicationForPath(prefix + 'SimpleGCS-preview/', prefix), 'simplegcsPreview')
-        assert.equal(applicationForPath(prefix + 'SimpleGCS-preview', prefix), 'simplegcsPreview')
-        assert.equal(applicationForPath(prefix + 'SimpleGCS/', prefix), 'portal')
-        assert.equal(applicationForPath(prefix + 'SimpleGCS-previewExtra/', prefix), 'portal')
+        assert.equal(applicationBase('simplegcs', prefix), prefix + 'SimpleGCS/')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS/', prefix), 'simplegcs')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS', prefix), 'simplegcs')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS-preview/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'SimpleGCSExtra/', prefix), 'portal')
+    }
+})
+
+test('VideoOverlay owns the completed public editor route at each hosting prefix', () => {
+    for (const prefix of ['/', '/Tools/WebTools/']) {
+        const base = applicationBase('videoOverlay', prefix)
+        assert.equal(base, prefix + 'VideoOverlay/')
+        for (const suffix of ['', 'index.html', 'Widgets/SandBox.html']) assert.equal(applicationForPath(base + suffix, prefix), 'videoOverlay')
+        assert.equal(applicationForPath(prefix + 'VideoOverlayPreview/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'VideoOverlayExtra/', prefix), 'portal')
     }
 })

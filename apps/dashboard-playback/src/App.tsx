@@ -1,6 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { WidgetRuntime, parseLayout, serializeLayout, type Layout } from '@webtools/widget-runtime'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { WidgetRuntime, parseLayout, serializeLayout, parseWidget, type WidgetHost, type Layout } from '@webtools/widget-runtime'
 import { FileInput } from '@webtools/react-workflows'
+import { Palette } from './Palette'
+import { WidgetSettings } from './WidgetSettings'
+import { SourceEditor } from './SourceEditor'
+import { download } from './download'
 import { DashboardConnection, type ConnectionState } from './connection'
 import { dashboardLink, decompressLayout, readSettings, type ConnectionSettings } from './settings'
 
@@ -11,16 +15,33 @@ function sanitizeNumber(value: string): string {
     return input.value
 }
 
+/** Convert browser-normalized RGB into the native color input format. */
+function colorInput(value: string): string {
+    if (/^#[0-9a-f]{6}$/i.test(value)) return value
+    const channels = value.match(/\d+/g)?.slice(0, 3)
+    return channels?.length === 3 ? '#' + channels.map(channel => Number(channel).toString(16).padStart(2, '0')).join('') : '#ffffff'
+}
+
 const colors: Record<ConnectionState, string> = { idle: 'black', connecting: 'orange', connected: 'green', failed: 'red' }
 
-/** Present a saved layout and read-only connection controls; the editor remains in the public legacy app. */
+/** Own dashboard connection, layout, and editor state while the runtime owns widget resources. */
 export function App({ defaultHtml }: { defaultHtml: string }) {
     const [settings, setSettings] = useState(() => readSettings(location.hash, sanitizeNumber))
     const [state, setState] = useState<ConnectionState>('idle')
-    const [panel, setPanel] = useState<'connection' | 'layout' | null>(null)
+    const [panel, setPanel] = useState<'connection' | 'layout' | 'palette' | null>(null)
+    const [menuCount, setMenuCount] = useState(0)
+    const [editing, setEditing] = useState(false)
+    const editingRef = useRef(editing)
+    const [selected, setSelected] = useState<WidgetHost>()
+    const [sourceEditing, setSourceEditing] = useState(false)
+    /** Keep error callbacks stable so rerenders cannot recreate preview resources. */
+    const failure = useCallback((cause: unknown): void => setError(String(cause)), [])
+    const [gridSettings, setGridSettings] = useState<Layout['grid']>({ rows: 6, columns: 6, color: '#ffffff' })
     const [layout, setLayout] = useState<Layout>()
     const [error, setError] = useState('')
     const [link, setLink] = useState('')
+    const [copied, setCopied] = useState(false)
+    const copyTimer = useRef<number | undefined>(undefined)
     const [ready, setReady] = useState(false)
     const host = useRef<HTMLDivElement>(null)
     const runtime = useRef<WidgetRuntime | undefined>(undefined)
@@ -31,6 +52,7 @@ export function App({ defaultHtml }: { defaultHtml: string }) {
     const linkGeneration = useRef(0)
     const fileInput = useRef<HTMLInputElement>(null)
     const fallbackAttempted = useRef(false)
+    const layoutDirty = useRef(false)
     const icons = useRef(new Set<SVGElement>())
 
     useEffect(() => {
@@ -52,7 +74,7 @@ export function App({ defaultHtml }: { defaultHtml: string }) {
             if (!controller.signal.aborted && loadGeneration.current === generation) setLayout(restored)
         }
         void restore().catch(cause => { if (!controller.signal.aborted && generation === loadGeneration.current) setError(String(cause)) })
-        return () => { controller.abort(); loadGeneration.current++; fileGeneration.current++; linkGeneration.current++ }
+        return () => { controller.abort(); loadGeneration.current++; fileGeneration.current++; linkGeneration.current++; window.clearTimeout(copyTimer.current); copyTimer.current = undefined }
     }, [])
 
     useEffect(() => {
@@ -68,6 +90,10 @@ export function App({ defaultHtml }: { defaultHtml: string }) {
 
     useEffect(() => {
         if (!host.current || !layout) return
+        linkGeneration.current++
+        window.clearTimeout(copyTimer.current)
+        copyTimer.current = undefined
+        setCopied(false)
         let active = true
         let owner: WidgetRuntime | undefined
         const controller = new AbortController()
@@ -92,8 +118,10 @@ export function App({ defaultHtml }: { defaultHtml: string }) {
             owner = new WidgetRuntime(host.current, {
                 createGrid: (options, element) => window.GridStack.init(options, element),
                 forms: window.Formio, defaultHtml,
-                sandboxUrl: `${import.meta.env.BASE_URL}runtime/Widgets/SandBox.html`,
-                onError: failed,
+                sandboxUrl: `${import.meta.env.BASE_URL}Widgets/SandBox.html`,
+                onError: cause => { if (active) setError(String(cause)) },
+                onWidgetDisposed: widget => setSelected(current => current === widget ? undefined : current),
+                onEdit: widget => { setPanel(null); setSelected(widget); setSourceEditing(false) },
                 onNoFit: () => { if (active) setError("Widget won't fit on Grid") },
                 /** Bind retained menu icons to React panels and remove every listener on disposal. */
                 mountMenu: menu => {
@@ -102,26 +130,59 @@ export function App({ defaultHtml }: { defaultHtml: string }) {
                     const settingsIcon = buttons[1]
                     /** Open the React connection panel from the retained menu icon. */
                     const openConnection = (): void => setPanel('connection')
-                    /** Open saved-layout controls without enabling editing. */
+                    /** Open dashboard settings from the retained menu icon. */
                     const openLayout = (): void => setPanel('layout')
-                    if (connectIcon) { icons.current.add(connectIcon); connectIcon.addEventListener('click', openConnection) }
+                    if (connectIcon) { icons.current.add(connectIcon); setMenuCount(icons.current.size); connectIcon.addEventListener('click', openConnection) }
                     settingsIcon?.addEventListener('click', openLayout)
+                    /** Make retained SVG menu controls keyboard-operable without changing their artwork. */
+                    function activate(event: KeyboardEvent): void {
+                        if (event.key !== 'Enter' && event.key !== ' ') return
+                        event.preventDefault()
+                        if (event.currentTarget === connectIcon) openConnection()
+                        else openLayout()
+                    }
+                    for (const [icon, label] of [[connectIcon, 'Connection Settings'], [settingsIcon, 'Dashboard settings']] as const) {
+                        if (!icon) continue
+                        icon.setAttribute('tabindex', '0'); icon.setAttribute('role', 'button'); icon.setAttribute('aria-label', label)
+                        icon.addEventListener('keydown', activate)
+                    }
                     for (const image of menu.querySelectorAll('img')) image.src = `${import.meta.env.BASE_URL}images/${image.src.split('/').pop()}`
                     return () => {
-                        if (connectIcon) { icons.current.delete(connectIcon); connectIcon.removeEventListener('click', openConnection) }
+                        if (connectIcon) { icons.current.delete(connectIcon); setMenuCount(icons.current.size); connectIcon.removeEventListener('click', openConnection) }
                         settingsIcon?.removeEventListener('click', openLayout)
+                        connectIcon?.removeEventListener('keydown', activate)
+                        settingsIcon?.removeEventListener('keydown', activate)
                     }
                 },
             }, layout)
             runtime.current = owner
+            owner.setEditing(editingRef.current)
+            setGridSettings(owner.snapshot().grid)
             void owner.ready.then(() => { if (active) setReady(true) }).catch(failed)
         } catch (cause) { failed(cause) }
         return () => { active = false; controller.abort(); runtime.current = undefined; owner?.destroy() }
     }, [layout, defaultHtml])
 
     useEffect(() => {
+        editingRef.current = editing
+        runtime.current?.setEditing(editing)
+        if (!editing) { setSelected(undefined); setSourceEditing(false); setPanel(current => current === 'palette' ? null : current) }
+    }, [editing])
+
+    useEffect(() => {
+        /** Ask before navigation only while the current runtime has unsaved edits. */
+        function beforeUnload(event: BeforeUnloadEvent): void {
+            if (!layoutDirty.current && !runtime.current?.getChanged()) return
+            event.preventDefault()
+            event.returnValue = ''
+        }
+        window.addEventListener('beforeunload', beforeUnload)
+        return () => window.removeEventListener('beforeunload', beforeUnload)
+    }, [])
+
+    useEffect(() => {
         for (const icon of icons.current) icon.style.fill = colors[state]
-    }, [state, ready])
+    }, [state, ready, menuCount])
 
     /** Apply one controlled form field without persisting signing credentials. */
     function change<K extends keyof ConnectionSettings>(key: K, value: ConnectionSettings[K]): void {
@@ -142,9 +203,19 @@ export function App({ defaultHtml }: { defaultHtml: string }) {
         if (!file) return
         const generation = ++fileGeneration.current
         try {
-            const next = parseLayout(await file.text())
+            const text = await file.text()
+            if (generation !== fileGeneration.current) return
+            const object: unknown = JSON.parse(text)
+            if (object && typeof object === 'object' && 'widget' in object) {
+                const added = runtime.current?.add(parseWidget(text).widget)
+                if (added) await added.ready
+                return
+            }
+            const next = parseLayout(text)
             if (generation !== fileGeneration.current) return
             loadGeneration.current++; linkGeneration.current++; fallbackAttempted.current = false
+            layoutDirty.current = false
+            setSelected(undefined); setSourceEditing(false)
             setError(''); setLink(''); setLayout(next)
         } catch (cause) { if (generation === fileGeneration.current) setError(String(cause)) }
     }
@@ -152,30 +223,58 @@ export function App({ defaultHtml }: { defaultHtml: string }) {
     /** Download the runtime's exact legacy serializer output, releasing the temporary URL afterwards. */
     function saveFile(): void {
         if (!runtime.current) return
-        const url = URL.createObjectURL(new Blob([serializeLayout(runtime.current.snapshot())], { type: 'text/plain;charset=utf-8' }))
-        const anchor = document.createElement('a')
-        anchor.href = url; anchor.download = 'TelemetryDashboard.json'; anchor.click()
-        setTimeout(() => URL.revokeObjectURL(url), 0)
+        download(serializeLayout(runtime.current.snapshot()), 'TelemetryDashboard.json')
+        runtime.current.saved()
+        layoutDirty.current = false
     }
 
-    /** Produce a reloadable URL using the same compact snapshot and settings rules as legacy. */
+    /** Produce and copy the legacy-compatible URL; release temporary copy feedback on disposal. */
     async function makeLink(): Promise<void> {
         if (!runtime.current) return
         const generation = ++linkGeneration.current
+        window.clearTimeout(copyTimer.current)
+        setCopied(false)
         try {
             const next = await dashboardLink(location.href, settings, JSON.stringify(runtime.current.snapshot()))
-            if (generation === linkGeneration.current) setLink(next)
+            if (generation !== linkGeneration.current) return
+            setLink(next)
+            try {
+                await navigator.clipboard.writeText(next)
+                if (generation !== linkGeneration.current) return
+                setCopied(true)
+                copyTimer.current = window.setTimeout(() => { setCopied(false); copyTimer.current = undefined }, 2000)
+            } catch { /* Keep the generated link selectable when clipboard access is unavailable. */ }
         } catch (cause) { if (generation === linkGeneration.current) setError(String(cause)) }
+    }
+
+    /** Retain legacy column relayout and row rebuild semantics with owned React state. */
+    function dimensions(key: 'columns' | 'rows', value: string): void {
+        const number = Number(value)
+        const owner = runtime.current
+        if (!owner || !Number.isInteger(number) || number < 2 || number > 12) return
+        layoutDirty.current = true
+        if (key === 'columns') { owner.grid.column(number, 'list'); setGridSettings(owner.snapshot().grid) }
+        else {
+            const next = owner.snapshot()
+            next.grid.rows = value
+            setSelected(undefined); setSourceEditing(false)
+            setLayout(next)
+        }
     }
 
     const busy = state === 'connecting' || state === 'connected'
     return <>
-        <div id="dashboard" className="grid-stack" ref={host} data-ready={ready} />
-        <nav className="playback-controls" aria-label="Dashboard playback">
+        <div id="dashboard" className="grid-stack" ref={host} data-ready={ready} onClick={event => { if (editing && event.target === event.currentTarget) { setSelected(undefined); setPanel('palette') } }} />
+        <nav className="playback-controls" hidden={menuCount > 0} aria-label="Dashboard playback">
             <button onClick={() => setPanel('connection')}>Connection <span style={{ color: colors[state] }} aria-label="Connection status">{state}</span></button>
             <button onClick={() => setPanel('layout')}>Saved layout</button>
+            <label><input type="checkbox" checked={editing} onChange={event => setEditing(event.target.checked)} />Enable widget edit</label>
+            {editing && <button disabled={!ready} onClick={() => { setSelected(undefined); setPanel('palette') }}>Add widget</button>}
         </nav>
-        {panel && <section className="playback-panel" aria-label={panel === 'connection' ? 'Connection Settings' : 'Saved layout'}>
+        {panel === 'palette' && runtime.current && <Palette runtime={runtime.current} close={() => setPanel(null)} failure={failure} />}
+        {selected && !sourceEditing && <WidgetSettings widget={selected} close={() => setSelected(undefined)} edit={() => setSourceEditing(true)} failure={failure} />}
+        {selected && sourceEditing && <SourceEditor widget={selected} close={() => setSourceEditing(false)} failure={failure} />}
+        {panel && panel !== 'palette' && <section className="playback-panel" aria-label={panel === 'connection' ? 'Connection Settings' : 'Saved layout'}>
             <header><strong>{panel === 'connection' ? 'Connection Settings' : 'Saved layout'}</strong><button onClick={() => setPanel(null)} aria-label="Close settings">×</button></header>
             {panel === 'connection' ? <form noValidate onSubmit={connect}>
                 <fieldset disabled={busy}>
@@ -191,7 +290,14 @@ export function App({ defaultHtml }: { defaultHtml: string }) {
                 <button type="submit" disabled={busy}>Connect</button><button type="button" disabled={!busy} onClick={() => connection.current?.disconnect()}>Disconnect</button>
             </form> : <div>
                 <label htmlFor="load-layout">Load layout</label><FileInput id="load-layout" accept=".json,application/json" inputRef={fileInput} onFile={file => void loadFile(file)} />
-                <button disabled={!ready} onClick={saveFile}>Save layout</button><button disabled={!ready} onClick={() => void makeLink()}>Get dashboard link</button>
+                <button disabled={!ready} onClick={saveFile}>Save layout</button><button disabled={!ready} aria-label="Get dashboard link" onClick={() => void makeLink()}>{copied ? 'Copied!' : 'Get dashboard link'}</button>
+                <fieldset disabled={!ready}><legend>Dashboard settings</legend>
+                    {menuCount > 0 && <label><input type="checkbox" checked={editing} onChange={event => setEditing(event.target.checked)} />Enable widget edit</label>}
+                    {menuCount > 0 && editing && <button onClick={() => setPanel('palette')}>Add widget</button>}
+                    <label>Columns<input type="number" min="2" max="12" value={gridSettings.columns} onChange={event => dimensions('columns', event.target.value)} /></label>
+                    <label>Rows<input type="number" min="2" max="12" value={gridSettings.rows} onChange={event => dimensions('rows', event.target.value)} /></label>
+                    <label>Background color<input type="color" value={colorInput(gridSettings.color)} onChange={event => { if (host.current) { host.current.style.backgroundColor = event.target.value; layoutDirty.current = true; setGridSettings(current => ({ ...current, color: event.target.value })) } }} /></label>
+                </fieldset>
                 {link && <><label htmlFor="dashboard-link">Dashboard link</label><textarea id="dashboard-link" readOnly value={link} /></>}
             </div>}
         </section>}
