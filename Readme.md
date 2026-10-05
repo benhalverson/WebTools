@@ -194,3 +194,12 @@ map controls, request cancellation and disposal using offline provider fixtures.
 exports, root and nested prefixes, and resource cleanup. The optional
 `pnpm test:widget-consumers:browser` command runs dashboard, video preview and
 shared widget browser acceptance together.
+
+### Linting and formatting
+
+Owned workspace code uses pinned Biome tooling. Run `pnpm lint` for the
+read-only lint gate, `pnpm format:check -- <path>` to inspect formatting, and
+`pnpm format -- <path>` to format a selected owned file. See
+[the tooling policy](tooling/biome-policy.md) for source boundaries and the
+explicit compatibility rules. Formatting is opt-in; existing files were not
+mass-reformatted.
