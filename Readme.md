@@ -142,3 +142,29 @@ unchanged test oracles and legacy downloads; the React page does not load them.
 The issue #5 branch also includes prerequisite browser/JSDoc follow-up
 `91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
 identical to the original comparison revision above.
+
+### SysID React app and local Python runtime
+
+`apps/sysid` builds an independent React/TypeScript app and Worker at `SysID/`.
+The same-origin gateway includes it in `pnpm dev` and `pnpm preview`; the shared
+`WEBTOOLS_BASE_PATH` (or compatible `PORTAL_BASE_PATH`) applies to its pages,
+standalone DataFlash ESM tree, plots, and Python assets. Use `pnpm --filter sysid dev`
+or `pnpm --filter sysid build` for the app independently.
+
+The first build downloads hash-pinned Pyodide 0.26.1 resources to the ignored
+`.python-cache` directory. Runtime packages retain that release's versions;
+control 0.10.2 records the original unversioned install's resolved wheel.
+The checked-in pyAircraftIden 1.0 wheel and the identification algorithms remain
+unchanged. SciPy's large wheel is stored in parts for the Worker asset limit and
+streamed as its exact original bytes. Identification uses local browser Python,
+with a disposable iframe owning its heap, output, and matplotlib resources.
+There is no identification backend. Builds need network access only on cache miss;
+the built app loads its Python resources from its own origin.
+
+`pnpm test:sysid` checks exact Python extraction, serialized inputs against the
+actual integration base, and wheel streaming. `pnpm test:sysid:browser` runs real
+Chromium/Pyodide transfer-function and state-space identification against the
+unchanged legacy page on fixed synthetic DataFlash bytes, at root and a prefix in
+dev and Worker preview. Test-only entry instrumentation exercises React cleanup;
+it is absent from ordinary builds. Numerical comparisons use identical random
+seeds and a 1e-8 relative/absolute tolerance for optimizer floating-point variation.

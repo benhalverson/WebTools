@@ -18,3 +18,5 @@ packages/*/dist/
 # Shared React integration browser consumer
 packages/react-workflows/consumer-dist/
 packages/react-workflows/.consumer-assets/
+
+apps/sysid/.python-cache/
