@@ -3,6 +3,11 @@
   "files": {
     "includes": [
       "tooling/**",
+      "apps/airspeed-fit/src/**",
+      "apps/airspeed-fit/worker/**",
+      "apps/airspeed-fit/tooling/**",
+      "apps/airspeed-fit/tests/**",
+      "apps/airspeed-fit/vite.config.ts",
       "apps/dashboard-playback/src/**",
       "apps/dashboard-playback/worker/**",
       "apps/dashboard-playback/tooling/**",

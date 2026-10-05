@@ -192,6 +192,16 @@ assets. Filter tracking and tuning remain in the complete tool.
 `pnpm test:filter-review:browser` exercises Chromium,
 independent dev/built Workers and the gateway at root and nested prefixes.
 
+### AirspeedFit
+
+`apps/airspeed-fit` provides an independent React app and Worker at `AirspeedFit/`.
+Use `pnpm --filter airspeed-fit dev` or the shared gateway with `pnpm dev`;
+build and preview use the same hosting prefix as the other registered apps.
+`pnpm test:airspeed-fit` covers numerical compatibility, including recorded-log
+window/sensor selections, fitting, residuals and calibration exports.
+`pnpm test:airspeed-fit:browser` exercises dev and Worker controls at both prefixes,
+file replacement, exports, Open In and resource cleanup.
+
 ### Linting and formatting
 
 Owned workspace code uses pinned Biome tooling. Run `pnpm lint` for the
