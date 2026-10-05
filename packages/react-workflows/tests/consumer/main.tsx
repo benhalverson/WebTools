@@ -1,3 +1,4 @@
+import { RegressionConsumer } from './regressions.js'
 import { LifecycleConsumer } from './lifecycle.js'
 import { StrictMode, useCallback, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -50,4 +51,4 @@ function Consumer() {
 }
 const root = document.getElementById('root')
 if (!root) throw new Error('Missing root')
-createRoot(root).render(<StrictMode>{new URLSearchParams(window.location.search).has('lifecycle') ? <LifecycleConsumer /> : <Consumer />}</StrictMode>)
+createRoot(root).render(<StrictMode>{new URLSearchParams(window.location.search).has('lifecycle') ? <LifecycleConsumer /> : new URLSearchParams(window.location.search).has('regressions') ? <RegressionConsumer /> : <Consumer />}</StrictMode>)

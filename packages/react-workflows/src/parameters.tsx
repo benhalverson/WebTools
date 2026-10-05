@@ -3,7 +3,8 @@ import { find_parameter_metadata, is_parameter_metadata, parameter_bitmask_value
 
 export interface ParameterControlProps {
     name: string
-    metadata: unknown
+    /** Raw document; omitted, null, and undefined represent metadata still loading. */
+    metadata?: unknown
     value: string
     onChange: (value: string) => void
     disabled?: boolean
@@ -14,16 +15,19 @@ export interface ParameterControlProps {
 
 /** Controlled replacement for the controls owned by ParameterMetadata.js.
  * The parent owns the raw string, including empty/partial numeric input.
- * Metadata is narrowed before use; absent or unsupported metadata falls back
+ * Top-level null/undefined metadata renders a numeric control while loading.
+ * Metadata is narrowed before use; absent or unsupported entries fall back
  * to a numeric control. Browser input events report their raw DOM string.
  * Unknown enum values remain unselected after every render. Bitmask changes
  * use metadata-defined bits and legacy width masking/shift coercions at
  * bitmaskSize; range constraints are optional HTML attributes.
- * No parameter write or asynchronous operation is performed.
+ * No parameter write or asynchronous operation is performed. Malformed nested
+ * prefix nodes retain the legacy lookup errors; only top-level absence is a
+ * loading state.
  */
 export function ParameterControl({ name, metadata: document, value, onChange, disabled = false,
     allowValues = true, constrain = false, bitmaskSize = 32 }: ParameterControlProps) {
-    const raw = find_parameter_metadata(document, name)
+    const raw = document == null ? undefined : find_parameter_metadata(document, name)
     const metadata = is_parameter_metadata(raw) ? raw : undefined
     const values = allowValues ? metadata?.Values : undefined
     const bits = metadata?.Bitmask

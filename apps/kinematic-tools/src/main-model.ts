@@ -138,7 +138,7 @@ function attitude_command_model(error_angle: number, desired_ang_vel: number, ta
     if (!is_positive(dt)) {
         return 0.0;
     }
-    
+
     // protect against divide by zero
     if (!is_positive(accel_max)) {
         // no acceleration set so default to 1800 degrees/s²
