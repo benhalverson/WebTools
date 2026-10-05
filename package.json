@@ -6,7 +6,7 @@
     "dev": "pnpm --filter @webtools/react-workflows... --filter @webtools/numerics --filter @webtools/dataflash build && node tooling/serve.ts dev",
     "typecheck": "pnpm -r --workspace-concurrency=1 --if-present typecheck && pnpm --filter portal exec tsc -p ../../tooling/tsconfig.json",
     "lint": "pnpm -r --if-present lint && apps/portal/node_modules/.bin/oxlint --deny-warnings tooling",
-    "test": "node --test tests/*.test.cjs && pnpm test:parameters && pnpm test:dataflash && pnpm --filter @webtools/mavlink test && pnpm --filter @webtools/numerics test && pnpm test:react-workflows && pnpm --filter @webtools/transfers test && pnpm test:routing && pnpm test:rotation-check && pnpm test:widgets && pnpm test:hardware-parameters && pnpm test:kinematic-tools && pnpm test:scurve-tool && pnpm test:pid-review && pnpm test:stream-stats && pnpm test:dfu-loader && pnpm test:widget-consumers",
+    "test": "node --test tests/*.test.cjs && pnpm test:parameters && pnpm test:dataflash && pnpm --filter @webtools/mavlink test && pnpm --filter @webtools/numerics test && pnpm test:react-workflows && pnpm --filter @webtools/transfers test && pnpm test:routing && pnpm test:rotation-check && pnpm test:widgets && pnpm test:hardware-parameters && pnpm test:kinematic-tools && pnpm test:scurve-tool && pnpm test:pid-review && pnpm test:stream-stats && pnpm test:dfu-loader && pnpm test:log-finder && pnpm test:widget-consumers",
     "test:browser": "node tests/browser.cjs",
     "test:video": "node tests/video-browser.cjs",
     "test:portal": "node --test apps/portal/tests/*.test.cjs",
@@ -43,7 +43,9 @@
     "test:widget-consumers": "pnpm test:dashboard-playback && pnpm test:video-preview",
     "test:widget-consumers:browser": "pnpm test:dashboard-playback:browser && pnpm test:video-preview:browser && pnpm test:widgets:browser",
     "test:dfu-loader": "node --test apps/dfu-loader/tests/*.test.ts",
-    "test:dfu-loader:browser": "node --test apps/dfu-loader/tests/browser.cjs"
+    "test:dfu-loader:browser": "node --test apps/dfu-loader/tests/browser.cjs",
+    "test:log-finder": "node --test apps/log-finder/tests/model.test.ts",
+    "test:log-finder:browser": "node --test apps/log-finder/tests/browser.cjs"
   },
   "engines": {
     "node": ">=24 <25"
