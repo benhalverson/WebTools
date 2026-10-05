@@ -135,3 +135,28 @@ the exact URLs' pinned versions (Plotly 2.35.0, flight-indicators-js 1.0.5, Leaf
 1.9.4, leaflet-rotatedmarker 0.2.0). All other external requests are blocked,
 including map tiles. Tests never connect to live vehicles or providers. Deferred
 form fixtures additionally test removal and rejection at every initialization await.
+
+### Shared editor boundary
+
+`registerWidgetEditor(formio)` configures common Formio builder restrictions and
+color controls once per vendor instance. `restrictWidgetEditor` applies explicit
+consumer-owned schema restrictions. Dashboard MAVLink builder metadata and field
+selection remain in the dashboard app, separate from VideoOverlay’s editor.
+`widgetBuilderOptions`, `BuilderFactory`, `WidgetBuilder`, and `EditorComponents`
+are explicit exports for dashboard and later VideoOverlay consumers. The builder
+owner removes its two change listeners and destroys both completed and late
+builder instances. `RuntimeDependencies.onEdit` opens consumer-owned controls;
+Enter and double-click select the same widget while editing is enabled.
+
+The dashboard editor keeps preview runtime, form builder, source editor model,
+and source listeners scoped to one mounted editing session. Applying writes the
+source and schema through the existing `WidgetHost` methods; cancelling disposes
+the preview without modifying the original widget.
+`RuntimeDependencies.onWidgetDisposed` invalidates consumer selections when a host
+is removed, replaced after a cross-grid drop, or disposed during layout cleanup.
+Consumers compare host identity so disposing an editor preview cannot clear the
+original widget's selection.
+
+`WidgetHost.getAbout()` exposes retained palette names/descriptions independently
+of serialized options. Subgrid metadata is shown in the editor without adding
+fields to its legacy JSON representation.
