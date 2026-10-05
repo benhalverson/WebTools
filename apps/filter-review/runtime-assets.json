@@ -4,5 +4,7 @@
   "dataflash/index.js": "packages/dataflash/dist/index.js",
   "dataflash/log-helpers.js": "packages/dataflash/dist/log-helpers.js",
   "dataflash/vendor/parser.js": "packages/dataflash/dist/vendor/parser.js",
-  "dataflash/vendor/LICENSE": "packages/dataflash/dist/vendor/LICENSE"
+  "dataflash/vendor/LICENSE": "packages/dataflash/dist/vendor/LICENSE",
+  "params.json": "FilterReview/params.json",
+  "vendor/FileSaver.js": "Libraries/FileSaver.js"
 }

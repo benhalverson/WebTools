@@ -11,5 +11,5 @@ export default defineConfig(async ({ isPreview }): Promise<UserConfig> => {
     const base = applicationBase('filterReviewPreview', process.env.WEBTOOLS_BASE_PATH ?? process.env.PORTAL_BASE_PATH)
     const publicDir = fileURLToPath(new URL('./.legacy-assets/', import.meta.url))
     if (!isPreview) await stageRuntimeAssets(fileURLToPath(new URL('../../', import.meta.url)), publicDir, assets)
-    return { base, optimizeDeps: { include: ['@webtools/react-workflows', '@webtools/numerics', '@webtools/routing'] }, appType: 'mpa', publicDir, plugins: [react(), prefixedHtml(), cloudflare()] }
+    return { base, optimizeDeps: { include: ['@webtools/dataflash', '@webtools/parameters', '@webtools/react-workflows', '@webtools/numerics', '@webtools/routing'] }, appType: 'mpa', publicDir, plugins: [react(), prefixedHtml(), cloudflare()] }
 })

@@ -1,6 +1,8 @@
+import type { Tracking } from './tracking.ts'
+import type { readParameters } from './parameters.ts'
 import type { Recording, Source } from './ingestion.ts'
 import type { Settings, Spectrum } from './spectrum.ts'
 
 export interface Request { bytes: ArrayBuffer; parserUrl: string; source: Source; instance: number; settings: Settings }
 export type Response = { kind: 'progress'; value: number } | { kind: 'error'; message: string } |
-    { kind: 'result'; recording: Recording; spectrum: Spectrum; instance: number }
+    { kind: 'result'; recording: Recording; spectrum: Spectrum; instance: number; tracking: Tracking; gyroRates: Record<number, number>; parameters: ReturnType<typeof readParameters> }

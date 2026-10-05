@@ -1,3 +1,5 @@
+import { aliasing, type AliasMode } from './aliasing.ts'
+import { FilterComparison, type FilterControls } from './FilterComparison.tsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { OpenIn, Plot, useOpenInReceiver, type PlotlyApi, type PlotFields } from '@webtools/react-workflows'
 import { fft_amplitude_scale, fft_frequency_scale, fft_window_size_inc } from '@webtools/numerics'
@@ -11,12 +13,14 @@ import './style.css'
  * intentionally still legacy. Vendor plot nodes belong to the shared Plot hook. */
 export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
     const review = useReview()
+    const filterControls = useRef<FilterControls | null>(null)
     const [file, setFile] = useState<File | null>(null)
     const [source, setSource] = useState<Source>('batch')
     const [instance, setInstance] = useState(0)
     const [size, setSize] = useState('1024'), [perBatch, setPerBatch] = useState('1')
     const [range, setRange] = useState<[number, number]>([0, 0])
     const [scale, setScale] = useState<Scale>('db')
+    const [aliasMode, setAliasMode] = useState<AliasMode>('none'), [loopRate, setLoopRate] = useState(400)
     const [rpm, setRpm] = useState(false), [logFrequency, setLogFrequency] = useState(false)
     const [inputKey, setInputKey] = useState(0)
     const initializedRange = useRef(false)
@@ -24,7 +28,7 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
     const prefix = import.meta.env.BASE_URL.slice(0, -'FilterReviewPreview/'.length)
     const legacy = applicationBase('portal', prefix) + 'FilterReview/'
     /** Start a replacement file lifetime, including clearing pending Open In work. */
-    function load(next: File) { initializedRange.current = false; setInputKey(value => value + 1); setFile(next); setInstance(0); void review.run(next, source, -1, { size, perBatch }) }
+    function load(next: File) { filterControls.current = null; review.reset(); initializedRange.current = false; setInputKey(value => value + 1); setFile(next); setInstance(0); void review.run(next, source, -1, { size, perBatch }) }
     useOpenInReceiver(load, buffer => load(new File([buffer], 'Opened log.bin')), undefined, error => review.setError(String(error)))
     useEffect(() => {
         if (result) {
@@ -37,7 +41,7 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
         if (file) void review.run(file, nextSource, nextInstance, { size, perBatch })
     }
     /** Release plots, transfers, file state and the computation lifetime. */
-    function reset() { review.reset(); setFile(null); setRange([0, 0]); setInstance(0); setInputKey(value => value + 1) }
+    function reset() { filterControls.current = null; review.reset(); setFile(null); setRange([0, 0]); setInstance(0); setInputKey(value => value + 1) }
     /** Link time plot zoom/reset back to the same range used for spectral means. */
     function relayout(event: PlotFields) {
         if (!result) return
@@ -48,17 +52,18 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
     const plots = useMemo(() => {
         if (!result) return null
         const sensor = result.recording.sensors.find(value => value.instance === result.instance)!
-        const amplitudes = displayed(result.spectrum, range[0], range[1], scale)
+        const alias = aliasing(result.spectrum, aliasMode, loopRate)
+        const amplitudes = displayed(result.spectrum, range[0], range[1], scale, alias)
         const frequency = fft_frequency_scale(rpm, logFrequency)
         const axes = ['x', 'y', 'z'] as const
         return {
-            spectrum: axes.map(axis => ({ type: 'scatter', mode: 'lines', name: axis.toUpperCase(), x: frequency.fun(result.spectrum.bins), y: amplitudes[axis] })),
+            spectrum: axes.map(axis => ({ type: 'scatter', mode: 'lines', name: axis.toUpperCase(), x: frequency.fun(alias.bins), y: amplitudes[axis] })),
             time: axes.map(axis => ({ type: 'scatter', mode: 'lines', name: axis.toUpperCase(),
                 x: sensor.batches.flatMap(batch => [...batch.x.map((_value, index) => batch.sample_time + index / batch.sample_rate), null]),
                 y: sensor.batches.flatMap(batch => [...batch[axis], null]) })),
             spectrumLayout: { xaxis: { title: { text: frequency.label }, type: frequency.type }, yaxis: { title: { text: fft_amplitude_scale(scale === 'db', scale === 'psd').label } }, margin: { t: 30 } },
         }
-    }, [result, range, scale, rpm, logFrequency])
+    }, [result, range, scale, rpm, logFrequency, aliasMode, loopRate])
     return <main>
         <h1>Filter Review</h1>
         <p>Spectrum preview — log ingestion and sensor spectra. <a href={legacy}>Open the complete Filter Review tool</a></p>
@@ -96,11 +101,13 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
             </fieldset>
             {plotly && plots && <Plot id="TimePlot" plotly={plotly} data={plots.time} layout={{ xaxis: { title: { text: 'Time (s)' }, range }, yaxis: { title: { text: 'Angular velocity (rad/s)' } }, margin: { t: 30 } }} onRelayout={relayout} onError={error => review.setError(String(error))} />}
             <fieldset><legend>Spectrum</legend>
+                <label>Aliasing <select aria-label="Aliasing" value={aliasMode} onChange={event => setAliasMode(event.target.value as AliasMode)}><option value="none">None</option><option value="fold">Fold</option><option value="only">Only aliases</option></select></label>
                 <label>Amplitude <select aria-label="Amplitude" value={scale} onChange={event => setScale(event.target.value as Scale)}><option value="linear">Linear</option><option value="db">dB</option><option value="psd">Power Spectral Density</option></select></label>
                 <label><input type="checkbox" checked={rpm} onChange={event => setRpm(event.target.checked)} />RPM</label>
                 <label><input type="checkbox" checked={logFrequency} onChange={event => setLogFrequency(event.target.checked)} />Log frequency</label>
             </fieldset>
             {plotly && plots && <Plot id="FFTPlot" plotly={plotly} data={plots.spectrum} layout={plots.spectrumLayout} onError={error => review.setError(String(error))} />}
+            <FilterComparison key={inputKey} controls={filterControls} result={result} aliasMode={aliasMode} loopRate={loopRate} onLoopRate={setLoopRate} range={range} scale={scale} rpm={rpm} logFrequency={logFrequency} plotly={plotly} />
         </>}
     </main>
 }

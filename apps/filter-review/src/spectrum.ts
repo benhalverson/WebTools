@@ -1,3 +1,4 @@
+import type { Aliasing } from './aliasing.ts'
 import { FFT, hanning, window_correction_factors, rfft_freq, run_fft, complex_abs, fft_amplitude_scale, array_add, array_scale } from '@webtools/numerics'
 import type { WindowCorrection } from '@webtools/numerics'
 import type { Sensor, Source } from './ingestion.ts'
@@ -45,7 +46,7 @@ export function selectedWindows(time: readonly number[], start: number, end: num
 
 /** Average amplitudes (or powers for PSD) before applying legacy correction and
  * display conversion. Zero amplitudes retain -Infinity in logarithmic modes. */
-export function displayed(spectrum: Spectrum, start: number, end: number, mode: Scale): Record<'x' | 'y' | 'z', number[]> {
+export function displayed(spectrum: Spectrum, start: number, end: number, mode: Scale, alias?: Aliasing): Record<'x' | 'y' | 'z', number[]> {
     const scale = fft_amplitude_scale(mode === 'db', mode === 'psd')
     const [first, last] = selectedWindows(spectrum.time, start, end)
     const factor = scale.window_correction(spectrum.correction, spectrum.average_sample_rate / spectrum.window_size) / (last - first)
@@ -54,7 +55,7 @@ export function displayed(spectrum: Spectrum, start: number, end: number, mode: 
     for (const axis of ['x', 'y', 'z'] as const) {
         let sum: number[] = Array(spectrum.bins.length).fill(0)
         for (let i = first; i < last; i++) sum = array_add(sum, scale.fun(spectrum[axis][i]!))
-        output[axis] = scale.scale(array_scale(sum, factor))
+        output[axis] = scale.scale(alias ? alias.apply(array_scale(sum, factor)) : array_scale(sum, factor))
     }
     return output
 }

@@ -16,7 +16,7 @@ const app = resolve(root, 'apps/filter-review')
 /** Spawn an owned process group, capturing readiness and preserving diagnostics. */
 async function start(mode, prefix, gateway = false) {
     const child = spawn(process.execPath, gateway ? ['tooling/serve.ts', mode, '--port', '0'] : ['node_modules/vite/bin/vite.js', ...(mode === 'preview' ? ['preview'] : []), '--host', '127.0.0.1', '--port', '0'], {
-        cwd: gateway ? root : app, detached: true, env: { ...process.env, WEBTOOLS_BASE_PATH: prefix }, stdio: ['ignore', 'pipe', 'pipe'],
+        cwd: gateway ? root : app, detached: true, env: { ...process.env, CLOUDFLARE_CF_FETCH_ENABLED: 'false', WEBTOOLS_BASE_PATH: prefix }, stdio: ['ignore', 'pipe', 'pipe'],
     })
     let output = ''
     const origin = await new Promise((resolvePromise, reject) => {
@@ -99,8 +99,33 @@ async function legacySpectrum(page, bytes, source, instance, startTime = 0, endT
     }, { bytes: [...bytes], source, instance, startTime, endTime, scale })
 }
 
+/** Run the complete unchanged legacy filter workflow on the same uploaded bytes. */
+async function legacyComparison(page, origin, bytes, values, version, scale = 'db') {
+    await page.goto(origin + '/FilterReview/')
+    await page.waitForFunction(() => typeof load === 'function' && !!document.getElementById('FFTPlot')?.data)
+    return page.evaluate(async ({ bytes, values, version, scale }) => {
+        document.getElementById('log_type_batch').checked = true
+        await load(new Uint8Array(bytes).buffer)
+        for (const [name, value] of Object.entries(values)) parameter_set_value(name, value)
+        document.getElementById('filter_version_' + version).checked = true
+        document.getElementById('ScaleLog').checked = scale === 'db'
+        document.getElementById('ScalePSD').checked = scale === 'psd'
+        document.getElementById('TimeStart').value = '1'
+        document.getElementById('TimeEnd').value = '5'
+        load_filters(); calculate_transfer_function(); redraw()
+        let saved
+        window.saveAs = blob => { saved = blob }
+        save_parameters()
+        return {
+            spectrum: [0, 1, 2].map(axis => { const trace = fft_plot.data[get_FFT_data_index(0, 2, axis)]; return { x: trace.x, y: trace.y } }),
+            bode: [Bode.data[2], Bode.data[3]].map(trace => ({ x: trace.x, y: trace.y })),
+            parameters: await saved.text(),
+        }
+    }, { bytes: [...bytes], values, version, scale })
+}
+
 for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'preview']) test(mode + ' ' + prefix + ': independent Worker and React workflow', { timeout: 180000 }, async () => {
-    if (mode === 'preview') execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build'], { cwd: app, env: { ...process.env, WEBTOOLS_BASE_PATH: prefix }, stdio: 'pipe' })
+    if (mode === 'preview') execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build'], { cwd: app, env: { ...process.env, CLOUDFLARE_CF_FETCH_ENABLED: 'false', WEBTOOLS_BASE_PATH: prefix }, stdio: 'pipe' })
     const service = await start(mode, prefix)
     const legacy = await legacyServer()
     const browser = await chromium.launch({ ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}), args: ['--no-sandbox'] })
@@ -110,7 +135,7 @@ for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'prev
         await context.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort())
         const page = await context.newPage()
         const errors = []
-        page.on('response', response => { if (response.status() >= 400 && !response.url().endswith('missing')) console.error('HTTP', response.status(), response.url()) })
+        page.on('response', response => { if (response.status() >= 400 && !response.url().endsWith('missing')) console.error('HTTP', response.status(), response.url()) })
         page.on('pageerror', error => { errors.push(error.message); console.error('Preview error', error.message) })
         await page.addInitScript(() => {
             window.metrics = { created: 0, terminated: 0, purges: 0, progress: 0, cancelled: 0, sent: [] }
@@ -119,6 +144,11 @@ for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'prev
                 constructor(...args) {
                     super(...args); window.metrics.created++
                     this.addEventListener('message', event => {
+                        if (event.data.result && window.cancelFiltersOnResult) {
+                            window.cancelFiltersOnResult = false
+                            document.querySelectorAll('button').forEach(button => { if (button.textContent === 'Cancel filters') button.click() })
+                            window.filtersCancelled = true
+                        }
                         if (event.data.kind === 'progress') {
                             window.metrics.progress++
                             if (window.cancelOnProgress) {
@@ -157,6 +187,40 @@ for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'prev
         await page.getByLabel('Load log').setInputFiles({ name: 'both.bin', mimeType: 'application/octet-stream', buffer: bytes })
         await ready(page)
         close(await snapshot(page), await legacySpectrum(reference, bytes, 'batch', 0))
+        const filterBytes = fixture('batch')
+        await page.getByLabel('Load log').setInputFiles({ name: 'filters.bin', mimeType: 'application/octet-stream', buffer: filterBytes })
+        await ready(page)
+        await page.waitForFunction(() => document.querySelector('select#INS_HNTCH_ENABLE'))
+        const filterValues = { INS_GYRO_FILTER: '30', INS_HNTCH_ENABLE: '1', INS_HNTCH_MODE: '0', INS_HNTCH_FREQ: '80', INS_HNTCH_BW: '40', INS_HNTCH_ATT: '40', INS_HNTCH_REF: '1', INS_HNTCH_FM_RAT: '0.5', INS_HNTCH_HMNCS: '3', INS_HNTCH_OPTS: '64' }
+        for (const [name, value] of Object.entries(filterValues)) {
+            const control = page.locator('#' + name)
+            if (await control.evaluate(node => node.tagName === 'SELECT')) await control.selectOption(value)
+            else await control.fill(value)
+        }
+        await page.getByLabel('Filter version', { exact: true }).selectOption('4')
+        await page.getByRole('button', { name: 'Apply filters', exact: true }).click()
+        await page.waitForFunction(() => !!document.querySelector('#PredictedFFT .js-plotly-plot')?.data)
+        const expectedFilters = await legacyComparison(reference, legacy.origin, filterBytes, filterValues, 4)
+        close(await page.locator('#PredictedFFT .js-plotly-plot').evaluate(node => node.data.map(trace => ({ x: trace.x, y: trace.y }))), expectedFilters.spectrum)
+        close(await page.locator('#BodeMagnitude .js-plotly-plot').evaluate(node => [{ x: node.data[1].x, y: node.data[1].y }]), [expectedFilters.bode[0]])
+        close(await page.locator('#BodePhase .js-plotly-plot').evaluate(node => [{ x: node.data[1].x, y: node.data[1].y }]), [expectedFilters.bode[1]], 1e-7)
+        const downloading = page.waitForEvent('download')
+        await page.getByRole('button', { name: 'Save parameters', exact: true }).click()
+        const download = await downloading
+        assert.equal(download.suggestedFilename(), 'filter.param')
+        assert.equal(await readFile(await download.path(), 'utf8'), expectedFilters.parameters)
+        await page.evaluate(() => { window.cancelFiltersOnResult = true })
+        await page.getByRole('button', { name: 'Apply filters', exact: true }).click()
+        await page.waitForFunction(() => window.filtersCancelled)
+        assert.equal(await page.locator('#PredictedFFT').count(), 0)
+        await page.getByRole('button', { name: 'Apply filters', exact: true }).click()
+        await page.waitForFunction(() => !!document.querySelector('#PredictedFFT .js-plotly-plot')?.data)
+
+        await page.getByRole('button', { name: 'Recalculate', exact: true }).click(); await ready(page)
+        assert.equal(await page.locator('#INS_HNTCH_FREQ').inputValue(), '80')
+        assert.equal(await page.getByLabel('Filter version', { exact: true }).inputValue(), '4')
+        await page.getByLabel('Load log').setInputFiles({ name: 'both.bin', mimeType: 'application/octet-stream', buffer: bytes })
+        await ready(page)
         await page.getByLabel('IMU', { exact: true }).selectOption('1'); await ready(page)
         close(await snapshot(page), await legacySpectrum(reference, bytes, 'batch', 1))
         await page.getByLabel('Source', { exact: true }).selectOption('raw'); await ready(page)
@@ -219,7 +283,7 @@ for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'prev
 })
 
 for (const prefix of ['/Tools/WebTools/', '/']) test('gateway preserves public legacy route ' + prefix, { timeout: 180000 }, async () => {
-    execFileSync('pnpm', ['build'], { cwd: root, env: { ...process.env, WEBTOOLS_BASE_PATH: prefix }, stdio: 'pipe' })
+    execFileSync('pnpm', ['build'], { cwd: root, env: { ...process.env, CLOUDFLARE_CF_FETCH_ENABLED: 'false', WEBTOOLS_BASE_PATH: prefix }, stdio: 'pipe' })
     const browser = await chromium.launch({ ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}), args: ['--no-sandbox'] })
     try {
         for (const mode of ['dev', 'preview']) {

@@ -29,6 +29,9 @@ importers:
       '@webtools/numerics':
         specifier: workspace:*
         version: link:../../packages/numerics
+      '@webtools/parameters':
+        specifier: workspace:*
+        version: link:../../packages/parameters
       '@webtools/react-workflows':
         specifier: workspace:*
         version: link:../../packages/react-workflows

@@ -17,7 +17,8 @@
     "@webtools/react-workflows": "workspace:*",
     "@webtools/routing": "workspace:*",
     "@webtools/dataflash": "workspace:*",
-    "@webtools/numerics": "workspace:*"
+    "@webtools/numerics": "workspace:*",
+    "@webtools/parameters": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.62.5",
