@@ -1,5 +1,5 @@
 import { filterWarnings } from './filters.ts'
-import { aliasing, type AliasMode } from './aliasing.ts'
+import type { Aliasing } from './aliasing.ts'
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { ParameterControl, Plot, downloadFile, type SaveAs, type PlotlyApi } from '@webtools/react-workflows'
 import { fft_frequency_scale, fft_amplitude_scale } from '@webtools/numerics'
@@ -15,9 +15,9 @@ export interface FilterControls { values: Parameters; version: number }
 
 /** React-owned parameter editing, cancellable filter application and comparison
  * plots. The parent keys this lifetime to the decoded recording and IMU. */
-export function FilterComparison({ result, range, scale, rpm, logFrequency, plotly, aliasMode, loopRate, onLoopRate, controls }: {
+export function FilterComparison({ result, range, scale, rpm, logFrequency, plotly, alias, onLoopRate, controls }: {
     controls: RefObject<FilterControls | null>
-    aliasMode: AliasMode; loopRate: number; onLoopRate: (rate: number) => void
+    alias: Aliasing | undefined; onLoopRate: (rate: number) => void
     result: Result; range: [number, number]; scale: Scale; rpm: boolean; logFrequency: boolean; plotly: PlotlyApi | undefined
 }) {
     const [values, setValues] = useState(controls.current?.values ?? result.parameters.values)
@@ -36,7 +36,7 @@ export function FilterComparison({ result, range, scale, rpm, logFrequency, plot
     const [estimated, setEstimated] = useState(false)
     const postFilter = result.recording.sensors.find(sensor => sensor.instance === result.instance)!.postFilter
     const loggedHarmonics = useRef(settings(result.parameters.values, result.parameters.version, result.parameters.bitmaskSize).notches.map(notch => notch.harmonics))
-    useEffect(() => { const value = Number(values.SCHED_LOOP_RATE); if (Number.isFinite(value) && value > 0) onLoopRate(value) }, [values.SCHED_LOOP_RATE, onLoopRate])
+    useEffect(() => { onLoopRate(Number.parseFloat(values.SCHED_LOOP_RATE ?? '')) }, [values.SCHED_LOOP_RATE, onLoopRate])
     const lifetime = useRef(0)
     useEffect(() => {
         comparison.run({ spectrum: result.spectrum, tracking: result.tracking, filters: applied })
@@ -63,9 +63,8 @@ export function FilterComparison({ result, range, scale, rpm, logFrequency, plot
         } catch (cause) { setError(String(cause)) }
     }
     const plots = useMemo(() => {
-        if (!comparison.result || !result.spectrum.time.length) return null
+        if (!comparison.result || !result.spectrum.time.length || !alias) return null
         const frequency = fft_frequency_scale(rpm, logFrequency)
-        const alias = aliasing(result.spectrum, aliasMode, loopRate)
         const output = predicted(result.spectrum, comparison.result.transfer, range[0], range[1], scale, result.recording.source === 'batch', alias)
         const response = bode(comparison.result, result.spectrum.time, range[0], range[1], scale, wrap)
         const bins = frequency.fun(comparison.result.bode.bins)
@@ -80,7 +79,7 @@ export function FilterComparison({ result, range, scale, rpm, logFrequency, plot
                 y: frequency.fun(data.value.map(value => Math.max(target(config, applied.version, value) * (n + 1), applied.version === 1 ? 0 : config.freq * config.min_ratio * (config.options & 32 ? n + 1 : 1)))),
             })))
         })
-        const logged = showLogged ? result.tracking.logged.flatMap((series, notch) => series.flatMap((data, instance) => Array.from({ length: 16 }, (_value, n) => n).filter(n => loggedHarmonics.current[notch]! & (1 << n)).map(n => ({ type: 'scatter', mode: 'lines', name: `Logged notch ${notch + 1}, source ${instance + 1}, harmonic ${n + 1}`, x: data.time, y: frequency.fun(data.value.map(value => value * (n + 1))), line: { dash: 'dot' } })))) : []
+        const logged = showLogged ? result.tracking.logged.flatMap((series, notch) => !(applied.notches[notch]!.enable > 0) ? [] : series.flatMap((data, instance) => Array.from({ length: 16 }, (_value, n) => n).filter(n => loggedHarmonics.current[notch]! & (1 << n)).map(n => ({ type: 'scatter', mode: 'lines', name: `Logged notch ${notch + 1}, source ${instance + 1}, harmonic ${n + 1}`, x: data.time, y: frequency.fun(data.value.map(value => value * (n + 1))), line: { dash: 'dot' } })))) : []
         const image = spectrogram(result.spectrum, axis, scale, alias, estimated && !postFilter ? comparison.result.transfer : undefined, result.recording.source === 'batch')
         const amplitude = fft_amplitude_scale(scale === 'db', scale === 'psd')
         return { spectrum, tracking: [...tracking, ...logged],
@@ -89,7 +88,7 @@ export function FilterComparison({ result, range, scale, rpm, logFrequency, plot
             spectrogram: [{ type: 'heatmap', x: image.time, y: frequency.fun(alias.bins), z: image.columns, transpose: true, colorscale: 'Jet' }, ...tracking, ...logged],
             xaxis: { title: { text: frequency.label }, type: frequency.type }, yaxis: { title: { text: amplitude.label } },
         }
-    }, [comparison.result, result, applied, range, scale, rpm, logFrequency, wrap, axis, showLogged, aliasMode, loopRate, estimated, postFilter])
+    }, [comparison.result, result, applied, range, scale, rpm, logFrequency, wrap, axis, showLogged, alias, estimated, postFilter])
     return <section aria-label="Filter comparisons">
         <h2>Filters</h2>
         <label>Filter version <select aria-label="Filter version" value={version} onChange={event => setVersion(Number(event.target.value))}>{[1, 2, 3, 4].map(value => <option key={value} value={value}>V{value}</option>)}</select></label>
@@ -106,6 +105,7 @@ export function FilterComparison({ result, range, scale, rpm, logFrequency, plot
         <button onClick={() => window.open(filterToolUrl(window.location.href, values, result.gyroRates[result.instance]!, result.tracking, range))}>Open in Filter Tool</button>
         <label>Load parameters <input aria-label="Load parameters" type="file" accept=".param,.parm,.txt" onChange={event => { const file = event.target.files?.[0]; if (file) void load(file) }} /></label>
         {comparison.busy && <p role="status">Calculating filters…</p>}
+        {result.parameters.warnings.map(warning => <p key={warning} role="alert">{warning}</p>)}
         {(error || comparison.error) && <p role="alert">{error || comparison.error}</p>}
         {filterWarnings(applied, result.tracking).map((warning, index) => <p key={index} role="alert">{warning}</p>)}
         {plots && plotly && <>

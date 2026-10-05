@@ -105,3 +105,15 @@ test('recorded upstream pitch-rate sweep: unchanged sample bytes, FFT and filter
         assert.deepEqual(bode(response,spectrum.time,start,end,mode,false).amplitude,expected.bode[2].y)
     }
 })
+
+const { readParameters } = await import('../src/parameters.ts')
+const { filterWarnings } = await import('../src/filters.ts')
+test('unsupported logged versions and missing average throttle retain visible fallback diagnostics', () => {
+    const log=trackingLog()
+    log.messages.VER={FV:[99]};log.messageTypes.VER={expressions:['FV']}
+    const parameters=readParameters(log)
+    assert.equal(parameters.version,4)
+    assert.deepEqual(parameters.warnings,['Unsupported filter version: 99'])
+    const tracking={sources:{1:{instances:[{time:[0,1],value:[0.2,0.3]}]}},logged:[]}
+    assert.deepEqual(filterWarnings({version:4,lowpass:20,notches:[{...config,mode:1}]},tracking),['No tracking data available for Throttle notch'])
+})

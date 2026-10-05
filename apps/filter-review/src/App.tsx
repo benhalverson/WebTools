@@ -49,10 +49,14 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
         const start = event['xaxis.range[0]'], end = event['xaxis.range[1]']
         if (typeof start === 'number' && typeof end === 'number' && start <= end) setRange([start, end])
     }
+    const aliasState = useMemo(() => {
+        try { return { value: result ? aliasing(result.spectrum, aliasMode, loopRate) : undefined, error: '' } }
+        catch (cause) { return { value: undefined, error: cause instanceof Error ? cause.message : String(cause) } }
+    }, [result, aliasMode, loopRate])
     const plots = useMemo(() => {
-        if (!result) return null
+        if (!result || !aliasState.value) return null
         const sensor = result.recording.sensors.find(value => value.instance === result.instance)!
-        const alias = aliasing(result.spectrum, aliasMode, loopRate)
+        const alias = aliasState.value
         const amplitudes = displayed(result.spectrum, range[0], range[1], scale, alias)
         const frequency = fft_frequency_scale(rpm, logFrequency)
         const axes = ['x', 'y', 'z'] as const
@@ -63,7 +67,7 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
                 y: sensor.batches.flatMap(batch => [...batch[axis], null]) })),
             spectrumLayout: { xaxis: { title: { text: frequency.label }, type: frequency.type }, yaxis: { title: { text: fft_amplitude_scale(scale === 'db', scale === 'psd').label } }, margin: { t: 30 } },
         }
-    }, [result, range, scale, rpm, logFrequency, aliasMode, loopRate])
+    }, [result, range, scale, rpm, logFrequency, aliasState])
     return <main>
         <h1>Filter Review</h1>
         <p>Spectrum preview — log ingestion and sensor spectra. <a href={legacy}>Open the complete Filter Review tool</a></p>
@@ -90,6 +94,7 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
             <fieldset><legend>Open In</legend><OpenIn key={file ? file.name + ':' + inputKey : 'empty'} file={file} messages={result?.recording.messages ?? null} pathname={legacy} /></fieldset>
         </div>
         {review.error && <p role="alert">{review.error}</p>}
+        {aliasState.error && <p role="alert">{aliasState.error}</p>}
         {!plotly && <p role="alert">Plotly could not be loaded.</p>}
         {result && <>
             {result.recording.warnings.map(message => <p key={message}>{message}</p>)}
@@ -107,7 +112,7 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
                 <label><input type="checkbox" checked={logFrequency} onChange={event => setLogFrequency(event.target.checked)} />Log frequency</label>
             </fieldset>
             {plotly && plots && <Plot id="FFTPlot" plotly={plotly} data={plots.spectrum} layout={plots.spectrumLayout} onError={error => review.setError(String(error))} />}
-            <FilterComparison key={inputKey} controls={filterControls} result={result} aliasMode={aliasMode} loopRate={loopRate} onLoopRate={setLoopRate} range={range} scale={scale} rpm={rpm} logFrequency={logFrequency} plotly={plotly} />
+            <FilterComparison key={inputKey} controls={filterControls} result={result} alias={aliasState.value} onLoopRate={setLoopRate} range={range} scale={scale} rpm={rpm} logFrequency={logFrequency} plotly={plotly} />
         </>}
     </main>
 }

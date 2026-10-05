@@ -194,7 +194,7 @@ export function filterWarnings(settings: FilterSettings, tracking: Tracking): st
         const dynamicThrottle = config.mode === 1 && (config.options & 2) !== 0
         if (dynamicThrottle && source.instances.length === 0) { warnings.push('No tracking data available for multi-Source throttle notch'); continue }
         if (dynamicThrottle && settings.version < 2) { warnings.push('Multi-Source throttle notch only available on filter V2+'); continue }
-        if (config.mode !== 0 && !source.average && !source.instances.length) { warnings.push('No tracking data available for ' + ['Static', 'Throttle', 'RPM1', 'ESC', 'FFT', 'RPM2'][config.mode] + ' notch'); continue }
+        if (config.mode !== 0 && !source.average && (config.mode === 1 || !source.instances.length)) { warnings.push('No tracking data available for ' + ['Static', 'Throttle', 'RPM1', 'ESC', 'FFT', 'RPM2'][config.mode] + ' notch'); continue }
         if (!(config.options & 1) && !(config.options & 16) && config.options & 64 && settings.version < 4) warnings.push('Quintuple notch only supported with filter version 4 or later')
     }
     return warnings

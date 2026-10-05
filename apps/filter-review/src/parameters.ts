@@ -19,14 +19,18 @@ export function readParameters(log: DataflashLog) {
     const values = defaults()
     for (const name of names) { const value = parameter(log, name); if (value !== undefined) values[name] = String(value) }
     const hint = log.messageTypes.VER?.expressions.includes('FV') ? numbers(log, 'VER', 'FV')[0] : 1
-    return { values, version: hint !== undefined && [1, 2, 3, 4].includes(hint) ? hint : 4, bitmaskSize: parameter(log, 'INS_RAW_LOG_OPT') === undefined ? 8 : 32 }
+    const warnings = hint !== undefined && ![1, 2, 3, 4].includes(hint) ? ['Unsupported filter version: ' + hint] : []
+    return { values, warnings, version: hint !== undefined && [1, 2, 3, 4].includes(hint) ? hint : 4, bitmaskSize: parameter(log, 'INS_RAW_LOG_OPT') === undefined ? 8 : 32 }
 }
 
 /** Apply shared legacy bitmask coercion before constructing a filter. */
 export function settings(values: Parameters, version: number, bitmaskSize: number): FilterSettings {
-    const notches = prefixes.map(prefix => Object.fromEntries(Object.entries(notchFields).map(([key, suffix]) => [key,
-        key === 'harmonics' || key === 'options' ? parameter_input_value(values[prefix + suffix] ?? '', key === 'harmonics' ? bitmaskSize : 32) : Number.parseFloat(values[prefix + suffix] ?? ''),
-    ])) as unknown as Notch)
+    const notches = prefixes.map((prefix): Notch => {
+        /** Read the same numeric control coercion used by the legacy page. */
+        const number = (suffix: string) => Number.parseFloat(values[prefix + suffix] ?? '')
+        return { enable: number('ENABLE'), mode: number('MODE'), freq: number('FREQ'), bandwidth: number('BW'), attenuation: number('ATT'), ref: number('REF'), min_ratio: number('FM_RAT'),
+            harmonics: parameter_input_value(values[prefix + 'HMNCS'] ?? '', bitmaskSize), options: parameter_input_value(values[prefix + 'OPTS'] ?? '', 32) }
+    })
     return { version, lowpass: Number.parseFloat(values.INS_GYRO_FILTER ?? ''), notches }
 }
 

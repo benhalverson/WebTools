@@ -209,6 +209,16 @@ for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'prev
         const download = await downloading
         assert.equal(download.suggestedFilename(), 'filter.param')
         assert.equal(await readFile(await download.path(), 'utf8'), expectedFilters.parameters)
+        await page.locator('#SCHED_LOOP_RATE').fill('1000000000000')
+        await page.getByLabel('Aliasing', { exact: true }).selectOption('fold')
+        await page.getByRole('alert').filter({ hasText: 'Invalid scheduler loop rate' }).waitFor()
+        await page.locator('#SCHED_LOOP_RATE').fill('400')
+        await ready(page)
+        await page.getByLabel('Aliasing', { exact: true }).selectOption('none')
+        await ready(page)
+        await page.getByLabel('Load parameters', { exact: true }).setInputFiles({ name: 'filter.param', mimeType: 'text/plain', buffer: Buffer.from('INS_HNTCH_FREQ,95\nINS_GYRO_FILTER=30\n') })
+        await page.waitForFunction(() => document.querySelector('#INS_HNTCH_FREQ').value === '95' && !!document.querySelector('#PredictedFFT .js-plotly-plot')?.data)
+
         await page.evaluate(() => { window.cancelFiltersOnResult = true })
         await page.getByRole('button', { name: 'Apply filters', exact: true }).click()
         await page.waitForFunction(() => window.filtersCancelled)
@@ -217,7 +227,7 @@ for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'prev
         await page.waitForFunction(() => !!document.querySelector('#PredictedFFT .js-plotly-plot')?.data)
 
         await page.getByRole('button', { name: 'Recalculate', exact: true }).click(); await ready(page)
-        assert.equal(await page.locator('#INS_HNTCH_FREQ').inputValue(), '80')
+        assert.equal(await page.locator('#INS_HNTCH_FREQ').inputValue(), '95')
         assert.equal(await page.getByLabel('Filter version', { exact: true }).inputValue(), '4')
         await page.getByLabel('Load log').setInputFiles({ name: 'both.bin', mimeType: 'application/octet-stream', buffer: bytes })
         await ready(page)
@@ -307,4 +317,26 @@ for (const prefix of ['/Tools/WebTools/', '/']) test('gateway preserves public l
             } finally { await context.close(); await stop(service.child) }
         }
     } finally { await browser.close() }
+})
+
+test('built app missing assets fail visibly and reset remains usable', { timeout: 180000 }, async () => {
+    execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build'], { cwd: app, env: { ...process.env, CLOUDFLARE_CF_FETCH_ENABLED: 'false', WEBTOOLS_BASE_PATH: '/' }, stdio: 'pipe' })
+    const service = await start('preview', '/')
+    const browser = await chromium.launch({ ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}), args: ['--no-sandbox'] })
+    try {
+        for (const asset of ['vendor/plotly.min.js', 'params.json', 'dataflash/vendor/parser.js', 'filter.worker-', 'vendor/FileSaver.js']) {
+            const context = await browser.newContext()
+            try {
+                await context.route('**/*', route => new URL(route.request().url()).hostname !== '127.0.0.1' || route.request().url().includes(asset) ? route.abort() : route.continue())
+                const page = await context.newPage()
+                await page.goto(service.origin + '/FilterReviewPreview/')
+                if (!asset.includes('plotly')) await page.getByLabel('Load log').setInputFiles({ name: 'batch.bin', mimeType: 'application/octet-stream', buffer: fixture('batch') })
+                if (asset.includes('FileSaver')) { await ready(page); await page.getByRole('button', { name: 'Save parameters', exact: true }).click() }
+                await page.getByRole('alert').first().waitFor()
+                await page.getByRole('button', { name: 'Reset', exact: true }).click()
+                assert.equal(await page.locator('#FFTPlot').count(), 0)
+                assert.equal(await page.getByLabel('Load log').count(), 1)
+            } finally { await context.close() }
+        }
+    } finally { await browser.close(); await stop(service.child) }
 })
