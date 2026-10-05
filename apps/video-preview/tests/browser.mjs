@@ -258,10 +258,35 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
             await page.waitForFunction(()=>document.querySelector('video').currentTime===0)
             await page.getByLabel('Seek',{exact:true}).fill('0.25')
             const initialTime=await page.locator('video').evaluate(video=>video.currentTime)
-            await page.getByRole('button',{name:'▶',exact:true}).click()
-            await page.waitForFunction(time=>document.querySelector('video').currentTime>time+.1,initialTime)
-            await page.getByRole('button',{name:'||',exact:true}).click()
-            assert.equal(await page.locator('video').evaluate(video=>video.paused),true)
+            await page.locator('video').evaluate(video => {
+                const events = []
+                const record = event => { if (events.length < 20) events.push({ event: event.type, paused: video.paused, ended: video.ended, time: video.currentTime }) }
+                video.__pauseObservation = { events, record }
+                for (const name of ['play', 'pause', 'ended']) video.addEventListener(name, record)
+            })
+            let beforePause
+            try {
+                await page.getByRole('button',{name:'▶',exact:true}).click()
+                await page.waitForFunction(time=>document.querySelector('video').currentTime>time+.1,initialTime)
+                beforePause = await page.locator('video').evaluate(video => ({ paused: video.paused, ended: video.ended, time: video.currentTime, duration: video.duration }))
+                await page.getByRole('button',{name:'||',exact:true}).click()
+                await page.waitForFunction(() => document.querySelector('video').paused, null, { timeout: 5000 })
+                assert.equal(await page.locator('video').evaluate(video=>video.paused),true)
+            } finally {
+                let diagnosticTimer
+                try {
+                    const afterPause = await Promise.race([
+                        page.locator('video').evaluate(video => {
+                            const observation = video.__pauseObservation
+                            for (const name of ['play', 'pause', 'ended']) video.removeEventListener(name, observation.record)
+                            delete video.__pauseObservation
+                            return { paused: video.paused, ended: video.ended, time: video.currentTime, duration: video.duration, events: observation.events }
+                        }).catch(error => ({ unavailable: error.message })),
+                        new Promise(resolve => { diagnosticTimer = setTimeout(() => resolve({ unavailable: 'pause diagnostics exceeded 500ms' }), 500) }),
+                    ])
+                    console.log('play/pause native state', { mode, prefix, beforePause, afterPause })
+                } finally { clearTimeout(diagnosticTimer) }
+            }
 
 
             for (const file of ['pymavlink-test.BIN', 'plane-4.6.2-prefix.BIN']) {
@@ -320,16 +345,23 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
             await page.getByLabel('Log file',{exact:true}).setInputFiles({name:'replacement.BIN',mimeType:'application/octet-stream',buffer:bytes})
             await page.getByText('Loading log…',{exact:true}).waitFor({state:'hidden'})
             const finalTime=await page.locator('video').evaluate(video=>video.currentTime),finalOffset=Number(await page.getByLabel('Log offset',{exact:true}).inputValue())
-            await old.evaluate(([time,offset])=>window.scrub(time,offset),[finalTime,finalOffset]);await values(page,finalTime-finalOffset);await values(old,finalTime-finalOffset)
-            // Give the Value SVG identical redraw histories: its unchanged getBBox/viewBox
-            // feedback otherwise accumulates float rounding over different reload histories.
-            for (const target of [page,old]) await target.evaluate(async ({widget,bytes,time})=>{
-                const frame=document.querySelectorAll('#dashboard iframe')[3];
-                const done=new Promise(resolve=>{const receive=event=>{if(event.source===frame.contentWindow&&event.data==='renderDone'){removeEventListener('message',receive);resolve()}};addEventListener('message',receive)});
+            await old.evaluate(([time,offset])=>window.scrub(time,offset),[finalTime,finalOffset])
+            const finalValues = await values(page,finalTime-finalOffset)
+            assert.deepEqual(finalValues,await values(old,finalTime-finalOffset),'final reloaded widget values match legacy before pixel comparison')
+            // The static comparison starts the sample text and Value SVG from identical
+            // redraw histories after testing the different reload/lifecycle histories above.
+            for (const index of [0, 3]) for (const target of [page,old]) await target.evaluate(async ({index,widget,bytes,time})=>{
+                const frame=document.querySelectorAll('#dashboard iframe')[index];
+                const done=new Promise((resolve,reject)=>{
+                    const receive=event=>{if(event.source===frame.contentWindow&&event.data==='renderDone'){clearTimeout(timer);removeEventListener('message',receive);resolve()}};
+                    const timer=setTimeout(()=>{removeEventListener('message',receive);reject(new Error(`Widget ${index} redraw acknowledgement timed out`))},5000);
+                    addEventListener('message',receive);
+                });
                 frame.contentWindow.postMessage({script:widget.options.sandbox,options:widget.options.form_content},'*');
                 frame.contentWindow.postMessage({logData:new Uint8Array(bytes).buffer},'*');
                 frame.contentWindow.postMessage({time},'*');await done;
-            },{widget:layout.widgets[3],bytes:[...bytes],time:finalTime-finalOffset})
+            },{index,widget:layout.widgets[index],bytes:[...bytes],time:finalTime-finalOffset})
+            for (const target of [page,old]) assert.deepEqual(await values(target,finalTime-finalOffset),finalValues,'identical redraw preserves all final widget values')
             // Widget renderDone does not acknowledge native video seeking/presentation.
             // A paused video may not issue another video-frame callback, so wait for
             // its native state synchronously, then allow two animation frames.
