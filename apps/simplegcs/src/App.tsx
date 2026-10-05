@@ -8,12 +8,20 @@ import type { SocketFactory } from './connection.ts'
 import type { LocationProvider } from './location.ts'
 import { speedText } from './telemetry.ts'
 import './style.css'
-export interface AppProps { socket: SocketFactory; location: LocationProvider; storage: StoragePair; locks?: LockManager; onMap?: MapViewProps['onMap']; prefix: string; config: DeploymentConfig }
+import { VideoControls } from './VideoControls.tsx'
+import { ParameterEditor } from './parameters/ParameterEditor.tsx'
+import { useParameterSession } from './parameters/useParameterSession.ts'
+import { simulatedParameters } from './parameters/simulator.ts'
+import type { ParameterSession, ParameterSessionFactory } from './parameters/session.ts'
+export interface AppProps { parameters?: ParameterSessionFactory | undefined; onParameters?: ((session: ParameterSession | null) => void) | undefined; socket: SocketFactory; location: LocationProvider; storage: StoragePair; locks?: LockManager; onMap?: MapViewProps['onMap']; prefix: string; config: DeploymentConfig }
 const providers = [['osm', 'OpenStreetMap (default)'], ['opentopomap', 'OpenTopoMap'], ['carto-light', 'Carto Light'], ['carto-dark', 'Carto Dark'], ['esri-world-imagery', 'Esri World Imagery (Satellite)'], ['au-ga-topo', 'Australia — Geoscience Topographic'], ['uk-os-opendata', 'UK — Ordnance Survey OpenData'], ['google', 'Google Maps (Roadmap)'], ['google-terrain', 'Google Maps (Terrain)'], ['google-satellite', 'Google Maps (Satellite)'], ['google-hybrid', 'Google Maps (Hybrid)']]
 const options = [['showGrid', 'Show Grid'], ['showLocation', 'Show My Location'], ['showGPSNumSats', 'Show GPS NumSats'], ['autoFetchFence', 'Fetch fence on first heartbeat'], ['autoFetchMission', 'Fetch mission on first heartbeat']] as const
-/** Render the intermediate telemetry, command and transfer flow; all converted UI state is owned by React. */
-export default function App({ socket, location, storage, locks, onMap, prefix, config }: AppProps) {
+/** Render the intermediate telemetry, parameter, video, command and transfer flows; all converted UI state is owned by React. */
+export default function App({ socket, location, storage, locks, onMap, prefix, config, parameters = simulatedParameters, onParameters }: AppProps) {
     const { connection, draft, link, busy, error, connect, disconnect, edit } = useConnection(socket, storage, locks, config)
+    const parameterSession = useParameterSession(parameters, link.telemetry.system > 0 ? link.mapIdentity : null)
+    useEffect(() => { onParameters?.(parameterSession); return () => onParameters?.(null) }, [parameterSession, onParameters])
+    const [parametersOpen, setParametersOpen] = useState(false)
     const [display, setDisplay] = useState(() => readDisplay(storage.local, config)), [dialog, setDialog] = useState<'connection' | 'settings' | null>(null), [showPassphrase, setShowPassphrase] = useState(false), [recenter, setRecenter] = useState(0), [notice, setNotice] = useState<{ text: string; duration?: number } | null>(null)
     useEffect(() => { if (error) setNotice({ text: error.message }) }, [error])
     useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(null), notice.duration ?? 1500); return () => clearTimeout(timer) }, [notice])
@@ -42,7 +50,8 @@ export default function App({ socket, location, storage, locks, onMap, prefix, c
             </div><div style={{ flex: 1 }} /><button className="btn small" id="menuBtn" onClick={openSettings}>☰</button><button className="btn small" id="recenterBtn" onClick={() => setRecenter(value => value + 1)}>Recenter</button>
             <button className="btn small" id="connectBtn" onClick={() => setDialog('connection')} style={{ background: link.phase === 'connected' ? '#00c853' : link.phase === 'connecting' ? '#f9a825' : link.phase === 'error' ? '#e53935' : undefined }}>Connect{link.lagSeconds ? ` (${link.lagSeconds}s)` : ''}</button>
         </aside><MapView operations={operations} beginReposition={beginReposition} link={link} display={display} location={location} report={report} recenter={recenter} onMap={onMap} /></div>
-        <div className="preview">Simulated GCS preview · Offline map · <a href={legacy}>Complete SimpleGCS: parameters, video</a></div>
+        <ParameterEditor session={parameterSession} open={parametersOpen} close={() => setParametersOpen(false)} />
+        <div className="preview"><button onClick={() => setParametersOpen(true)}>Parameters</button> Simulated GCS preview · Offline map · <a href={legacy}>Complete SimpleGCS</a></div>
         <section className="editor" hidden={dialog !== 'connection'} aria-label="Connection Settings">
             <h2>Connection Settings</h2><label htmlFor="target_url">Server address</label><input id="target_url" type="url" value={draft.url} onChange={event => edit('url', event.target.value)} />
             <label>SysID <input id="system_id" type="number" min="1" max="255" value={draft.systemId} onChange={event => edit('systemId', event.target.value)} /></label><label>CompID <input id="component_id" type="number" min="1" max="255" value={draft.componentId} onChange={event => edit('componentId', event.target.value)} /></label>
@@ -50,7 +59,7 @@ export default function App({ socket, location, storage, locks, onMap, prefix, c
             <label htmlFor="signing_passphrase">Signing passphrase</label><input id="signing_passphrase" type={showPassphrase ? 'text' : 'password'} value={draft.passphrase} onChange={event => edit('passphrase', event.target.value)} /><button id="toggle_signing_passphrase" aria-controls="signing_passphrase" aria-label={`${showPassphrase ? 'Hide' : 'Show'} signing passphrase`} aria-pressed={showPassphrase} onClick={() => setShowPassphrase(value => !value)}>{showPassphrase ? 'Hide' : 'Show'}</button>
             <p><button id="connection_button" disabled={busy} onClick={() => { void connect().then(connected => { if (connected) closeDialog() }) }}>Connect</button> <button id="disconnection_button" onClick={disconnect}>Disconnect</button> <button onClick={closeDialog}>Close</button></p>
         </section>
-        <section className="editor" hidden={dialog !== 'settings'} aria-label="Display Settings"><h2>Settings</h2><a href={legacy}>Parameters, commands and video (complete app)</a><label>Map Tiles <select value={display.tiles} onChange={event => changeDisplay('tiles', event.target.value)}>{providers.filter(([key]) => display.googleKey || !key!.startsWith('google')).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+        <section className="editor" hidden={dialog !== 'settings'} aria-label="Display Settings"><h2>Settings</h2><a href={legacy}>Complete legacy app</a><VideoControls storage={storage.local} /><label>Map Tiles <select value={display.tiles} onChange={event => changeDisplay('tiles', event.target.value)}>{providers.filter(([key]) => display.googleKey || !key!.startsWith('google')).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
             <label>Google Maps API Key <input id="gmaps-key-input" value={display.googleKey} onChange={event => changeDisplay('googleKey', event.target.value.trim())} /></label>
             {options.map(([key, label]) => <label key={key}><input type="checkbox" checked={display[key]} onChange={event => changeDisplay(key, event.target.checked)} />{label}</label>)}<div className="command-actions">
                 <button onClick={() => act(owner => owner.fetch('fence'))} disabled={operations.fencePending}>Fetch Fence</button><button onClick={() => act(owner => owner.fetch('mission'))} disabled={operations.missionPending}>Fetch Mission</button>

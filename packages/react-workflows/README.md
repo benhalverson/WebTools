@@ -1,7 +1,6 @@
 # Shared React workflows
 
-Reusable controls and lifecycle helpers for React tools. Parameter controls use
-`@webtools/parameters`; callers supply pinned browser libraries where required.
+React controls and lifecycle helpers backed by `@webtools/parameters` and the pinned browser libraries.
 
 ## Supported API
 
@@ -13,11 +12,16 @@ Reusable controls and lifecycle helpers for React tools. Parameter controls use
   Labels, units, values, optional range constraints, disabled controls, and
   signed bitmasks use the typed parameter package. `allowValues=false` retains
   a number input; `bitmaskSize` controls signed conversion and hidden bits.
+  Optional `step` and `placeholder` preserve native numeric input attributes.
   Unknown enumerated values remain unselected, matching the native legacy select.
 - `Plot`: inject the existing pinned `Plotly` bundle through `PlotlyApi`. Creates
   a plot, uses `Plotly.react` for changed data/layout/config, and owns only its
   relayout listener and vendor DOM node. Updates are serialized; pending work is
   isolated from a subsequent mount. Purge and listener disposal run on unmount.
+  `deferInitialData=true` initializes with undefined data before applying the first
+  snapshot with `react`, preserving the pinned vendor's initial Reset axes behavior
+  for consumers such as Thrust Expo. Disposal is checked between both operations;
+  the default initializes with the first data snapshot as before.
   `PlotFields` is an open vendor-options record with `unknown` field values, not
   a claim that the entire vendor library is statically described. Consumers
   narrow relayout payloads. `onError` exposes vendor failures without wrapping
@@ -27,7 +31,7 @@ Reusable controls and lifecycle helpers for React tools. Parameter controls use
   the original Blob and filename to injected legacy `FileSaver.saveAs` without
   re-encoding or replacing its browser-specific download behavior.
 - `useLoading` and `LoadingOverlay`: retain styling and double-animation-frame
-  scheduling. **Legacy compatibility behavior:** the returned
+  scheduling. **Deliberately preserve the reviewed legacy bug:** the returned
   promise resolves after scheduling (not completion), and rejection leaves the
   overlay visible. Rejection is reported through `onError`; this does not repair
   or conceal the failure overlay. Unmount cancels queued frames and prevents
@@ -46,9 +50,12 @@ Reusable controls and lifecycle helpers for React tools. Parameter controls use
   owned state, removing its message listener on unmount. Its structural wire
   narrowing is not origin authentication.
 
-Outgoing Open-In messages target `*`; incoming messages do not authenticate
-origin/source. External viewers receive an ArrayBuffer after 2000ms. Applications
-must account for these legacy transport semantics when embedding the workflow.
+The cross-tool security fix is **not** included: outgoing messages still target
+`*`, incoming messages do not authenticate origin/source, and the external viewer
+still receives an ArrayBuffer after 2000ms. The same-origin receiver is an actual
+unmodified `HardwareReport` page in the browser suite. Existing scripts and
+consumers, generated artifacts, vendor pins and licenses are retained. This is
+an integration package plus test consumer, not a wrapper-only tool migration.
 
 ## Validation
 
@@ -85,12 +92,22 @@ ordering, labels, availability, payload/filename/bytes, and wildcard behavior.
 They also check external transport delay/cancellation, control markup contracts,
 and delegation of exact Blob identity to FileSaver. No Jest/Vitest is used.
 
-The browser regression harness uses WeakRefs and primitive delivery observations
-without retaining sent payloads or remote object handles. External recipients are
-local stand-ins that discard messages. Forced GC runs in a separate CDP task
-before WeakRefs are dereferenced. The default suite checks mounted and unmounted
-transfer ownership, cancellation, loading metadata, and controlled-value retention.
+## Regression test maintenance
 
-`WORKFLOWS_BASELINE=1` applies the regression harness to an implementation that
-still contains the nullish-metadata and completed-transfer retention defects; it
-expects those failures. Normal runs require corrected behavior and legacy parity.
+`tests/regressions.mjs` stores only WeakRefs and primitive delivery evidence;
+it never keeps sent payloads or remote object handles alive. The external
+recipient is a local stand-in that discards messages; no external provider is
+contacted. Forced GC uses a separate CDP task before dereferencing WeakRefs.
+The test also keeps pending buffers/recipients live, repeats concurrent sends,
+changes file props, cancels multiple recipients on unmount, and deliberately
+retains a completed public disposer to check its cleared references. The
+unchanged HardwareReport browser test still checks an actual recipient window,
+original filename and exact bytes. Deterministic Node tests cover read
+cancellation/error/abort, blocked windows, throwing open/read/postMessage calls,
+settlement counts and same-origin repeat loads. Metadata browser regressions
+cover null/undefined through enum/bitmask/range loading and back, unknown enum
+rerenders, preserved controlled values, and no change callbacks during loading.
+
+The `WORKFLOWS_BASELINE=1` browser-runner mode is only for applying this regression
+harness to the original implementation; it asserts the two pre-fix failures.
+The normal command asserts corrected behavior and legacy parity.

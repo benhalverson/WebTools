@@ -20,7 +20,8 @@
     "@webtools/routing": "workspace:*",
     "@webtools/mavlink": "workspace:*",
     "leaflet": "1.9.4",
-    "@webtools/transfers": "workspace:*"
+    "@webtools/transfers": "workspace:*",
+    "@webtools/parameters": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.62.5",

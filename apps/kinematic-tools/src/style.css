@@ -1,0 +1,9 @@
+.brand { width: 1200px; }
+h1 a { color: #000; text-decoration: none; }
+.description { width: 1150px; text-align: justify; padding-left: 15px; margin-block-start: 0; margin-block-end: 0.5em; }
+.controls p { margin-top: 5px; margin-bottom: 5px; }
+.controls input[type=number] { width: 50px; }
+.controls .parameters input { width: 100px; }
+.controls .parameters p { margin: 0; }
+.hint { width: 1em; vertical-align: bottom; }
+div.plotly-notifier { visibility: hidden; }
