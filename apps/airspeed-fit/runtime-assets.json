@@ -1,0 +1,13 @@
+{
+  "vendor/plotly.min.js": "modules/plotly.js/dist/plotly.min.js",
+  "images/AP_favicon.png": "images/AP_favicon.png",
+  "images/ArduPilot.png": "images/ArduPilot.png",
+  "images/github-mark.png": "images/github-mark.png",
+  "images/GitHub_Logo.png": "images/GitHub_Logo.png",
+  "vendor/matrix.umd.js": "modules/build/matrix/matrix.umd.js",
+  "vendor/FileSaver.js": "Libraries/FileSaver.js",
+  "Readme.md": "AirspeedFit/Readme.md",
+  "params.json": "AirspeedFit/params.json",
+  "airspeedfit.js": "AirspeedFit/airspeedfit.js",
+  "airspeedfit_core.js": "AirspeedFit/airspeedfit_core.js"
+}

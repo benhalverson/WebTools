@@ -1,0 +1,8 @@
+body { margin: 16px; font-family: Arial, sans-serif; color: #222; background: white; }
+main { max-width: 1600px; margin: auto; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+fieldset { border: 1px solid #aaa; margin: 10px 0; padding: 12px; }
+label { display: inline-block; margin: 6px 12px 6px 0; }
+input[type=number] { width: 100px; }
+button { margin: 6px; }
+[role=alert] { color: #a00; }

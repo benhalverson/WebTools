@@ -17,6 +17,10 @@ export interface RuntimeDependencies {
     defaultHtml: string
     /** Connection and application settings remain consumer-owned and explicitly disposable. */
     mountMenu?: (element: HTMLElement, runtime: WidgetRuntime) => (() => void)
+    /** Open the consumer editor without embedding application UI in the runtime. */
+    onEdit?: (widget: WidgetHost) => void
+    /** Invalidate consumer selection when removal or cross-grid transfer disposes a host. */
+    onWidgetDisposed?: (widget: WidgetHost) => void
     onError?: (error: unknown) => void
     onNoFit?: (widget: WidgetModel) => void
 }
@@ -245,6 +249,7 @@ export class WidgetHost {
         this.formElement.hidden = true
         this.content.append(this.formElement)
         this.element.addEventListener('dblclick', this.showForm)
+        this.element.addEventListener('keydown', this.editKey)
     }
 
     /** Allocate resources only after GridStack gives this element its dimensions. */
@@ -273,35 +278,48 @@ export class WidgetHost {
                 this.mountMenu()
             }
         }
-        this.ready = this.initializeForm().then(async () => { await this.nested?.ready })
-        // Report errors without leaving an unhandled rejection when creation is followed by removal.
-        void this.ready.catch(error => this.owner.dependencies.onError?.(error))
+        this.ready = this.initializeForm().then(async () => { await this.nested?.ready }).catch(error => {
+            // Cancellation keeps the public rejection but cannot remove or report against a newer layout.
+            if (!this.destroyed) {
+                this.owner.remove(this)
+                this.owner.dependencies.onError?.(error)
+            }
+            throw error
+        })
+        // Observe rejections even when creation is immediately followed by removal.
+        void this.ready.catch(() => {})
     }
 
     /** Show the consumer-owned form surface on edit double-click, stopping nested propagation. */
     private readonly showForm = (event: MouseEvent): void => {
-        if (this.editing) this.formElement.hidden = !this.formElement.hidden
+        if (this.editing) {
+            if (this.owner.dependencies.onEdit) this.owner.dependencies.onEdit(this)
+            else this.formElement.hidden = !this.formElement.hidden
+        }
         event.stopPropagation()
+    }
+
+    /** Let keyboard users open the same configuration surface as pointer users. */
+    private readonly editKey = (event: KeyboardEvent): void => {
+        if (!this.editing || event.target !== this.element || event.key !== 'Enter') return
+        event.preventDefault()
+        event.stopPropagation()
+        this.owner.dependencies.onEdit?.(this)
     }
 
     /** Initialize Formio in legacy order; every async boundary guards removal during setup. */
     private async initializeForm(): Promise<void> {
-        try {
-            const form = await this.owner.dependencies.forms.createForm(this.formElement, this.options.form ?? {})
-            if (this.destroyed) { form.destroy(); return }
-            this.form = form
-            await form.setForm(this.options.form ?? {})
-            if (this.destroyed) return
-            await form.setSubmission({ data: this.formData })
-            if (this.destroyed) return
-            this.formData = structuredClone(form.submission.data)
-            this.lastContent = JSON.stringify(this.formData)
-            this.applyOptions()
-            form.on('change', this.formListener)
-        } catch (error) {
-            this.destroy()
-            throw error
-        }
+        const form = await this.owner.dependencies.forms.createForm(this.formElement, this.options.form ?? {})
+        if (this.destroyed) { form.destroy(); return }
+        this.form = form
+        await form.setForm(this.options.form ?? {})
+        if (this.destroyed) return
+        await form.setSubmission({ data: this.formData })
+        if (this.destroyed) return
+        this.formData = structuredClone(form.submission.data)
+        this.lastContent = JSON.stringify(this.formData)
+        this.applyOptions()
+        form.on('change', this.formListener)
     }
 
     /** Post only the established script/options envelope; sandbox privileges remain unchanged. */
@@ -404,6 +422,12 @@ export class WidgetHost {
     /** Read editable JavaScript or HTML without normalizing saved text. */
     getText(): string | undefined { return this.options.sandbox ?? this.options.custom_HTML }
 
+    /** Return retained palette metadata independently of the widget's saved option shape. */
+    getAbout(): Fields {
+        if (this.model.type === 'WidgetSubGrid') return { name: 'Subgrid', info: 'Nestable sub grid widget' }
+        return structuredClone(this.options.about ?? { name: this.model.type })
+    }
+
     /** Return a copy of the live Formio schema, including dynamic field definitions. */
     getFormDefinition(): Fields { return structuredClone(this.form?.form ?? this.options.form ?? {}) }
 
@@ -436,6 +460,7 @@ export class WidgetHost {
     setEditing(enabled: boolean): void {
         this.editing = enabled
         this.element.style.cursor = enabled ? 'move' : 'auto'
+        this.element.tabIndex = enabled ? 0 : -1
         if (this.iframe) this.iframe.style.pointerEvents = enabled ? 'none' : 'auto'
         if (!enabled) this.formElement.hidden = true
         this.nested?.setEditing(enabled)
@@ -465,7 +490,9 @@ export class WidgetHost {
     destroy(): void {
         if (this.destroyed) return
         this.destroyed = true
+        this.owner.dependencies.onWidgetDisposed?.(this)
         this.element.removeEventListener('dblclick', this.showForm)
+        this.element.removeEventListener('keydown', this.editKey)
         this.form?.off('change', this.formListener)
         this.form?.destroy()
         this.iframe?.removeEventListener('load', this.loadListener)

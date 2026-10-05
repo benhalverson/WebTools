@@ -57,7 +57,20 @@ jobs:
             test:scurve-tool:browser \
             test:pid-review:browser \
             test:stream-stats:browser \
-            test:simplegcs:browser:all
+            test:dfu-loader:browser \
+            test:log-finder:browser \
+            test:filter-tool:browser \
+            test:dashboard-playback:browser \
+            test:simplegcs:browser:all \
+            test:thrust-expo:browser \
+            test:mag-fit:browser \
+            test:filter-review:browser \
+            test:airspeed-fit:browser \
+            test:geofence:browser \
+            test:hardware-report:browser \
+            test:sysid:browser \
+            test:ai-log-analyzer:browser \
+            test:analytic-tune:browser
           do
             echo "::group::$suite"
             if pnpm "$suite"; then
