@@ -1,0 +1,2 @@
+/** Initial example used when a saved sandbox has no script. */
+export const defaultScript = "// Initialization\ndiv.appendChild(document.createTextNode(\"Widget Example:\"))\ndiv.appendChild(document.createElement(\"br\"))\n\nmessage_report = document.createTextNode(\"No Data\")\ndiv.appendChild(message_report)\n\n// Runtime function\nhandle_msg = function (msg) {\n    message_report.nodeValue = \"Got: \" + msg._name\n}\n"

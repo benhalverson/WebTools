@@ -1,0 +1,10 @@
+html, body, #root { height:100%; width:100%; margin:0; }
+#dashboard { height:100%; width:100%; }
+.playback-controls { position:fixed; right:8px; bottom:8px; z-index:1000; display:flex; gap:4px; }
+.playback-panel { position:fixed; top:12px; right:12px; width:400px; max-width:calc(100vw - 24px); max-height:calc(100vh - 24px); overflow:auto; z-index:1001; background:white; color:black; border:1px solid #aaa; border-radius:4px; padding:8px; }
+.playback-panel header { display:flex; justify-content:space-between; align-items:center; }
+.playback-panel fieldset { border:0; padding:0; }
+.playback-panel label { display:block; margin:8px 0; }
+.playback-panel input:not([type=checkbox]), .playback-panel textarea { display:block; max-width:100%; width:100%; }
+.playback-panel p { font-size:12px; }
+.playback-error { position:fixed; top:0; left:0; z-index:1002; background:#fff; color:#a00; padding:8px; }
