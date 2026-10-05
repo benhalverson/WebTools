@@ -104,7 +104,7 @@ async function runPlaybackChecks(): Promise<void> {
         addEventListener('message',()=>{});
         await new Promise(resolve=>setTimeout(resolve,150));
         const events=[];const output=document.querySelector('#events');
-        addEventListener('message',async event=>{if('time' in event.data){
+        addEventListener('message',async event=>{if(event.data.retainAck)event.source.postMessage('renderDone','*');if('time' in event.data){
             events.push('start:'+event.data.time);output.textContent=JSON.stringify(events);
             await new Promise(resolve=>setTimeout(resolve,300));
             events.push('done:'+event.data.time);output.textContent=JSON.stringify(events);
@@ -132,10 +132,29 @@ async function runPlaybackChecks(): Promise<void> {
         await Promise.all([first, second])
         const events = element.querySelector('iframe')!.contentDocument!.querySelector('#events')!.textContent
         check(events === '["start:0","done:0","start:1","done:1","start:2","done:2"]', `serialized slow acknowledgements: ${events}`)
+        const previousWindow = element.querySelector('iframe')!.contentWindow
+        const heldAck = deferred<MessageEvent<unknown>>()
+        /** Hold a genuine old-document acknowledgement to replay delayed parent delivery. */
+        const retainAck = (event: MessageEvent<unknown>): void => {
+            if (event.source === previousWindow && event.data === 'renderDone') {
+                event.stopImmediatePropagation()
+                heldAck.resolve(event)
+            }
+        }
+        window.addEventListener('message', retainAck, true)
+        previousWindow!.postMessage({ retainAck: true }, '*')
+        let acknowledgement: MessageEvent<unknown>
+        try { acknowledgement = await heldAck.promise }
+        finally { window.removeEventListener('message', retainAck, true) }
         host.setText('<!doctype html><html><body><output id="events">0</output><script>onmessage=event=>{if("time" in event.data)document.querySelector("#events").textContent=String(Number(document.querySelector("#events").textContent)+1)}</script></body></html>')
+        check(element.querySelector('iframe')!.contentWindow !== previousWindow, 'ordinary source replacement owns a new frame window')
         await pause(100)
         let rejected = false
-        try { await host.setTime(9) } catch { rejected = true }
+        const pending = host.setTime(9).catch(() => { rejected = true })
+        window.dispatchEvent(acknowledgement)
+        await pause(100)
+        check(element.querySelector('iframe')!.contentDocument!.querySelector('#events')!.textContent === '1', 'old document acknowledgement cannot release replacement frame queue')
+        await pending
         check(rejected, 'missing acknowledgement must reject')
         await pause(200)
         check(element.querySelector('iframe')!.contentDocument!.querySelector('#events')!.textContent === '1', 'timeout must not restart or retry time requests')

@@ -569,32 +569,34 @@ export class WidgetHost {
         this.applyOptions()
     }
 
-    /** Replace editable source, retaining legacy script reinitialization and srcdoc navigation. */
+    /** Navigate with a new WindowProxy so queued replies cannot acknowledge a replacement document. */
+    private navigateFrame(source: string): void {
+        const previous = this.iframe
+        if (!previous) return
+        for (const cancel of this.pendingFrames) cancel()
+        const frame = previous.cloneNode(false) as HTMLIFrameElement
+        frame.removeAttribute('src'); frame.removeAttribute('srcdoc')
+        previous.removeEventListener('load', this.loadListener)
+        frame.addEventListener('load', this.loadListener)
+        this.iframe = frame
+        this.frameLoaded = false; this.documentLoaded = false
+        this.readinessError = undefined
+        // Set the final source while detached to avoid an intermediate about:blank load.
+        if (this.model.type === 'WidgetSandBox') frame.src = this.owner.dependencies.sandboxUrl
+        else frame.srcdoc = this.customDocument(source)
+        previous.replaceWith(frame)
+    }
+
+    /** Replace editable source, retaining script reinitialization and isolated custom-document navigation. */
     setText(text: string): void {
         if (this.destroyed) throw new Error('Widget is destroyed')
         const previous = this.getText()
-        // A timed-out document can still have a late untagged reply queued. Recovery
-        // owns a fresh WindowProxy, so it cannot acknowledge the replacement frame.
-        if (this.readinessError && this.iframe) {
-            const frame = this.iframe.cloneNode(false) as HTMLIFrameElement
-            frame.removeAttribute('src'); frame.removeAttribute('srcdoc')
-            this.iframe.removeEventListener('load', this.loadListener)
-            frame.addEventListener('load', this.loadListener)
-            this.iframe.replaceWith(frame)
-            this.iframe = frame
-            this.frameLoaded = false; this.documentLoaded = false
-            this.readinessError = undefined
-            if (this.model.type === 'WidgetSandBox') frame.src = this.owner.dependencies.sandboxUrl
-        }
-        if (this.model.type === 'WidgetSandBox') { this.readinessError = undefined; this.options.sandbox = text }
-        else if (this.model.type === 'WidgetCustomHTML') {
+        if (this.model.type === 'WidgetSandBox') {
+            this.options.sandbox = text
+            if (this.readinessError) this.navigateFrame(text)
+        } else if (this.model.type === 'WidgetCustomHTML') {
             this.options.custom_HTML = text
-            if (this.iframe) {
-                this.frameLoaded = false
-                this.documentLoaded = false
-                for (const cancel of this.pendingFrames) cancel()
-                this.iframe.srcdoc = this.customDocument(text)
-            }
+            this.navigateFrame(text)
         } else throw new Error('Widget has no editable source')
         if (previous !== text) this.changed = true
         this.sendInitialization()
