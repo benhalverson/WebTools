@@ -1,0 +1,1887 @@
+{
+  "revision": "ac32dd6815808a5f3f4894e155c8cfdb72a715f4",
+  "fftRevision": "f8be92e1369f684da3e121e4c5b7fbcc8d50f868",
+  "results": {
+    "array_inverse/normal": {
+      "array": [
+        1,
+        0.25,
+        0.1111111111111111
+      ]
+    },
+    "array_inverse/empty": {
+      "array": []
+    },
+    "array_inverse/boundary": {
+      "array": [
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "-Infinity"
+        },
+        -1,
+        0,
+        {
+          "$number": "-0"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_inverse/sparse": {
+      "array": [
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_inverse/coercion": {
+      "array": [
+        0.5,
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_log10/normal": {
+      "array": [
+        0,
+        0.6020599913279624,
+        0.9542425094393249
+      ]
+    },
+    "array_log10/empty": {
+      "array": []
+    },
+    "array_log10/boundary": {
+      "array": [
+        {
+          "$number": "-Infinity"
+        },
+        {
+          "$number": "-Infinity"
+        },
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_log10/sparse": {
+      "array": [
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_log10/coercion": {
+      "array": [
+        0.3010299956639812,
+        {
+          "$number": "-Infinity"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_abs/normal": {
+      "array": [
+        1,
+        4,
+        9
+      ]
+    },
+    "array_abs/empty": {
+      "array": []
+    },
+    "array_abs/boundary": {
+      "array": [
+        0,
+        0,
+        1,
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_abs/sparse": {
+      "array": [
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_abs/coercion": {
+      "array": [
+        2,
+        0,
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_sqrt/normal": {
+      "array": [
+        1,
+        2,
+        3
+      ]
+    },
+    "array_sqrt/empty": {
+      "array": []
+    },
+    "array_sqrt/boundary": {
+      "array": [
+        0,
+        {
+          "$number": "-0"
+        },
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_sqrt/sparse": {
+      "array": [
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_sqrt/coercion": {
+      "array": [
+        1.4142135623730951,
+        0,
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_sum/normal": 14,
+    "array_sum/empty": 0,
+    "array_sum/boundary": {
+      "$number": "NaN"
+    },
+    "array_sum/sparse": {
+      "$number": "NaN"
+    },
+    "array_sum/coercion": "02nullundefined",
+    "array_mean/normal": 4.666666666666667,
+    "array_mean/empty": {
+      "$number": "NaN"
+    },
+    "array_mean/boundary": {
+      "$number": "NaN"
+    },
+    "array_mean/sparse": {
+      "$number": "NaN"
+    },
+    "array_mean/coercion": {
+      "$number": "NaN"
+    },
+    "array_all_NaN/normal": false,
+    "array_all_NaN/empty": true,
+    "array_all_NaN/boundary": false,
+    "array_all_NaN/sparse": true,
+    "array_all_NaN/coercion": false,
+    "array_max/normal": {
+      "array": [
+        2,
+        4,
+        4
+      ]
+    },
+    "array_max/empty": {
+      "array": []
+    },
+    "array_max/short": {
+      "array": [
+        1,
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_max/special": {
+      "array": [
+        0,
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_min/normal": {
+      "array": [
+        1,
+        -3,
+        -5
+      ]
+    },
+    "array_min/empty": {
+      "array": []
+    },
+    "array_min/short": {
+      "array": [
+        0,
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_min/special": {
+      "array": [
+        {
+          "$number": "-0"
+        },
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_mul/normal": {
+      "array": [
+        2,
+        -12,
+        -20
+      ]
+    },
+    "array_mul/empty": {
+      "array": []
+    },
+    "array_mul/short": {
+      "array": [
+        0,
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_mul/special": {
+      "array": [
+        {
+          "$number": "-0"
+        },
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_div/normal": {
+      "array": [
+        0.5,
+        -0.75,
+        -0.8
+      ]
+    },
+    "array_div/empty": {
+      "array": []
+    },
+    "array_div/short": {
+      "array": [
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_div/special": {
+      "array": [
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_add/normal": {
+      "array": [
+        3,
+        1,
+        -1
+      ]
+    },
+    "array_add/empty": {
+      "array": []
+    },
+    "array_add/short": {
+      "array": [
+        1,
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_add/special": {
+      "array": [
+        0,
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_sub/normal": {
+      "array": [
+        -1,
+        -7,
+        9
+      ]
+    },
+    "array_sub/empty": {
+      "array": []
+    },
+    "array_sub/short": {
+      "array": [
+        1,
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_sub/special": {
+      "array": [
+        0,
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_scale/normal": {
+      "array": [
+        2,
+        4,
+        6
+      ]
+    },
+    "array_scale/empty": {
+      "array": []
+    },
+    "array_scale/special": {
+      "array": [
+        0,
+        {
+          "$number": "-0"
+        },
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_scale/coercion": {
+      "array": [
+        4,
+        4
+      ]
+    },
+    "array_offset/normal": {
+      "array": [
+        3,
+        4,
+        5
+      ]
+    },
+    "array_offset/empty": {
+      "array": []
+    },
+    "array_offset/special": {
+      "array": [
+        0,
+        0,
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "array_offset/coercion": {
+      "array": [
+        "22",
+        4
+      ]
+    },
+    "array_all_equal/normal": false,
+    "array_all_equal/empty": true,
+    "array_all_equal/special": false,
+    "array_all_equal/coercion": true,
+    "range/ascending": {
+      "array": [
+        0,
+        0.1,
+        0.2,
+        0.30000000000000004,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.7999999999999999,
+        0.8999999999999999,
+        0.9999999999999999
+      ]
+    },
+    "range/descending": {
+      "array": [
+        3,
+        2,
+        1,
+        0
+      ]
+    },
+    "range/single": {
+      "array": [
+        1
+      ]
+    },
+    "range/empty": {
+      "array": []
+    },
+    "range/negative-length": {
+      "throws": "RangeError",
+      "message": "Invalid array length"
+    },
+    "range/zero-step": {
+      "throws": "RangeError",
+      "message": "Invalid array length"
+    },
+    "range/nan": {
+      "throws": "RangeError",
+      "message": "Invalid array length"
+    },
+    "interp/normal": {
+      "array": [
+        0,
+        0,
+        10,
+        20,
+        30,
+        40,
+        40
+      ]
+    },
+    "interp/empty": {
+      "array": [
+        {
+          "$hole": true
+        }
+      ]
+    },
+    "interp/empty-query": {
+      "array": []
+    },
+    "interp/unsorted": {
+      "array": [
+        30,
+        10
+      ]
+    },
+    "interp/duplicate": {
+      "array": [
+        1,
+        2.5,
+        3
+      ]
+    },
+    "interp/missing": {
+      "array": [
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "undefined"
+        }
+      ]
+    },
+    "complex_abs/normal": {
+      "array": [
+        4.123105625617661,
+        5.385164807134504,
+        6.708203932499369
+      ]
+    },
+    "complex_abs/empty": {
+      "array": []
+    },
+    "complex_abs/boundary": {
+      "array": [
+        0,
+        0,
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "complex_abs/short": {
+      "array": [
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "complex_inverse/normal": {
+      "array": [
+        {
+          "array": [
+            0.058823529411764705,
+            0.06896551724137931,
+            -0.06666666666666667
+          ]
+        },
+        {
+          "array": [
+            -0.23529411764705882,
+            0.1724137931034483,
+            -0.13333333333333333
+          ]
+        }
+      ]
+    },
+    "complex_inverse/empty": {
+      "array": [
+        {
+          "array": []
+        },
+        {
+          "array": []
+        }
+      ]
+    },
+    "complex_inverse/boundary": {
+      "array": [
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "-0"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "complex_inverse/short": {
+      "array": [
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "complex_square/normal": {
+      "array": [
+        {
+          "array": [
+            -15,
+            -21,
+            -27
+          ]
+        },
+        {
+          "array": [
+            8,
+            -20,
+            -36
+          ]
+        }
+      ]
+    },
+    "complex_square/empty": {
+      "array": [
+        {
+          "array": []
+        },
+        {
+          "array": []
+        }
+      ]
+    },
+    "complex_square/boundary": {
+      "array": [
+        {
+          "array": [
+            0,
+            0,
+            {
+              "$number": "Infinity"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            0,
+            {
+              "$number": "-0"
+            },
+            {
+              "$number": "Infinity"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "complex_square/short": {
+      "array": [
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "complex_phase/normal": {
+      "array": [
+        1.3258176636680326,
+        -1.1902899496825317,
+        2.0344439357957027
+      ]
+    },
+    "complex_phase/empty": {
+      "array": []
+    },
+    "complex_phase/boundary": {
+      "array": [
+        0,
+        3.141592653589793,
+        0,
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "complex_phase/short": {
+      "array": [
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "complex_conj/normal": {
+      "array": [
+        {
+          "array": [
+            1,
+            2,
+            -3
+          ]
+        },
+        {
+          "array": [
+            -4,
+            5,
+            -6
+          ]
+        }
+      ]
+    },
+    "complex_conj/empty": {
+      "array": [
+        {
+          "array": []
+        },
+        {
+          "array": []
+        }
+      ]
+    },
+    "complex_conj/boundary": {
+      "array": [
+        {
+          "array": [
+            0,
+            {
+              "$number": "-0"
+            },
+            {
+              "$number": "Infinity"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            {
+              "$number": "-0"
+            },
+            {
+              "$number": "-0"
+            },
+            -1,
+            -2
+          ]
+        }
+      ]
+    },
+    "complex_conj/short": {
+      "array": [
+        {
+          "array": [
+            1,
+            2
+          ]
+        },
+        {
+          "array": []
+        }
+      ]
+    },
+    "to_double_sided/normal": {
+      "array": [
+        {
+          "array": [
+            1,
+            1,
+            -3,
+            1
+          ]
+        },
+        {
+          "array": [
+            4,
+            -2.5,
+            6,
+            2.5
+          ]
+        }
+      ]
+    },
+    "to_double_sided/empty": {
+      "throws": "RangeError",
+      "message": "Invalid array length"
+    },
+    "to_double_sided/boundary": {
+      "array": [
+        {
+          "array": [
+            0,
+            {
+              "$number": "-0"
+            },
+            {
+              "$number": "Infinity"
+            },
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "Infinity"
+            },
+            {
+              "$number": "-0"
+            }
+          ]
+        },
+        {
+          "array": [
+            0,
+            0,
+            0.5,
+            2,
+            -0.5,
+            {
+              "$number": "-0"
+            }
+          ]
+        }
+      ]
+    },
+    "to_double_sided/short": {
+      "array": [
+        {
+          "array": [
+            1,
+            2
+          ]
+        },
+        {
+          "array": [
+            {
+              "$number": "undefined"
+            },
+            {
+              "$number": "undefined"
+            }
+          ]
+        }
+      ]
+    },
+    "complex_mul/normal": {
+      "array": [
+        {
+          "array": [
+            -10,
+            0,
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            11,
+            0,
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "complex_mul/empty": {
+      "array": [
+        {
+          "array": []
+        },
+        {
+          "array": []
+        }
+      ]
+    },
+    "complex_mul/boundary": {
+      "array": [
+        {
+          "array": [
+            0,
+            {
+              "$number": "-0"
+            },
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            0,
+            0,
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "complex_mul/short": {
+      "array": [
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "complex_div/normal": {
+      "array": [
+        {
+          "array": [
+            1.076923076923077,
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            0.38461538461538464,
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "complex_div/empty": {
+      "array": [
+        {
+          "array": []
+        },
+        {
+          "array": []
+        }
+      ]
+    },
+    "complex_div/boundary": {
+      "array": [
+        {
+          "array": [
+            0,
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            0,
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "complex_div/short": {
+      "array": [
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "exp/10": {
+      "array": [
+        {
+          "array": [
+            1,
+            0.8090169943749475,
+            -1
+          ]
+        },
+        {
+          "array": [
+            0,
+            0.5877852522924731,
+            1.2246467991473532e-16
+          ]
+        }
+      ]
+    },
+    "exp/0": {
+      "array": [
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        },
+        {
+          "array": [
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            },
+            {
+              "$number": "NaN"
+            }
+          ]
+        }
+      ]
+    },
+    "exp/-10": {
+      "array": [
+        {
+          "array": [
+            1,
+            0.8090169943749475,
+            -1
+          ]
+        },
+        {
+          "array": [
+            {
+              "$number": "-0"
+            },
+            -0.5877852522924731,
+            -1.2246467991473532e-16
+          ]
+        }
+      ]
+    },
+    "hanning/0": {
+      "array": []
+    },
+    "real_length/0": 1,
+    "frequency/0": {
+      "array": [
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "hanning/1": {
+      "array": [
+        {
+          "$number": "NaN"
+        }
+      ]
+    },
+    "real_length/1": 1,
+    "frequency/1": {
+      "array": [
+        0
+      ]
+    },
+    "hanning/2": {
+      "array": [
+        0,
+        0
+      ]
+    },
+    "real_length/2": 2,
+    "frequency/2": {
+      "array": [
+        0,
+        50
+      ]
+    },
+    "hanning/8": {
+      "array": [
+        0,
+        0.1882550990706332,
+        0.6112604669781572,
+        0.9504844339512095,
+        0.9504844339512095,
+        0.6112604669781573,
+        0.1882550990706333,
+        0
+      ]
+    },
+    "real_length/8": 5,
+    "frequency/8": {
+      "array": [
+        0,
+        12.5,
+        25,
+        37.5,
+        50
+      ]
+    },
+    "hanning/-1": {
+      "throws": "RangeError",
+      "message": "Invalid array length"
+    },
+    "real_length/-1": 0,
+    "frequency/-1": {
+      "array": []
+    },
+    "hanning/2.5": {
+      "throws": "RangeError",
+      "message": "Invalid array length"
+    },
+    "real_length/2.5": 2,
+    "frequency/2.5": {
+      "array": [
+        0,
+        40
+      ]
+    },
+    "frequency/zero-period": {
+      "array": [
+        {
+          "$number": "NaN"
+        },
+        {
+          "$number": "Infinity"
+        },
+        {
+          "$number": "Infinity"
+        }
+      ]
+    },
+    "correction/empty": {
+      "linear": {
+        "$number": "NaN"
+      },
+      "energy": {
+        "$number": "NaN"
+      }
+    },
+    "correction/zero": {
+      "linear": {
+        "$number": "Infinity"
+      },
+      "energy": {
+        "$number": "Infinity"
+      }
+    },
+    "correction/unit": {
+      "linear": 1,
+      "energy": 1
+    },
+    "correction/hann": {
+      "linear": 2.2857142857142856,
+      "energy": 1.7457431218879391
+    },
+    "amplitude/false/false": {
+      "fun": {
+        "array": [
+          0,
+          0.1,
+          1,
+          2
+        ]
+      },
+      "scale": {
+        "array": [
+          0,
+          0.1,
+          1,
+          2
+        ]
+      },
+      "label": "Amplitude",
+      "hover": "%{y:.2f}",
+      "correction_scale": {
+        "$number": "undefined"
+      },
+      "correction": 2,
+      "quantization": 0.25,
+      "identity": true,
+      "scaleIdentity": true
+    },
+    "amplitude/false/true": {
+      "fun": {
+        "array": [
+          0,
+          0.010000000000000002,
+          1,
+          4
+        ]
+      },
+      "scale": {
+        "array": [
+          {
+            "$number": "-Infinity"
+          },
+          -10,
+          0,
+          3.010299956639812
+        ]
+      },
+      "label": "PSD (dB/Hz)",
+      "hover": "%{y:.2f} dB/Hz",
+      "correction_scale": {
+        "$number": "undefined"
+      },
+      "correction": 9,
+      "quantization": 0.5,
+      "identity": false,
+      "scaleIdentity": false
+    },
+    "amplitude/true/false": {
+      "fun": {
+        "array": [
+          0,
+          0.1,
+          1,
+          2
+        ]
+      },
+      "scale": {
+        "array": [
+          {
+            "$number": "-Infinity"
+          },
+          -20,
+          0,
+          6.020599913279624
+        ]
+      },
+      "label": "Amplitude (dB)",
+      "hover": "%{y:.2f} dB",
+      "correction_scale": 1,
+      "correction": 2,
+      "quantization": 0.25,
+      "identity": true,
+      "scaleIdentity": false
+    },
+    "amplitude/true/true": {
+      "fun": {
+        "array": [
+          0,
+          0.010000000000000002,
+          1,
+          4
+        ]
+      },
+      "scale": {
+        "array": [
+          {
+            "$number": "-Infinity"
+          },
+          -10,
+          0,
+          3.010299956639812
+        ]
+      },
+      "label": "PSD (dB/Hz)",
+      "hover": "%{y:.2f} dB/Hz",
+      "correction_scale": {
+        "$number": "undefined"
+      },
+      "correction": 9,
+      "quantization": 0.5,
+      "identity": false,
+      "scaleIdentity": false
+    },
+    "frequency-scale/false/false": {
+      "values": {
+        "array": [
+          0,
+          1,
+          2
+        ]
+      },
+      "label": "Frequency (Hz)",
+      "hover": "%{x:.2f} Hz",
+      "type": "linear",
+      "identity": true
+    },
+    "frequency-scale/false/true": {
+      "values": {
+        "array": [
+          0,
+          1,
+          2
+        ]
+      },
+      "label": "Frequency (Hz)",
+      "hover": "%{x:.2f} Hz",
+      "type": "log",
+      "identity": true
+    },
+    "frequency-scale/true/false": {
+      "values": {
+        "array": [
+          0,
+          60,
+          120
+        ]
+      },
+      "label": "RPM",
+      "hover": "%{x:.2f} RPM",
+      "type": "linear",
+      "identity": false
+    },
+    "frequency-scale/true/true": {
+      "values": {
+        "array": [
+          0,
+          60,
+          120
+        ]
+      },
+      "label": "RPM",
+      "hover": "%{x:.2f} RPM",
+      "type": "log",
+      "identity": false
+    },
+    "constructor/0": {
+      "throws": "Error",
+      "message": "FFT size must be a power of two and bigger than 1"
+    },
+    "constructor/1": {
+      "throws": "Error",
+      "message": "FFT size must be a power of two and bigger than 1"
+    },
+    "constructor/2": 2,
+    "constructor/3": {
+      "throws": "Error",
+      "message": "FFT size must be a power of two and bigger than 1"
+    },
+    "constructor/8": 8,
+    "fft/normal": {
+      "center": {
+        "array": [
+          4,
+          8,
+          12
+        ]
+      },
+      "x": {
+        "array": [
+          {
+            "array": [
+              {
+                "array": [
+                  0.0994986740551201,
+                  -0.01887110848780241,
+                  -0.10575134197688094,
+                  0.018871108487802393,
+                  0.006252667921760893
+                ]
+              },
+              {
+                "array": [
+                  0,
+                  -0.4186288915121976,
+                  0.24280098819621954,
+                  -0.01887110848780238,
+                  0
+                ]
+              }
+            ]
+          },
+          {
+            "array": [
+              {
+                "array": [
+                  -0.09949867405512014,
+                  0.018871108487802466,
+                  0.10575134197688091,
+                  -0.01887110848780238,
+                  -0.006252667921760879
+                ]
+              },
+              {
+                "array": [
+                  0,
+                  0.4186288915121976,
+                  -0.24280098819621954,
+                  0.01887110848780238,
+                  0
+                ]
+              }
+            ]
+          },
+          {
+            "array": [
+              {
+                "array": [
+                  0.09949867405512017,
+                  -0.018871108487802553,
+                  -0.10575134197688088,
+                  0.018871108487802404,
+                  0.0062526679217608724
+                ]
+              },
+              {
+                "array": [
+                  0,
+                  -0.4186288915121978,
+                  0.24280098819621976,
+                  -0.018871108487802546,
+                  0
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "xMax": {
+        "array": [
+          0.6720939886591575,
+          0.6720939886591576,
+          0.6720939886591581
+        ]
+      },
+      "y": {
+        "array": [
+          {
+            "array": [
+              {
+                "array": [
+                  1.53125,
+                  -1.9615588377485182,
+                  0.36247155185618096,
+                  0.060589969846099434,
+                  0.007247316046238073
+                ]
+              },
+              {
+                "array": [
+                  0,
+                  -0.020314164074555885,
+                  -0.09827603302694776,
+                  0.026181005691701453,
+                  0
+                ]
+              }
+            ]
+          },
+          {
+            "array": [
+              {
+                "array": [
+                  3.28125,
+                  -3.883247224484606,
+                  0.5134404197586,
+                  0.08130948867976806,
+                  0.007247316046238073
+                ]
+              },
+              {
+                "array": [
+                  0,
+                  -0.8163035565155166,
+                  0.052692834875471384,
+                  0.07620234906578871,
+                  0
+                ]
+              }
+            ]
+          },
+          {
+            "array": [
+              {
+                "array": [
+                  5.03125,
+                  -5.804935611220693,
+                  0.664409287661019,
+                  0.10202900751343646,
+                  0.0072473160462376285
+                ]
+              },
+              {
+                "array": [
+                  0,
+                  -1.612292948956477,
+                  0.20366170277788997,
+                  0.1262236924398763,
+                  0
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "yMax": {
+        "array": [
+          3.801937735804838,
+          7.603875471609676,
+          11.405813207414514
+        ]
+      }
+    },
+    "fft/no-max": {
+      "center": {
+        "array": [
+          4
+        ]
+      },
+      "x": {
+        "array": [
+          {
+            "array": [
+              {
+                "array": [
+                  0.0994986740551201,
+                  -0.01887110848780241,
+                  -0.10575134197688094,
+                  0.018871108487802393,
+                  0.006252667921760893
+                ]
+              },
+              {
+                "array": [
+                  0,
+                  -0.4186288915121976,
+                  0.24280098819621954,
+                  -0.01887110848780238,
+                  0
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "fft/missing-key": {
+      "center": {
+        "array": [
+          4
+        ]
+      },
+      "x": {
+        "array": [
+          {
+            "array": [
+              {
+                "array": [
+                  0.0994986740551201,
+                  -0.01887110848780241,
+                  -0.10575134197688094,
+                  0.018871108487802393,
+                  0.006252667921760893
+                ]
+              },
+              {
+                "array": [
+                  0,
+                  -0.4186288915121976,
+                  0.24280098819621954,
+                  -0.01887110848780238,
+                  0
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "xMax": {
+        "array": [
+          0.6720939886591575
+        ]
+      },
+      "missing": {
+        "array": [
+          {
+            "$hole": true
+          }
+        ]
+      },
+      "missingMax": {
+        "array": [
+          {
+            "$hole": true
+          }
+        ]
+      }
+    },
+    "fft/empty": {
+      "center": {
+        "array": []
+      },
+      "x": {
+        "array": []
+      },
+      "xMax": {
+        "array": []
+      }
+    },
+    "fft/short": {
+      "throws": "RangeError",
+      "message": "Invalid array length"
+    },
+    "fft/empty-keys": {
+      "throws": "TypeError",
+      "message": "Cannot read properties of undefined (reading 'length')"
+    },
+    "fft/nan": {
+      "center": {
+        "array": [
+          4
+        ]
+      },
+      "y": {
+        "array": [
+          {
+            "array": [
+              {
+                "array": [
+                  {
+                    "$number": "NaN"
+                  },
+                  {
+                    "$number": "NaN"
+                  },
+                  {
+                    "$number": "NaN"
+                  },
+                  {
+                    "$number": "NaN"
+                  },
+                  {
+                    "$number": "NaN"
+                  }
+                ]
+              },
+              {
+                "array": [
+                  {
+                    "$number": "NaN"
+                  },
+                  {
+                    "$number": "NaN"
+                  },
+                  {
+                    "$number": "NaN"
+                  },
+                  {
+                    "$number": "NaN"
+                  },
+                  {
+                    "$number": "NaN"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "yMax": {
+        "array": [
+          {
+            "$number": "NaN"
+          }
+        ]
+      }
+    },
+    "vendor/short-to-complex": {
+      "array": [
+        1,
+        0,
+        {
+          "$number": "undefined"
+        },
+        0,
+        {
+          "$number": "undefined"
+        },
+        0,
+        {
+          "$number": "undefined"
+        },
+        0,
+        {
+          "$number": "undefined"
+        },
+        0,
+        {
+          "$number": "undefined"
+        },
+        0,
+        {
+          "$number": "undefined"
+        },
+        0,
+        {
+          "$number": "undefined"
+        },
+        0
+      ]
+    },
+    "vendor/incomplete-from-complex": {
+      "array": [
+        {
+          "$number": "undefined"
+        }
+      ]
+    },
+    "to_fft_format": {
+      "target": {
+        "array": [
+          1,
+          3,
+          2,
+          4
+        ]
+      },
+      "value": {
+        "$number": "undefined"
+      }
+    },
+    "to_fft_format/short": {
+      "array": [
+        1,
+        {
+          "$number": "undefined"
+        },
+        2,
+        {
+          "$number": "undefined"
+        }
+      ]
+    }
+  }
+}
