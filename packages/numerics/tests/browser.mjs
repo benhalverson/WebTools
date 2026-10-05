@@ -23,6 +23,12 @@ try {
         else assert.equal(a,b,path);
     };
     compare(actual,fixture.results);
+    // Run the new real consumer/storage matrix against legacy in the same browser.
+    for (const path of ['modules/fft.js/dist/fft.js', 'Libraries/Array_Math.js', 'Libraries/fft.js']) {
+        await page.addScriptTag({content:readFileSync(new URL(`../../../${path}`,import.meta.url),'utf8')});
+    }
+    const consumers = await page.evaluate(() => ({actual: window.consumerResults, expected: window.legacyConsumerResults()}));
+    assert.deepEqual(consumers.actual, consumers.expected);
     // Compare the real DOM helper to the legacy implementation for repeated edits.
     await page.addScriptTag({content:readFileSync(new URL('../../../Libraries/fft.js',import.meta.url),'utf8')});
     const edits=['9','15','14','17','16','0','1','2',''];

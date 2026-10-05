@@ -1,0 +1,19 @@
+{
+  "images/AP_favicon.png": "images/AP_favicon.png",
+  "images/ArduPilot.png": "images/ArduPilot.png",
+  "images/github-mark.png": "images/github-mark.png",
+  "images/GitHub_Logo.png": "images/GitHub_Logo.png",
+  "images/question-circle.svg": "images/question-circle.svg",
+  "images/exclamation-triangle-red.svg": "images/exclamation-triangle-red.svg",
+  "images/exclamation-triangle-orange.svg": "images/exclamation-triangle-orange.svg",
+  "board_types.txt": "LogFinder/board_types.txt",
+  "vendor/tabulator.js": "modules/tabulator/dist/js/tabulator.min.js",
+  "vendor/tabulator.css": "modules/tabulator/dist/css/tabulator.min.css",
+  "vendor/luxon.js": "modules/build/luxon/build/global/luxon.min.js",
+  "vendor/popper.js": "modules/build/floating-ui/dist/umd/popper.min.js",
+  "vendor/tippy.js": "modules/build/tippyjs/dist/tippy-bundle.umd.min.js",
+  "dataflash/index.js": "packages/dataflash/dist/index.js",
+  "dataflash/log-helpers.js": "packages/dataflash/dist/log-helpers.js",
+  "dataflash/vendor/parser.js": "packages/dataflash/dist/vendor/parser.js",
+  "dataflash/vendor/LICENSE": "packages/dataflash/dist/vendor/LICENSE"
+}
