@@ -93,10 +93,10 @@ async function workflow(context, origin, prefix, legacy) {
     await page.locator('#FFTWindow_size').fill('128'); await page.locator('#FFTWindow_size').blur()
     await upload(page); await compare(page, legacy)
     for (const id of ['type_PIDP', 'type_RATE_R', 'type_PIDR']) {
-        console.log('axis', id); await legacy.locator('#' + id).check(); await page.locator('#' + id).check(); await compare(page, legacy)
+        await legacy.locator('#' + id).check(); await page.locator('#' + id).check(); await compare(page, legacy)
         if (id === 'type_RATE_R') assert.equal(await page.locator('#PIDX_P').isDisabled(), true)
     }
-    for (const id of ['ScalePSD', 'ScaleLinear', 'ScaleLog', 'freq_Scale_RPM', 'freq_Scale_Hz']) { console.log('axis', id); await legacy.locator('#' + id).check(); await page.locator('#' + id).check(); await compare(page, legacy) }
+    for (const id of ['ScalePSD', 'ScaleLinear', 'ScaleLog', 'freq_Scale_RPM', 'freq_Scale_Hz']) { await legacy.locator('#' + id).check(); await page.locator('#' + id).check(); await compare(page, legacy) }
     for (const target of [legacy, page]) { await target.locator('#TimeStart').fill('4'); await target.locator('#TimeStart').blur(); await target.locator('#TimeEnd').fill('12'); await target.locator('#TimeEnd').blur(); await target.locator('#calculate').click() }
     await compare(page, legacy)
     await page.locator('#set_selection_0').uncheck(); assert.equal(await page.locator('#set_selection_0').isChecked(), false)
@@ -114,6 +114,18 @@ async function workflow(context, origin, prefix, legacy) {
     await page.evaluate(() => { window.delivery = []; window.open = path => ({ addEventListener(name, callback) { window.delivery.push(path); callback() }, removeEventListener() {}, postMessage(message) { window.delivery.push({ type: message.type, name: message.data.name, size: message.data.size }) } }) })
     await page.locator('#OpenIn').click(); await page.getByRole('button', { name: 'Hardware Report', exact: true }).click()
     const delivery = await page.evaluate(() => window.delivery); assert.equal(delivery[0], '../HardwareReport'); assert.deepEqual(delivery[1], { type: 'file', name: 'fixture.bin', size: fixture().length })
+    for (const target of [legacy, page]) {
+        await target.locator('#TimeStart').fill('4'); await target.locator('#TimeStart').blur()
+        await target.locator('#TimeEnd').fill('12'); await target.locator('#TimeEnd').blur()
+        await target.locator('#calculate').click()
+    }
+    await compare(page, legacy)
+    for (const target of [legacy, page]) { await target.locator('#FFTWindow_size').fill('256'); await target.locator('#FFTWindow_size').blur(); await target.locator('#type_PIDP').check() }
+    await compare(page, legacy)
+    assert.equal(await page.locator('#set_selection_0').isDisabled(), await legacy.locator('#set_selection_0').isDisabled())
+    for (const target of [legacy, page]) await target.locator('#calculate').click()
+    await compare(page, legacy)
+    assert.equal(await page.locator('#set_selection_0').isDisabled(), true, 'legacy reduced-data selection remains disabled until controller setup')
     await upload(page, { detailed: false }, 'rate.bin'); assert.equal(await page.locator('#PIDX_P').isDisabled(), true); assert.equal(await page.locator('#type_RATE_R').isChecked(), true)
     for (const vehicle of [1, 3]) { await upload(page, { vehicle, dff: false }, 'vehicle.bin'); assert.equal(await page.locator(vehicle === 1 ? '#type_PIDS' : '#type_PIDR').isChecked(), true); assert.equal(await page.locator('#PIDX_DFF').isDisabled(), true) }
     assert.deepEqual(errors, [])

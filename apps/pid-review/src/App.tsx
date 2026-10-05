@@ -34,7 +34,8 @@ export default function App({ plotly, assetBase }: { plotly: PlotlyApi | undefin
     const [held, setHeld] = useState<{ plots: Charts; analysis: Analysis | undefined } | null>(null)
     const [loaded, setLoaded] = useState<Loaded | null>(null), [axis, setAxis] = useState(0)
     const [file, setFile] = useState<File | null>(null), [open, setOpen] = useState(false)
-    const [size, setSize] = useState(512), [range, setRange] = useState<[number, number]>([0, 0])
+    const [size, setSize] = useState('512'), [range, setRange] = useState<[number, number]>([0, 0])
+    const [validSets, setValidSets] = useState<readonly boolean[]>([])
     const [view, setView] = useState(initialView), [dirty, setDirty] = useState(false)
     const [resetAxes, setResetAxes] = useState(false)
     const [error, setError] = useState(''), [linkedTime, setLinkedTime] = useState<Range>(null), [linkedFrequency, setLinkedFrequency] = useState<Range>(null)
@@ -51,7 +52,7 @@ export default function App({ plotly, assetBase }: { plotly: PlotlyApi | undefin
     /** Parse a fresh input and suppress stale results after replacement or unmount. */
     const load = useCallback((input: File | ArrayBuffer) => {
         const request = ++generation.current
-        setError(''); setHeld(null); setLoaded(null); setOpen(false); setDirty(false); setFile(input instanceof File ? input : null)
+        setError(''); setValidSets([]); setHeld(null); setLoaded(null); setOpen(false); setDirty(false); setFile(input instanceof File ? input : null)
         setView(previous => ({ ...initialView, amplitude: previous.amplitude, rpm: previous.rpm, logFrequency: previous.logFrequency }))
         document.title = 'ArduPilot PID Review'
         void loading.run(async () => {
@@ -61,11 +62,12 @@ export default function App({ plotly, assetBase }: { plotly: PlotlyApi | undefin
             const Constructor = await parser()
             if (generation.current !== request) return
             const log = new Constructor(); log.processData(bytes, [])
-            const data = discover(log), spectra = data.controllers.map(item => item.sets.length ? analyze(item, size) : undefined)
+            const data = discover(log), spectra = data.controllers.map(item => item.sets.length ? analyze(item, parseInt(size)) : undefined)
             const index = data.controllers.findIndex(item => item.sets.length > 0)
             if (generation.current !== request) return
             const start = Math.floor(data.start), end = Math.ceil(data.end)
             setResetAxes(false); setLoaded({ log: data, spectra }); setAxis(index); setRange([start, end]); setLinkedTime(null); setLinkedFrequency(null)
+            setValidSets(data.controllers[index]!.params.map((_, i) => !!spectra[index]?.sets[i]))
             setView(previous => ({ ...previous, start, end, sets: data.controllers[index]!.params.map((_, i) => !!spectra[index]?.sets[i]) }))
             if (input instanceof File) document.title = 'PID Review: ' + input.name
           } catch (reason) { if (generation.current === request) throw reason }
@@ -78,7 +80,7 @@ export default function App({ plotly, assetBase }: { plotly: PlotlyApi | undefin
         const request = generation.current
         void loading.run(() => {
             if (generation.current !== request) return
-            const spectra = loaded.log.controllers.map(item => item.sets.length ? analyze(item, size) : undefined)
+            const spectra = loaded.log.controllers.map(item => item.sets.length ? analyze(item, parseInt(size)) : undefined)
             setHeld(null); setResetAxes(false); setLoaded({ log: loaded.log, spectra }); setView(previous => ({ ...previous, start: range[0], end: range[1] })); setLinkedTime(null); setLinkedFrequency(null); setDirty(false)
         })
     }
@@ -95,7 +97,14 @@ export default function App({ plotly, assetBase }: { plotly: PlotlyApi | undefin
             empty.Spectrogram = held.plots.Spectrogram
             setHeld({ plots: empty, analysis: undefined })
         }
-        setView(nextView)
+        setValidSets(nextView.sets); setView(nextView)
+    }
+    /** Invalidate cached spectra while retaining drawn figures until the next legacy redraw/setup. */
+    function changeWindow(text: string) {
+        const value = parseFloat(text), previous = parseFloat(size), difference = value - previous
+        if (loaded) { setHeld(current => current ?? { plots: snapshot, analysis }); setLoaded({ log: loaded.log, spectra: [] }) }
+        const exponent = Math.floor(Math.log2(previous)) + (difference > 0 ? 1 : Number.isInteger(Math.log2(previous)) ? -1 : 0)
+        setSize(Math.abs(difference) === 1 ? String(2 ** exponent) : text); setDirty(!!loaded)
     }
     /** Change the selector range while leaving frequency/step analysis pending Calculate. */
     function changeRange(next: [number, number]) { setRange(next); setDirty(!!loaded) }
@@ -148,7 +157,7 @@ export default function App({ plotly, assetBase }: { plotly: PlotlyApi | undefin
         <p className="intro">This tool takes a .bin log with RATE or PID messages and shows the time and frequency content of the rate controller target, response and output. To record the full set of PID components the <b>PID</b> bit of the <code>LOG_BITMASK</code> parameter must be set before flying. The <code>RATE</code> log message is enabled by default and can also be used by this tool. Here are <a href="https://github.com/ArduPilot/WebTools/blob/main/PIDReview/Readme.md">more details about this tool and how to use it</a>.</p>
         {(!plotly || error) && <p role="alert" className="error">{error || 'Plotly asset unavailable. Please reload the page.'}</p>}
         <fieldset className="setup"><legend>Setup</legend>
-            <fieldset><legend>FFT Settings</legend><label htmlFor="FFTWindow_size">Window size </label><input id="FFTWindow_size" type="number" min="1" step="1" value={size} onChange={event => { const value = Number(event.target.value), difference = value - size; if (loaded) { setHeld(previous => previous ?? { plots: snapshot, analysis }); setLoaded({ log: loaded.log, spectra: [] }) } setSize(Math.abs(difference) === 1 ? 2 ** (Math.floor(Math.log2(size)) + (difference > 0 ? 1 : Number.isInteger(Math.log2(size)) ? -1 : 0)) : value); setDirty(!!loaded) }} /></fieldset>
+            <fieldset><legend>FFT Settings</legend><label htmlFor="FFTWindow_size">Window size </label><input id="FFTWindow_size" type="number" min="1" step="1" value={size} onChange={event => changeWindow(event.target.value)} /></fieldset>
             <fieldset><legend>Analysis time</legend><label>Start (s) <input id="TimeStart" type="number" value={range[0]} min={loaded ? Math.floor(loaded.log.start) : 0} max={loaded ? Math.ceil(loaded.log.end) : undefined} onChange={event => changeRange([Number(event.target.value), range[1]])} /></label><br /><br /><label>End (s) <input id="TimeEnd" type="number" value={range[1]} min={loaded ? Math.floor(loaded.log.start) : 0} max={loaded ? Math.ceil(loaded.log.end) : undefined} onChange={event => changeRange([range[0], Number(event.target.value)])} /></label></fieldset>
             <fieldset><legend>Axis</legend><div className="axes">{axisIds.map(id => { const index = loaded?.log.controllers.findIndex(item => item.id === id) ?? -1; return <label key={id}><input id={'type_' + id} name="Axis" type="radio" disabled={!loaded?.log.controllers[index]?.sets.length} checked={controller?.id === id} onChange={() => chooseAxis(index)} />{id.replace('RATE_R', 'RATE Roll').replace('RATE_P', 'RATE Pitch').replace('RATE_Y', 'RATE Yaw')}</label> })}</div></fieldset>
             <div><FileInput id="fileItem" accept=".bin" onFile={value => { if (value) load(value) }} /><br /><button id="OpenIn" disabled={!file} onClick={() => setOpen(!open)}>Open In</button><div hidden={!open}><OpenIn file={file} messages={loaded?.log.messages ?? null} /></div><br /><button id="calculate" disabled={!dirty} onClick={calculate}>Calculate</button></div>
@@ -157,7 +166,7 @@ export default function App({ plotly, assetBase }: { plotly: PlotlyApi | undefin
         <h2 title="Shows PID inputs and outputs in the time domain. Useful for inspecting tracking error, overshoot, and oscillations.">Time domain ⓘ</h2>{plot('TimeInputs')}{plot('TimeOutputs')}
         <h2 title="Displays the frequency response of PID components. Helps identify resonances, noise amplification, and D-term behavior.">Frequency domain ⓘ</h2>
         <div className="analysis-controls"><fieldset><legend>PID</legend>{groups.map(([title, group]) => <fieldset key={String(title)}><legend onDoubleClick={() => toggleGroup(group)}>{title}</legend>{group.map(key => <label key={key}><input id={'PIDX_' + key} type="checkbox" disabled={!available(controller, key)} checked={view.channels.includes(key)} onChange={event => setView(previous => ({ ...previous, channels: event.target.checked ? [...previous.channels, key] : previous.channels.filter(item => item !== key) }))} />{labels[keys.indexOf(key)]}</label>)}</fieldset>)}<p>Logging rate: <span id="FFT_infoA">{shownAnalysis?.rate.toFixed(2)}</span> Hz</p>Frequency resolution: <span id="FFT_infoB">{shownAnalysis && (shownAnalysis.rate / shownAnalysis.size).toFixed(2)}</span> Hz</fieldset>
-            <fieldset id="test_sets"><legend>Tests</legend>{controller && <table><thead><tr><th>Num</th><th>Show</th>{parameters.map(([key, suffix, title]) => <th key={key} title={controller.prefix + suffix}>{title}</th>)}</tr></thead><tbody>{controller.params.map((set, i) => <tr key={i} style={{ backgroundColor: controller.params.length > 1 ? colors[i % colors.length] + '66' : undefined }}><td>{i + 1}</td><td><input id={'set_selection_' + i} type="checkbox" checked={view.sets[i] ?? false} disabled={!shownAnalysis?.sets[i] || shownAnalysis.sets.filter(Boolean).length === 1} onChange={event => setView(previous => ({ ...previous, sets: previous.sets.map((value, j) => i === j ? event.target.checked : value) }))} /></td>{parameters.map(([key, , , decimals]) => <td key={key}>{i > 0 && set[key] !== controller.params[i - 1]![key] ? <b>{set[key]?.toFixed(decimals)}</b> : set[key]?.toFixed(decimals)}</td>)}</tr>)}</tbody></table>}</fieldset>
+            <fieldset id="test_sets"><legend>Tests</legend>{controller && <table><thead><tr><th>Num</th><th>Show</th>{parameters.map(([key, suffix, title]) => <th key={key} title={controller.prefix + suffix}>{title}</th>)}</tr></thead><tbody>{controller.params.map((set, i) => <tr key={i} style={{ backgroundColor: controller.params.length > 1 ? colors[i % colors.length] + '66' : undefined }}><td>{i + 1}</td><td><input id={'set_selection_' + i} type="checkbox" checked={view.sets[i] ?? false} disabled={!validSets[i] || validSets.filter(Boolean).length === 1} onChange={event => setView(previous => ({ ...previous, sets: previous.sets.map((value, j) => i === j ? event.target.checked : value) }))} /></td>{parameters.map(([key, , , decimals]) => <td key={key}>{i > 0 && set[key] !== controller.params[i - 1]![key] ? <b>{set[key]?.toFixed(decimals)}</b> : set[key]?.toFixed(decimals)}</td>)}</tr>)}</tbody></table>}</fieldset>
         </div>{plot('FFTPlot')}
         <div className="scales"><fieldset><legend>Amplitude scale</legend>{(['linear', 'db', 'psd'] as const).map((value, i) => <span key={value}>{option(['ScaleLinear', 'ScaleLog', 'ScalePSD'][i]!, 'Scale', ['Linear', 'dB', 'Power Spectral Density'][i]!, view.amplitude === value, () => setView(previous => ({ ...previous, start: range[0], end: range[1], amplitude: value })))}</span>)}</fieldset><fieldset><legend>Frequency scale</legend>{option('freq_ScaleLinear', 'feq_scale', 'Linear', !view.logFrequency, () => setView(previous => ({ ...previous, start: range[0], end: range[1], logFrequency: false })))}{option('freq_ScaleLog', 'feq_scale', 'Log', view.logFrequency, () => setView(previous => ({ ...previous, start: range[0], end: range[1], logFrequency: true })))}{option('freq_Scale_Hz', 'feq_unit', 'Hz', !view.rpm, () => setView(previous => ({ ...previous, start: range[0], end: range[1], rpm: false })))}{option('freq_Scale_RPM', 'feq_unit', 'RPM', view.rpm, () => setView(previous => ({ ...previous, start: range[0], end: range[1], rpm: true })))}</fieldset></div>
         <h2 title="Simulated PID response to a step input. Used to evaluate rise time, overshoot, damping, and stability.">Step Response ⓘ</h2>{plot('step_plot')}
