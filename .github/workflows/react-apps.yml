@@ -2,13 +2,15 @@ name: React apps
 on:
   pull_request:
   push:
-    branches: [main, issue-5-rotationcheck-routing]
+    branches: [main, issue-5-rotationcheck-routing, issue-11-hardware-parameters]
 jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
           version: 10.23.0
@@ -21,5 +23,5 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm build
       - run: pnpm typecheck && pnpm lint
-      - run: pnpm test && pnpm test:routing && pnpm test:rotation-check && pnpm test:parameters && pnpm test:react-workflows
-      - run: pnpm test:portal && pnpm test:rotation-check:browser && pnpm test:react-workflows:browser && pnpm test:ai-log-analyzer:browser
+      - run: pnpm test && pnpm test:routing && pnpm test:rotation-check && pnpm test:parameters && pnpm test:react-workflows && pnpm test:hardware-parameters
+      - run: pnpm test:portal && pnpm test:rotation-check:browser && pnpm test:react-workflows:browser && pnpm test:hardware-parameters:browser && pnpm test:ai-log-analyzer:browser
