@@ -175,3 +175,12 @@ comparison tests.
 `pnpm test:simplegcs:parameters:browser` covers the React parameter editor in
 desktop/mobile Chromium, exact legacy file and protocol bytes, root/prefix
 routing, rejected or cancelled writes, and asynchronous resource cleanup.
+
+### Linting and formatting
+
+Owned workspace code uses pinned Biome tooling. Run `pnpm lint` for the
+read-only lint gate, `pnpm format:check -- <path>` to inspect formatting, and
+`pnpm format -- <path>` to format a selected owned file. See
+[the tooling policy](tooling/biome-policy.md) for source boundaries and the
+explicit compatibility rules. Formatting is opt-in; existing files were not
+mass-reformatted.
