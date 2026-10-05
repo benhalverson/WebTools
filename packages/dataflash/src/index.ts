@@ -21,6 +21,12 @@ export interface LogStatistics { count: number | undefined; msg_size: number; si
 export interface DataflashLog {
   messageTypes: Record<string, MessageType | undefined>
   messages: Record<string, unknown>
+  /** Embedded FILE payloads after processFiles; consumers may release them once copied. */
+  files?: Record<string, Uint8Array> | null
+  /** Parse the indexed records for a discovered message without posting results. */
+  parseAtOffset(name: string): void
+  /** Assemble FILE records in upstream order, retaining its offset and length semantics. */
+  processFiles(): void
   /** Discover types and load the requested messages from local bytes. Pass an
    * empty list for discovery only; omitted messages use upstream defaults.
    * Use a fresh parser per input. Corrupt input may throw or yield partial data. */
