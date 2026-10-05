@@ -1,0 +1,4 @@
+div.plotly-notifier { visibility: hidden; }
+fieldset.wide { max-width: 1200px; }
+input[id^="INS_"], input[id^="ATC_"] { width: 100px; }
+#Bode, #BodePID { width: 1200px; height: 900px; }
