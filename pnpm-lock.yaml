@@ -115,6 +115,9 @@ importers:
       '@webtools/routing':
         specifier: workspace:*
         version: link:../../packages/routing
+      '@webtools/transfers':
+        specifier: workspace:*
+        version: link:../../packages/transfers
       leaflet:
         specifier: 1.9.4
         version: 1.9.4
@@ -225,6 +228,7 @@ importers:
       vite:
         specifier: 8.3.0
         version: 8.3.0(@types/node@26.6.4)(esbuild@0.28.1)
+
   packages/transfers:
     dependencies:
       '@webtools/mavlink':

@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.23.0",
   "scripts": {
-    "dev": "pnpm --filter @webtools/mavlink build && pnpm --filter @webtools/react-workflows... build && node tooling/serve.ts dev",
+    "dev": "pnpm --filter @webtools/transfers... build && pnpm --filter @webtools/react-workflows... build && node tooling/serve.ts dev",
     "typecheck": "pnpm -r --if-present typecheck && pnpm --filter portal exec tsc -p ../../tooling/tsconfig.json",
     "lint": "pnpm -r --if-present lint && apps/portal/node_modules/.bin/oxlint --deny-warnings tooling",
     "test": "node --test tests/*.test.cjs && pnpm --filter @webtools/mavlink test && pnpm --filter @webtools/transfers test",
@@ -19,9 +19,10 @@
     "test:rotation-check": "node --test apps/rotation-check/tests/*.test.*",
     "test:rotation-check:browser": "node --test apps/rotation-check/tests/browser.cjs",
     "test:mavlink:browser": "pnpm --filter @webtools/mavlink test:browser",
-    "test:simplegcs": "pnpm --filter @webtools/mavlink build && pnpm --filter simplegcs test",
+    "test:simplegcs": "pnpm --filter @webtools/transfers... build && pnpm --filter simplegcs test",
     "test:simplegcs:browser": "node apps/simplegcs/tests/browser.cjs",
-    "test:transfers:browser": "pnpm --filter @webtools/transfers test:browser"
+    "test:transfers:browser": "pnpm --filter @webtools/transfers test:browser",
+    "test:simplegcs:commands:browser": "node apps/simplegcs/tests/commands-browser.cjs"
   },
   "engines": {
     "node": ">=24 <25"

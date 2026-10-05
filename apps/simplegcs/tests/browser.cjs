@@ -46,10 +46,11 @@ function inject(legacy) {
             }
         }
         /** Record all outbound traffic so tests can reject accidental command/FTP sends. */
-        send(bytes) { if (state.failSend) throw Error('injected send failure'); state.sent.push(Array.from(bytes)); }
+        send(bytes) { if (state.failSend) throw Error('injected send failure'); state.sent.push(Array.from(bytes)); state.onSend?.(this, bytes); }
         /** Simulate an immediate resource close; stale saved callbacks can still be tested. */
         close(code = 1000) { clearTimeout(this.openTimer); clearInterval(this.timer); this.readyState = 3; this.closeCode = code; }
     }
+    localStorage.setItem("gcs.auto.fetchFence", "0");
     if (legacy) { window.WebSocket = Peer; localStorage.setItem("gcs.auto.fetchFence", "0"); }
     window.SIMPLEGCS_PREVIEW = { socket: url => new Peer(url), location: {
         /** Register deterministic watch callbacks, starting at the valid ID zero. */
@@ -183,4 +184,5 @@ async function main() {
         } finally { await stop(gateway.child); }
     } finally { await browser.close(); }
 }
-main().catch(error => { console.error(error); process.exitCode = 1; });
+module.exports = { start, stop, inject };
+if (require.main === module) main().catch(error => { console.error(error); process.exitCode = 1; });
