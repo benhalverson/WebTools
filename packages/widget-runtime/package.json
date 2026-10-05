@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.consumer.json",
-    "lint": "oxlint --deny-warnings src tests",
+    "lint": "biome lint --error-on-warnings .",
     "test": "pnpm build && node --test tests/*.test.mjs",
     "build:consumer": "pnpm build && vite build --config tests/consumer/vite.config.ts",
     "test:browser": "node tests/browser.mjs"
@@ -35,7 +35,6 @@
     "formiojs": "4.21.7",
     "leaflet": "1.9.4",
     "leaflet-rotatedmarker": "0.2.0",
-    "oxlint": "1.81.0",
     "plotly.js-dist-min": "2.35.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",

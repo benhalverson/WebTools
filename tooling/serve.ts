@@ -73,6 +73,7 @@ async function main(): Promise<void> {
         dfuLoader: await start('dfu-loader', mode, prefix),
         logFinder: await start('log-finder', mode, prefix),
         filterTool: await start('filter-tool', mode, prefix),
+        dashboardPlayback: await start('dashboard-playback', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {
         const parsed = requestPath(incoming.url)
