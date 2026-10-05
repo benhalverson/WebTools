@@ -18,3 +18,6 @@ packages/*/dist/
 # Shared React integration browser consumer
 packages/react-workflows/consumer-dist/
 packages/react-workflows/.consumer-assets/
+
+# Test-only mounted geofence lifecycle host
+apps/geofence-generator/.lifecycle-dist/
