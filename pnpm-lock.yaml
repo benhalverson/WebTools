@@ -23,6 +23,9 @@ importers:
 
   apps/hardware-report:
     dependencies:
+      '@webtools/dataflash':
+        specifier: workspace:*
+        version: link:../../packages/dataflash
       '@webtools/parameters':
         specifier: workspace:*
         version: link:../../packages/parameters

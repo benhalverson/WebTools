@@ -142,3 +142,27 @@ unchanged test oracles and legacy downloads; the React page does not load them.
 The issue #5 branch also includes prerequisite browser/JSDoc follow-up
 `91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
 identical to the original comparison revision above.
+
+### Hardware Report React migration
+
+`apps/hardware-report` owns parameter files and binary-log reports, sensor health,
+firmware metadata, plots, parameter exports, waypoints, and embedded-file downloads.
+It is an independent React/TypeScript app with its own Worker. The shared local
+gateway routes its existing `/HardwareReport/` destination; the unchanged legacy
+sources remain available for unrelated consumers and differential tests.
+
+Use `pnpm --filter hardware-report dev` independently, or `pnpm dev` for the
+same-origin gateway. Build with `pnpm --filter hardware-report build` and preview
+with `pnpm --filter hardware-report preview`. Set `WEBTOOLS_BASE_PATH` (or the
+compatible `PORTAL_BASE_PATH`) consistently for build, dev, and preview.
+
+The app stages the complete `@webtools/dataflash` standalone ESM runtime under
+`dataflash/`, including its adjacent vendor parser and license. It never uploads
+log data. Firmware checks retain the legacy optional Octokit CDN module and
+GitHub metadata requests; browser tests mock both services.
+
+`pnpm test:hardware-report` runs Node differential tests against the actual
+parameter-workflow base. `pnpm test:hardware-parameters:browser` and
+`pnpm test:hardware-report:browser` exercise parameter and log workflows in real
+Chromium, including independent development and built Worker previews at root
+and a common hosting prefix. Downloads are compared byte-for-byte.

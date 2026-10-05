@@ -36,3 +36,8 @@ Build outputs remain separate deployable Workers. A future hosting deployment
 must apply the same prefix and ownership table to dispatch requests to these
 Workers. This change provides local composition only and does not publish,
 change domains, or configure production bindings.
+
+Hardware Report is independently owned at `HardwareReport/` after both parameter
+and binary-log workflows passed the migration parity checks. The intermediate
+`HardwareReportParameters/` preview mount is retired. Its app uses the same
+common-prefix and gateway conventions as RotationCheck.
