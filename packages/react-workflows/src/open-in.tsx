@@ -27,46 +27,86 @@ export function availableDestinations(pathname: string): readonly OpenInDestinat
     return openInDestinations.filter(destination => !destination.path.includes(ownWindow))
 }
 
-/** Exact legacy transport: same-origin File on load; external ArrayBuffer after
- * 2000ms. Wildcard targets and unauthenticated receiving are intentionally kept
- * until the separately reviewed security change. Never use for credentials.
+/** Exact legacy transport: same-origin File on every load until disposed;
+ * external ArrayBuffer after 2000ms. Wildcard targets and unauthenticated
+ * receiving remain unchanged until the separately reviewed security change.
  * @param host Window that opens the destination and owns the external delay.
- * @returns A disposer that removes the load listener or aborts a pending read
- * and cancels its timer. It does not close an opened window or undo delivery.
- * Popup blocking is tolerated. FileReader failures have no delivery callback;
- * synchronous browser errors propagate rather than being translated.
+ * @param onSettled Optional non-throwing ownership callback, called once on
+ * external completion/failure, popup blocking, or cancellation (possibly before
+ * this function returns). Same-origin listeners remain active until disposed.
+ * @returns An idempotent disposer. Settlement releases owned payload, reader,
+ * target, timer, and listeners even if callers retain the disposer. It does not
+ * close windows or undo delivery. Synchronous browser errors still propagate.
  */
-export function transferFile(file: File, destination: OpenInDestination, host: Window = window): () => void {
-    let dispose = () => {}
-    if (destination.hookLoad) {
-        const target = host.open(destination.path)
-        if (!target) return dispose
-        /** Send the original File on each destination load until disposed. */
-        const load = () => target.postMessage({ type: 'file', data: file }, '*')
-        target.addEventListener('load', load)
-        dispose = () => target.removeEventListener('load', load)
-    } else {
-        const reader = new FileReader()
-        let timer: number | undefined
-        reader.onload = () => {
-            const data = reader.result
-            const target = host.open(destination.path)
-            if (target) timer = host.setTimeout(() => target.postMessage({ type: 'arrayBuffer', data }, '*'), 2000)
-        }
-        reader.readAsArrayBuffer(file)
-        dispose = () => {
-            reader.onload = null
+export function transferFile(file: File, destination: OpenInDestination, host: Window = window,
+    onSettled?: () => void): () => void {
+    let payload: File | ArrayBuffer | null = file
+    let target: Window | null = null
+    let reader: FileReader | null = null
+    let timer: number | undefined
+    let listening = false
+    let settled = false
+    let notify = onSettled
+    /** Release every resource owned by this operation before notifying its owner. */
+    const dispose = () => {
+        if (settled) return
+        settled = true
+        if (timer !== undefined) host.clearTimeout(timer)
+        timer = undefined
+        if (reader) {
+            reader.onload = reader.onerror = reader.onabort = null
             if (reader.readyState === FileReader.LOADING) reader.abort()
-            if (timer !== undefined) host.clearTimeout(timer)
+            reader = null
         }
+        if (listening) target?.removeEventListener('load', load)
+        listening = false
+        target = null
+        payload = null
+        const callback = notify
+        notify = undefined
+        callback?.()
     }
+    /** Preserve repeated same-origin load delivery until explicitly disposed. */
+    const load = () => { target?.postMessage({ type: 'file', data: payload }, '*') }
+    try {
+        if (destination.hookLoad) {
+            target = host.open(destination.path)
+            if (target) { listening = true; target.addEventListener('load', load) }
+            else dispose()
+        } else {
+            reader = new FileReader()
+            /** Move the completed result into the timer's ownership and release
+             * the reader immediately; blocked/error paths settle without delivery. */
+            reader.onload = () => {
+                if (!reader || settled) return
+                payload = reader.result as ArrayBuffer
+                reader.onload = reader.onerror = reader.onabort = null
+                reader = null
+                try {
+                    target = host.open(destination.path)
+                    if (!target) { dispose(); return }
+                    /** Release the payload and recipient even if posting throws. */
+                    timer = host.setTimeout(() => {
+                        try { target?.postMessage({ type: 'arrayBuffer', data: payload }, '*') }
+                        finally { dispose() }
+                    }, 2000)
+                } catch (error) { dispose(); throw error }
+            }
+            reader.onerror = reader.onabort = dispose
+            reader.readAsArrayBuffer(file)
+            // FileReader now owns the read; no second File reference is needed.
+            payload = null
+        }
+    } catch (error) { dispose(); throw error }
     return dispose
 }
 
 /** Render legacy destination buttons for the current tool and selected file.
  * Unknown message types leave destinations enabled; a missing file disables
  * every button. Each click starts an independent transfer whose pending work
- * is disposed on unmount. Changing props does not cancel previous transfers. */
+ * is disposed on unmount. Finished external transfers leave the ownership set
+ * immediately; same-origin repeat-load listeners remain until unmount. Changing
+ * props does not cancel previous transfers. */
 export function OpenIn({ file, messages = null, pathname = window.location.pathname }: {
     file: File | null
     messages?: readonly string[] | null
@@ -77,9 +117,21 @@ export function OpenIn({ file, messages = null, pathname = window.location.pathn
         for (const dispose of disposers.current) dispose()
         disposers.current.clear()
     }, [])
+    /** Register before starting so synchronous blocking/failure cannot leave a
+     * completed disposer in the set; each recipient owns an independent entry. */
+    const startTransfer = (destination: OpenInDestination) => {
+        if (!file) return
+        let cancel: (() => void) | undefined
+        /** Cancel this recipient without affecting any other pending transfer. */
+        const dispose = () => cancel?.()
+        disposers.current.add(dispose)
+        try {
+            cancel = transferFile(file, destination, window, () => { disposers.current.delete(dispose) })
+        } catch (error) { disposers.current.delete(dispose); throw error }
+    }
     return <div>{availableDestinations(pathname).map(destination => <span key={destination.name}>
         <input type="button" value={destination.name} style={{ margin: '3px 0' }} disabled={!file || !destination.enabled(messages)}
-            onClick={() => { if (file) disposers.current.add(transferFile(file, destination)) }} /><br />
+            onClick={() => startTransfer(destination)} /><br />
     </span>)}</div>
 }
 
