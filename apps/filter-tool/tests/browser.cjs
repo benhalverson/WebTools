@@ -91,10 +91,11 @@ function compare(actual, expected) {
 
 /** Await settled vendor traces and compare them with the independent page implementation. */
 async function checkPlot(page, id, expected) {
-    await page.waitForFunction(({ id, length, first }) => {
+    await page.waitForFunction(({ id, length, index, sample }) => {
         const plot = document.querySelector(`#${id} .js-plotly-plot`);
-        return plot?.data?.[0]?.y?.length === length && Math.abs(plot.data[0].y[0] - first) < 1e-8;
-    }, { id, length: expected.data[0].y.length, first: expected.data[0].y[0] });
+        const value = plot?.data?.[0]?.y?.[index];
+        return plot?.data?.[0]?.y?.length === length && (Object.is(value, sample) || Math.abs(value - sample) <= 2e-11 * Math.max(1, Math.abs(sample)));
+    }, { id, length: expected.data[0].y.length, index: Math.floor(expected.data[0].y.length / 3), sample: expected.data[0].y[Math.floor(expected.data[0].y.length / 3)] });
     const actual = await page.locator(`#${id} .js-plotly-plot`).evaluate(plot => ({ data: plot.data, layout: plot.layout, dimensions: [plot.getBoundingClientRect().width, plot.getBoundingClientRect().height] }));
     assert.deepEqual(actual.dimensions, [1200, 900]);
     assert.equal(actual.data.length, expected.data.length);
@@ -132,6 +133,12 @@ async function controlsAndFiles(page, context, origin, base) {
     assert.equal(await page.locator('#INS_HNTCH_FREQ').isDisabled(), true);
     assert.equal(await page.locator('#INS_GYRO_FILTER').getAttribute('step'),'0.1');
     assert.equal(await page.locator('#ATC_RAT_RLL_D').getAttribute('step'),'0.0001');
+    await page.evaluate(() => window.Plotly.relayout(document.querySelector('#Bode .js-plotly-plot'), { 'xaxis.range': [0, 2], 'xaxis2.range': [0, 2], 'yaxis.range': [-40, 0], 'yaxis2.range': [-50, 0] }));
+    await page.locator('#INS_GYRO_FILTER').fill('30'); params.INS_GYRO_FILTER = '30';
+    await page.locator('#calculate').click();
+    await checkPlot(page, 'Bode', legacySnapshot(params).gyro);
+    assert.deepEqual(await page.locator('#Bode .js-plotly-plot').evaluate(plot => [plot.layout.xaxis.range, plot.layout.xaxis2.range, plot.layout.yaxis.range]), [[0, 2], [0, 2], [-40, 0]], 'recalculation retains legacy frequency and magnitude zoom');
+    assert.equal(await page.locator('#Bode .js-plotly-plot').evaluate(plot => plot.layout.yaxis2.autorange), true, 'unwrapped phase resets to autorange as in legacy');
     await page.locator('#INS_HNTCH_ENABLE').selectOption('1'); params.INS_HNTCH_ENABLE = '1';
     await page.locator('#INS_HNTCH_MODE').selectOption('3'); params.INS_HNTCH_MODE = '3';
     assert.equal(await page.locator('#ESC_input').isVisible(), true);

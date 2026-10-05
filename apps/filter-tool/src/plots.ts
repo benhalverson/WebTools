@@ -2,7 +2,9 @@ import type { PlotFields } from '@webtools/react-workflows'
 import { evaluate, gyroFilters, pid, value, type Parameters, type Response } from './model.ts'
 export interface PlotSnapshot { data: PlotFields[]; layout: PlotFields }
 
-/** Calculate a complete immutable plot snapshot; live edits do not mutate prior curves. */
+/** Calculate a complete immutable plot snapshot; live edits do not mutate prior curves.
+ * Stable frequency/magnitude revisions retain user zoom, while phase keeps the
+ * legacy per-calculation autorange behavior. Reset owns a fresh plot lifetime. */
 export function calculate(params: Parameters, axis?: string): PlotSnapshot {
     const prefix = axis ? 'PID_' : ''
     const db = params[prefix + 'Scale'] === 'Log', unwrap = params[prefix + 'PhaseScale'] === 'unwrap'
@@ -26,11 +28,11 @@ export function calculate(params: Parameters, axis?: string): PlotSnapshot {
         visible: index === 0 || (!!part && components), x, y: side ? part?.phase : part?.attenuation,
         hovertemplate: '<extra></extra>' + (components ? '%{meta}<br>' : '') + '%{x:.2f} ' + (rpm ? 'RPM' : 'Hz') + '<br>%{y:.2f} ' + (side ? 'deg' : db ? 'dB' : ''),
     })))
-    const frequencyAxis = { type: params[prefix + 'feq_scale'] === 'Log' ? 'log' : 'linear', zeroline: false, showline: true, mirror: true }
+    const frequencyAxis = { uirevision: 'frequency', type: params[prefix + 'feq_scale'] === 'Log' ? 'log' : 'linear', zeroline: false, showline: true, mirror: true }
     return { data, layout: {
         width: 1200, height: 900,
         xaxis: { ...frequencyAxis }, xaxis2: { ...frequencyAxis, title: { text: rpm ? 'Frequency (RPM)' : 'Frequency (Hz)' }, matches: 'x' },
-        yaxis: { title: { text: (axis ? 'Gain' : 'Magnitude') + (db ? ' (dB)' : '') }, zeroline: false, showline: true, mirror: true, domain: [0.52, 1] },
+        yaxis: { uirevision: 'magnitude', title: { text: (axis ? 'Gain' : 'Magnitude') + (db ? ' (dB)' : '') }, zeroline: false, showline: true, mirror: true, domain: [0.52, 1] },
         yaxis2: { title: { text: 'Phase (deg)' }, zeroline: false, showline: true, mirror: true, domain: [0, 0.48], fixedrange: !unwrap, autorange: unwrap, ...(!unwrap ? { range: [-180, 180] } : {}) },
         showlegend: components, legend: { itemclick: false, itemdoubleclick: false }, margin: { b: 50, l: 50, r: 50, t: 20 }, grid: { rows: 2, columns: 1, pattern: 'independent' },
     } }
