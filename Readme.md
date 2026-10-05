@@ -191,3 +191,12 @@ assets. Filter tracking and tuning remain in the complete tool.
 `pnpm test:filter-review` runs numerical compatibility tests.
 `pnpm test:filter-review:browser` exercises Chromium,
 independent dev/built Workers and the gateway at root and nested prefixes.
+
+### Linting and formatting
+
+Owned workspace code uses pinned Biome tooling. Run `pnpm lint` for the
+read-only lint gate, `pnpm format:check -- <path>` to inspect formatting, and
+`pnpm format -- <path>` to format a selected owned file. See
+[the tooling policy](tooling/biome-policy.md) for source boundaries and the
+explicit compatibility rules. Formatting is opt-in; existing files were not
+mass-reformatted.
