@@ -4,15 +4,18 @@
   "packageManager": "pnpm@10.23.0",
   "scripts": {
     "dev": "pnpm --filter portal dev",
-    "typecheck": "pnpm --filter @webtools/numerics typecheck && pnpm --filter portal typecheck",
-    "lint": "pnpm --filter @webtools/numerics lint && pnpm --filter portal lint",
-    "test": "pnpm --filter @webtools/numerics test && node --test tests/*.test.cjs",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "pnpm -r --if-present lint",
+    "test": "node --test tests/*.test.cjs && pnpm --filter @webtools/numerics test && pnpm test:parameters && pnpm test:dataflash",
     "test:browser": "node tests/browser.cjs",
     "test:video": "node tests/video-browser.cjs",
     "test:portal": "node --test apps/portal/tests/*.test.cjs",
-    "build": "pnpm --filter @webtools/numerics build && pnpm --filter portal build",
+    "build": "pnpm -r --if-present build",
     "preview": "pnpm --filter portal preview",
-    "test:numerics:browser": "pnpm --filter @webtools/numerics test:browser"
+    "test:numerics:browser": "pnpm --filter @webtools/numerics test:browser",
+    "test:parameters": "pnpm --filter @webtools/parameters test",
+    "test:dataflash": "pnpm --filter @webtools/dataflash test",
+    "test:dataflash:browser": "pnpm --filter @webtools/dataflash test:browser"
   },
   "engines": {
     "node": ">=24 <25"

@@ -11,3 +11,6 @@ apps/*/.legacy-assets/
 apps/*/dist/
 apps/*/.wrangler/
 apps/*/worker-configuration.d.ts
+
+# Compiled shared packages
+packages/*/dist/
