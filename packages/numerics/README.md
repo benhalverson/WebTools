@@ -42,13 +42,32 @@ Node parity requires exact equality, not approximate equality. Browser parity us
 math-library last-bit differences; all exceptional values and structures are exact.
 The inverse-FFT round trip also allows 1e-12 for ordinary floating-point error.
 
-The typed API expects numeric arrays, while runtime tests additionally record
+The typed API accepts `NumericInput`: ordinary readonly arrays of
+`number | undefined`, `Float32Array`, or `Float64Array`. DataFlash's pinned
+`parser.js` allocates Float64Array for numeric fields (including Float32 log
+formats). Copy/conversion results remain valid downstream inputs: PIDReview's
+`run_fft → to_double_sided → complex_conj → complex_mul → complex_div →
+to_fft_format → inverseTransform` chain is compiled against public exports and
+compared to unchanged legacy code in Node and Chromium. Interpolation, unpacking,
+and display conversions are also covered. Runtime tests additionally record
 legacy JavaScript coercions for malformed inputs. Indexed assertions preserve
 legacy arithmetic on missing values; they do not normalize, pad, validate, clamp,
 or reorder input. Interpolation and copy/conversion outputs explicitly include undefined when a source
 component can be missing. Arithmetic-only outputs retain numeric types because
 missing operands become NaN. Mutable interleaved copy buffers should be declared
-as `(number | undefined)[]` by consumers.
+as `(number | undefined)[]` by consumers, or use floating typed storage where
+fixed-length writes and undefined-to-NaN coercion are intended. `NumericStorage`
+describes these writable destinations. No blanket `any` or new assertion escape
+hatches are used.
+
+`complex_conj` returns a native slice of its real component (preserving the
+ordinary/Float32/Float64 category and explicit undefined) plus a new ordinary
+imaginary array. FFT pack/unpack overloads preserve supplied typed storage and
+ordinary-array return categories. Amplitude/frequency converters return
+`T | number[]`: identity paths return the original input, arithmetic paths
+allocate ordinary arrays. Dependent typed consumers should keep converted values
+inferred or use `NumericInput`/`ComplexInput`, rather than forcing them back to
+`number[]`/`ComplexArray`. Existing ordinary numeric input remains supported.
 `run_fft` retains missing-channel sparse windows and the first-channel requirement.
 Channel names should not overlap `center` or another channel's `Max` property,
 as in the original flat result object; no collision handling is introduced.
