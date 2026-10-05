@@ -24,6 +24,8 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck && pnpm lint
       - run: pnpm test && pnpm test:dashboard-playback
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:stream-stats:browser
   browser:
     name: browser (${{ matrix.suite }})
     runs-on: ubuntu-latest
