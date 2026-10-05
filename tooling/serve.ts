@@ -66,6 +66,7 @@ async function main(): Promise<void> {
         portal: await start('portal', mode, prefix),
         rotationCheck: await start('rotation-check', mode, prefix),
         hardwareParameters: await start('hardware-report', mode, prefix),
+        kinematicTools: await start('kinematic-tools', mode, prefix),
         pidReview: await start('pid-review', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {
