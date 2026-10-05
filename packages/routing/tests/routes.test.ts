@@ -8,10 +8,12 @@ const binding = { async fetch(request: Request) { return new Response(new URL(re
 
 test('mount and prefix contracts enforce path boundaries', () => {
     for (const prefix of ['/', '/Tools/WebTools/']) {
-        const base = applicationBase('rotationCheck', prefix)
-        assert.equal(applicationForPath(base, prefix), 'rotationCheck')
-        assert.equal(applicationForPath(base.slice(0, -1), prefix), 'rotationCheck')
-        assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
+        for (const application of ['rotationCheck', 'aiLogAnalyzer'] as const) {
+            const base = applicationBase(application, prefix)
+            assert.equal(applicationForPath(base, prefix), application)
+            assert.equal(applicationForPath(base.slice(0, -1), prefix), application)
+            assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
+        }
     }
     assert.equal(hostingPrefix('/Tools'), '/Tools/')
     for (const value of ['https://bad/', '//bad/', '/../', '/%2e/', '/a?b']) assert.throws(() => hostingPrefix(value))
