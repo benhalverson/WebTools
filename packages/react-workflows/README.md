@@ -135,10 +135,18 @@ harness to the original implementation; it asserts the two pre-fix failures.
 The normal command asserts corrected behavior and legacy parity.
 
 Correction validation also passed the six portal checks (development and built
-preview at root/prefix) and the video browser suite. The retained SimpleGCS
-browser gate was attempted, but this environment cannot load its pinned public
-CDN assets: unpkg requests fail with `ERR_TUNNEL_CONNECTION_FAILED`, and the
-jsDelivr HLS request fails certificate validation. Missing Leaflet then raises
-`L is not defined`, preventing its connection-dialog assertion. Those files and
-tests are unchanged; this gate is not reported as passed. No TLS bypass or
-production/vendor changes were used to conceal that environment limitation.
+preview at root/prefix), the video browser suite, and the complete unchanged
+SimpleGCS browser suite. The environment's direct public-CDN requests fail
+(unpkg tunnel failures and jsDelivr certificate validation), so SimpleGCS was
+rerun with a temporary Playwright preload. It supplied only Leaflet 1.9.4 CSS/JS,
+Leaflet.GoogleMutant 0.16.0, and hls.js 1.7.3 from the official npm tarballs.
+Each asset's SHA-384 matched the unchanged HTML integrity attribute before
+replay; every other external request was blocked. All seven SimpleGCS browser
+acceptance groups passed, including signing/discovery, parameter metadata and
+FTP, reconnect/draft/identity lifetimes, telemetry replay rejection, recovery,
+and desktop/mobile controls. Authoritative tests, vendor assets, and HTML were
+unchanged; the preload and downloaded assets remained outside the repository.
+This is local validation, not a CI result. This foundation branch has no
+workflow/status checks. PR39 was fetched on current main at
+`94eda2519185159e3616ee82faa75f70f6282083`; main integration is a separate merge
+queue operation and was not performed as part of this regression correction.
