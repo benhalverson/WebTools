@@ -1,14 +1,13 @@
 # Typed parameters
 
 DOM-free extraction of `Libraries/Param_Helpers.js`, `DecodeDevID.js`, and the
-lookup/conversion portions of `ParameterMetadata.js` at comparison revision
-`ac32dd6`. Legacy files and existing authoritative protocol fixtures are unchanged.
+lookup/conversion portions of `ParameterMetadata.js`.
 
 Build with `pnpm --filter @webtools/parameters build`; consume only the explicit
 `@webtools/parameters` entry point. The emitted declarations enforce strict types.
 Run `pnpm test:parameters` for Node built-in tests against the compiled public
-entry point. No browser is required for this DOM-free package; rendering and
-browser lifecycle coverage belong to issue #4.
+entry point. Rendering and control lifecycle coverage live in `@webtools/react-workflows`;
+this package also tests native Cache API behavior in Chromium.
 
 ## API
 
@@ -38,7 +37,7 @@ float formatting, metadata traversal, invalid inputs, and bitmask widths with
 unchanged legacy code. New recorded text fixtures identify the comparison source;
 existing `tests/fixtures/params.json` and MAVLink fixtures are never regenerated.
 
-## Packed vehicle parameter operations (issue #25)
+## Packed vehicle parameter operations
 
 `MAVParam` owns values, defaults, readonly validation, search and the single-operation
 lock for one connection. `MAVParamDefinitions` owns per-vehicle metadata memory and
@@ -86,8 +85,6 @@ URLs, weekly freshness, explicit refresh and stale offline fallback. Inject `fet
 and `cache` to test without a provider. No migration of unrelated legacy consumers
 or generated runtime is required by this package.
 
-Comparison revision: `59793034cca0170489a8c817c7b8fd2f60a05fa1` (local integration
-of reviewed #3/#24 and newer #23 fixes), based on merged foundation `ac32dd6`.
 `tests/mavparam.test.cjs` and `tests/fixtures/params.json` are replayed unchanged
 against legacy and typed implementations. Node and real Chromium compare exact
 serialized bytes, integer values, repeated cancellation/disconnect and cache traces;

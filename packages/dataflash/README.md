@@ -1,8 +1,6 @@
 # Typed Dataflash boundary
 
-Comparison revision: WebTools `ac32dd6` (the merged workspace foundation).
 The upstream parser remains pinned at `220e354ba3cd479e4378ee4bc9989364b9098227`.
-No legacy consumer, parser source, MAVLink fixture or parameter fixture changes.
 
 `@webtools/dataflash` exposes only its root entry. `loadDataflashParser()` lazily
 imports the exact upstream ES module, copied byte-for-byte with its license at
