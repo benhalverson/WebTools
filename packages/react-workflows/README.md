@@ -1,4 +1,4 @@
-# Shared React workflows (migration stage 2)
+# Shared React workflows
 
 Shared React controls and resource-owning hooks for the WebTools apps. The package depends on `@webtools/parameters` and accepts the existing pinned vendor libraries through explicit interfaces.
 
@@ -26,7 +26,7 @@ Shared React controls and resource-owning hooks for the WebTools apps. The packa
   the original Blob and filename to injected legacy `FileSaver.saveAs` without
   re-encoding or replacing its browser-specific download behavior.
 - `useLoading` and `LoadingOverlay`: retain styling and double-animation-frame
-  scheduling. **Deliberately preserve the reviewed legacy bug:** the returned
+  scheduling. **Legacy loading contract:** the returned
   promise resolves after scheduling (not completion), and rejection leaves the
   overlay visible. Rejection is reported through `onError`; this does not repair
   or conceal the failure overlay. Unmount cancels queued frames and prevents

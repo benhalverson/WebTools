@@ -38,7 +38,7 @@ float formatting, metadata traversal, invalid inputs, and bitmask widths with
 unchanged legacy code. New recorded text fixtures identify the comparison source;
 existing `tests/fixtures/params.json` and MAVLink fixtures are never regenerated.
 
-## Packed vehicle parameter operations (issue #25)
+## Packed vehicle parameter operations
 
 `MAVParam` owns values, defaults, readonly validation, search and the single-operation
 lock for one connection. `MAVParamDefinitions` owns per-vehicle metadata memory and
