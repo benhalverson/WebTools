@@ -4,9 +4,12 @@
     "lib": [
       "ES2023",
       "DOM"
-    ]
+    ],
+    "types": [],
+    "skipLibCheck": false
   },
   "include": [
-    "tests/contracts.ts"
+    "src/**/*.ts",
+    "tests/**/*.ts"
   ]
 }
