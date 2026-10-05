@@ -101,8 +101,11 @@ async function paths(page) {
     await page.waitForFunction(() => document.querySelectorAll('path.leaflet-interactive').length >= 2);
     return page.locator('path.leaflet-interactive').evaluateAll(nodes => nodes.map(node => node.getAttribute('d')));
 }
-/** Exercise a real feature click and browser download, returning its exact bytes and filename. */
+/** Close the previous animated popup before a real feature click and exact-byte browser download. */
 async function download(page) {
+    // A popup may already be fading after a crop update; close current DOM matches atomically.
+    await page.locator('.leaflet-popup-close-button').evaluateAll(buttons => buttons.forEach(button => button.click()));
+    await page.waitForFunction(() => document.querySelector('.leaflet-popup') === null);
     await page.mouse.click(680, 450);
     const button = page.locator('input[value="Download"]');
     await button.waitFor();
