@@ -69,6 +69,7 @@ async function main(): Promise<void> {
         kinematicTools: await start('kinematic-tools', mode, prefix),
         scurveTool: await start('scurve-tool', mode, prefix),
         pidReview: await start('pid-review', mode, prefix),
+        streamStats: await start('stream-stats', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {
         const parsed = requestPath(incoming.url)
