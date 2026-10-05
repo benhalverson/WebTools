@@ -4,3 +4,6 @@ export { decode_devid, DEVICE_TYPE_COMPASS, DEVICE_TYPE_IMU, DEVICE_TYPE_BARO, D
 export type { DeviceBase, DecodedDevice } from './device.js'
 export { find_parameter_metadata, is_parameter_metadata, load_parameter_metadata, parameter_input_value, parameter_bitmask_value } from './metadata.js'
 export type { ParameterMetadata } from './metadata.js'
+export { MAVParam } from './operations.js'
+export { MAVParamDefinitions } from './definitions.js'
+export type { ParameterValue, PackedParameter, ParameterChange as PackedParameterChange, ParameterTransfer, VehicleParameterDefinition, DefinitionCache, DefinitionOptions, DefinitionResult } from './types.js'

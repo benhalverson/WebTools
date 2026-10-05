@@ -24,7 +24,7 @@ const server = http.createServer((req,res) => {
     if (file === path.join(root,'empty.html')) return res.setHeader('Content-Type','text/html'), res.end('<!doctype html><meta charset="utf-8"><title>MAVLink parity</title>');
     fs.readFile(file,(error,bytes) => {
         if (error) return res.writeHead(404).end();
-        res.setHeader('Content-Type', /\.(mjs|js)$/.test(file) ? 'text/javascript' : 'application/octet-stream');
+        res.setHeader('Content-Type', /\.(mjs|js)$/.test(file) ? 'text/javascript; charset=utf-8' : 'application/octet-stream');
         res.end(bytes);
     });
 });
