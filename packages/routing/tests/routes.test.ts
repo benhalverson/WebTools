@@ -8,7 +8,7 @@ const binding = { async fetch(request: Request) { return new Response(new URL(re
 
 test('mount and prefix contracts enforce path boundaries', () => {
     for (const prefix of ['/', '/Tools/WebTools/']) {
-        for (const app of ['rotationCheck', 'hardwareParameters', 'kinematicTools', 'scurveTool', 'dashboardPlayback', 'videoPreview', 'pidReview', 'streamStats', 'dfuLoader', 'logFinder'] as const) {
+        for (const app of ['rotationCheck', 'hardwareParameters', 'kinematicTools', 'scurveTool', 'dashboardPlayback', 'videoOverlay', 'pidReview', 'streamStats', 'dfuLoader', 'logFinder'] as const) {
             const base = applicationBase(app, prefix)
             assert.equal(applicationForPath(base, prefix), app)
             assert.equal(applicationForPath(base.slice(0, -1), prefix), app)
@@ -47,5 +47,15 @@ test('LogFinder owns only its public path boundary at each hosting prefix', () =
         assert.equal(applicationForPath(base.slice(0, -1), prefix), 'logFinder')
         assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
         assert.equal(applicationForPath(prefix + 'HardwareReport/', prefix), 'portal')
+    }
+})
+
+test('VideoOverlay owns the completed public editor route at each hosting prefix', () => {
+    for (const prefix of ['/', '/Tools/WebTools/']) {
+        const base = applicationBase('videoOverlay', prefix)
+        assert.equal(base, prefix + 'VideoOverlay/')
+        for (const suffix of ['', 'index.html', 'Widgets/SandBox.html']) assert.equal(applicationForPath(base + suffix, prefix), 'videoOverlay')
+        assert.equal(applicationForPath(prefix + 'VideoOverlayPreview/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'VideoOverlayExtra/', prefix), 'portal')
     }
 })

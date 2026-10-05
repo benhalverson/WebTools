@@ -39,4 +39,7 @@ h1 { font-size:24px; }
 #dashboard .grid-stack-item { pointer-events:auto; }
 .palette-grid { height:100px; width:min(100%, 1200px); margin:auto; }
 .timeline { margin:8px auto; }
+.application-controls { border:0; padding:0; margin:0; min-width:0; }
+.application-controls:disabled #dashboard, .application-controls:disabled .palette-grid { pointer-events:none; }
+.application-controls:disabled #dashboard * { pointer-events:none; }
 .timeline input[aria-label=Seek] { flex:1; min-width:200px; }

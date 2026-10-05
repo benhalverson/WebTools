@@ -66,7 +66,7 @@ async function main(): Promise<void> {
         portal: await start('portal', mode, prefix),
         rotationCheck: await start('rotation-check', mode, prefix),
         dashboardPlayback: await start('dashboard-playback', mode, prefix),
-        videoPreview: await start('video-preview', mode, prefix),
+        videoOverlay: await start('video-preview', mode, prefix),
         hardwareParameters: await start('hardware-report', mode, prefix),
         kinematicTools: await start('kinematic-tools', mode, prefix),
         scurveTool: await start('scurve-tool', mode, prefix),

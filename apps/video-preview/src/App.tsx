@@ -8,7 +8,9 @@ import { defaultHtml, defaultScript } from './default-html'
 import { Palette } from './Palette'
 import { WidgetSettings } from './WidgetSettings'
 import { SourceEditor } from './SourceEditor'
-import { download } from './download'
+import { download, downloadBlob } from './download'
+import { ExportControls, type MediaSettings } from './ExportControls'
+import { exportVideo, validateSettings, type ExportSettings } from './export'
 
 /** Read one local file with explicit cancellation; no bytes leave the browser. */
 function read(file: File, kind: 'buffer' | 'text', signal: AbortSignal): Promise<string | ArrayBuffer> {
@@ -54,6 +56,11 @@ export function App() {
     const [videoInfo, setVideoInfo] = useState({ fps: '', codec: '', resolution: '', duration: '' })
     const [logInfo, setLogInfo] = useState({ date: '', flight: '', duration: '' })
     const [mounted, setMounted] = useState(true)
+    const [exporting, setExporting] = useState(false)
+    const [progress, setProgress] = useState(0)
+    const [exportMedia, setExportMedia] = useState<MediaSettings>()
+    const exportRequest = useRef<AbortController | undefined>(undefined)
+    const videoFile = useRef<File | undefined>(undefined)
     const video = useRef<HTMLVideoElement>(null)
     const container = useRef<HTMLDivElement>(null)
     const grid = useRef<HTMLDivElement>(null)
@@ -68,6 +75,7 @@ export function App() {
     const active = useRef(false)
     const fileRevision = useRef(0)
     const [busy, setBusy] = useState(false)
+    const [layoutBusy, setLayoutBusy] = useState(false)
     const [logRevision, setLogRevision] = useState(0)
     /** Report failures without making effects depend on changing React render closures. */
     const failure = useCallback((cause: unknown): void => { if (active.current) setError(String(cause)) }, [])
@@ -94,6 +102,7 @@ export function App() {
         void restore().catch(cause => { if (!controller.signal.aborted) failure(cause) })
         return () => {
             active.current = false; controller.abort(); fileRevision.current++
+            exportRequest.current?.abort(); videoFile.current = undefined
             for (const request of requests.current.values()) request.abort()
             requests.current.clear(); media.current?.dispose(); media.current = undefined
             if (mediaUrl.current) URL.revokeObjectURL(mediaUrl.current)
@@ -108,17 +117,18 @@ export function App() {
         const owner = new WidgetRuntime(grid.current, {
             createGrid: (options, element) => window.GridStack.init(options, element), forms: window.Formio,
             sandboxUrl: `${import.meta.env.BASE_URL}Widgets/SandBox.html`, defaultHtml, defaultSandboxScript: defaultScript,
-            playback: { getLogData: () => log.current?.buffer, getTime: () => logTime(synchronization.current.time, Number.parseFloat(synchronization.current.offset)) },
+            playback: { getLogData: () => log.current?.buffer ?? undefined, getTime: () => logTime(synchronization.current.time, Number.parseFloat(synchronization.current.offset)) },
             onEdit: widget => { setSelected(widget); setSourceEditing(false) },
             onWidgetDisposed: widget => { setSelected(value => value === widget ? undefined : value) },
             onError: cause => { if (current) failure(cause) },
         }, { ...layout, grid: { ...layout.grid, color: '' } })
         runtime.current = owner
         void owner.ready.then(() => { if (current) { owner.setEditing(true); setEditing(true); setReadyLayout(layout) } }).catch(cause => { if (current) failure(cause) })
-        return () => { current = false; runtime.current = undefined; owner.destroy() }
+        return () => { current = false; exportRequest.current?.abort(); runtime.current = undefined; owner.destroy() }
     }, [layout, mounted, failure])
 
     useEffect(() => {
+        if (exportRequest.current) return
         let current = true
         let pending = false
         let next: number | undefined
@@ -137,12 +147,13 @@ export function App() {
         }
         void render(logTime(time, Number.parseFloat(offset)))
         return () => { current = false }
-    }, [time, offset, ready, logRevision, failure])
+    }, [time, offset, ready, logRevision, failure, exporting])
 
     useEffect(() => {
         if (!mounted) return
         /** Match the original constrained video aspect ratio and integer-pixel overlay dimensions. */
         function size(): void {
+            if (exportRequest.current) return
             if (!container.current) return
             const style = getComputedStyle(document.body)
             const width = Math.min(1200, document.documentElement.clientWidth - Number.parseFloat(style.marginLeft) - Number.parseFloat(style.marginRight))
@@ -195,6 +206,7 @@ export function App() {
     /** Replace media immediately, disposing metadata parsing and revoking the outgoing object URL. */
     async function loadVideo(file: File): Promise<void> {
         const request = begin('video')
+        videoFile.current = undefined; setExportMedia(undefined)
         media.current?.dispose()
         const element = video.current
         if (!element) return
@@ -205,19 +217,21 @@ export function App() {
         try {
             const track = await input.getPrimaryVideoTrack(), audio = await input.getPrimaryAudioTrack()
             if (!track) throw new Error('No video track')
-            const stats = await track.computePacketStats(), end = await input.computeDuration()
+            const stats = await track.computePacketStats(), end = await input.computeDuration(), format = await input.getFormat()
             if (request.signal.aborted || !active.current) return
             const frameRate = stats.averagePacketRate.toFixed(2)
             setVideoInfo({ fps: frameRate, codec: `${track.codec} + ${audio?.codec}`, resolution: `${track.displayWidth}x${track.displayHeight}px`, duration: formatTime(end) })
             const choices = [24, 25, 30, 48, 50, 60, 90, 100, 120, 240]
             setFps(String(choices.reduce((best, value) => Math.abs(value - Number(frameRate)) < Math.abs(best - Number(frameRate)) ? value : best)))
+            videoFile.current = file
+            setExportMedia({ revision: Date.now(), format: format.name, video: track.codec ?? '', audio: audio?.codec ?? '', width: track.displayWidth, height: track.displayHeight, duration: end })
         } catch (cause) { if (!request.signal.aborted) failure(cause) }
         finally { input.dispose(); if (media.current === input) media.current = undefined }
     }
 
     /** Restore a full layout or append a standalone widget without mutating its source or tags. */
     async function loadLayout(file: File): Promise<void> {
-        const request = begin('layout'); fileRevision.current++
+        const request = begin('layout'); fileRevision.current++; setLayoutBusy(true)
         try {
             const text = await read(file, 'text', request.signal)
             if (request.signal.aborted || typeof text !== 'string' || !active.current) return
@@ -225,6 +239,9 @@ export function App() {
             if (value && typeof value === 'object' && 'widgets' in value) setLayout(parseVideoLayout(text))
             else await runtime.current?.add(parseVideoWidget(text))?.ready
         } catch (cause) { if (!request.signal.aborted) failure(cause) }
+        finally {
+            if (requests.current.get('layout') === request) { requests.current.delete('layout'); if (active.current) setLayoutBusy(false) }
+        }
     }
 
     /** Seek through the media element; timeupdate keeps the React timeline and overlays aligned. */
@@ -239,6 +256,7 @@ export function App() {
     /** Release outgoing media and overlay resources before rebuilding the preview. */
     function mount(value: boolean): void {
         if (!value) {
+            exportRequest.current?.abort(); videoFile.current = undefined; setExportMedia(undefined)
             if (runtime.current) setLayout(runtime.current.snapshot())
             for (const request of requests.current.values()) request.abort()
             media.current?.dispose(); media.current = undefined
@@ -249,7 +267,32 @@ export function App() {
         setMounted(value)
     }
 
-    return <main><h1>Video Overlay Preview</h1><section className="files" aria-label="Files">
+    /** Freeze interactive changes during capture, then restore the preview only for the same live runtime. */
+    async function startExport(settings: ExportSettings): Promise<void> {
+        const file = videoFile.current, owner = runtime.current, element = grid.current
+        if (!file || !owner || !element || !exportMedia || exportRequest.current || busy || requests.current.has('layout')) return
+        try { validateSettings(settings, exportMedia.duration) } catch (cause) { failure(cause); return }
+        if (!Number.isFinite(Number.parseFloat(offset))) { failure(new Error('Invalid log offset')); return }
+        const request = new AbortController(), previewTime = video.current?.currentTime ?? time
+        const previousEditing = editing
+        exportRequest.current = request; setExporting(true); setProgress(0); setError('')
+        video.current?.pause(); owner.setEditing(false); setEditing(false)
+        try {
+            const result = await exportVideo(file, settings, owner, element, Number.parseFloat(offset), request.signal, value => { if (active.current) setProgress(value) })
+            if (active.current && !request.signal.aborted) downloadBlob(result.blob, result.filename)
+        } catch (cause) { if (!request.signal.aborted) failure(cause) }
+        finally {
+            if (active.current && runtime.current === owner) {
+                try { await Promise.all(owner.getWidgets().map(widget => widget.setTime(logTime(previewTime, Number.parseFloat(offset))))) }
+                catch (cause) { if (!request.signal.aborted) failure(cause) }
+                owner.setEditing(previousEditing); setEditing(previousEditing)
+            }
+            if (exportRequest.current === request) exportRequest.current = undefined
+            if (active.current) { setExporting(false); window.dispatchEvent(new Event('resize')) }
+        }
+    }
+
+    return <main><h1>Video Overlay</h1>{exporting && <section aria-label="Export progress"><output role="status">Exporting {(progress * 100).toFixed(2)}%</output><button onClick={() => exportRequest.current?.abort()}>Cancel export</button></section>}<fieldset className="application-controls" disabled={exporting}><section className="files" aria-label="Files">
         <label>Video<input aria-label="Video file" type="file" accept="video/*" disabled={!mounted} onChange={event => { const file = event.target.files?.[0]; if (file) void loadVideo(file); event.target.value = '' }} /></label>
         <label>Log<input aria-label="Log file" type="file" accept=".bin" disabled={!mounted} onChange={event => { const file = event.target.files?.[0]; if (file) void loadLog(file); event.target.value = '' }} /></label>
         <label>Overlay<input aria-label="Overlay file" type="file" accept=".json" disabled={!mounted} onChange={event => { const file = event.target.files?.[0]; if (file) void loadLayout(file); event.target.value = '' }} /></label>
@@ -270,6 +313,7 @@ export function App() {
             {ready && runtime.current && editing && <Palette runtime={runtime.current} failure={failure} />}
             {ready && selected && <WidgetSettings widget={selected} close={() => setSelected(undefined)} edit={() => setSourceEditing(true)} failure={failure} />}
             {ready && selected && sourceEditing && <SourceEditor widget={selected} close={() => setSourceEditing(false)} failure={failure} />}
+            <ExportControls media={exportMedia} fps={Number(fps)} disabled={!ready || sourceEditing || selected !== undefined || busy || layoutBusy} start={settings => { void startExport(settings) }} failure={failure} />
         </>}
-    </main>
+    </fieldset></main>
 }

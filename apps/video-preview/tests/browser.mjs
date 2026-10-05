@@ -67,18 +67,18 @@ async function stop(child) {
 }
 
 /** Build with the tested prefix and capture failures without a shell. */
-async function build(prefix) {
-    const child = spawn('pnpm', ['--filter', 'video-preview', 'build'], { cwd: root, detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WEBTOOLS_BASE_PATH: prefix } })
+async function build(prefix, gateway = false) {
+    const child = spawn('pnpm', gateway ? ['build'] : ['--filter', 'video-preview', 'build'], { cwd: root, detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WEBTOOLS_BASE_PATH: prefix } })
     let output = ''
     child.stdout.on('data', chunk => { output += chunk }); child.stderr.on('data', chunk => { output += chunk })
-    const timer = setTimeout(() => { void stop(child) }, 120000)
+    const timer = setTimeout(() => { void stop(child) }, 180000)
     try { const [code] = await once(child, 'exit'); assert.equal(code, 0, output) }
     finally { clearTimeout(timer); await stop(child) }
 }
 
 /** Start the independent app in development or actual local Worker preview. */
-async function start(mode, prefix) {
-    const child = spawn(process.execPath, ['node_modules/vite/bin/vite.js', ...(mode === 'preview' ? ['preview'] : ['--force']), '--host', '127.0.0.1', '--port', '0'], { cwd: resolve(root, 'apps/video-preview'), detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WEBTOOLS_BASE_PATH: prefix, BROWSER: 'none' } })
+async function start(mode, prefix, gateway = false) {
+    const child = spawn(process.execPath, gateway ? ['tooling/serve.ts', mode, '--port', '0'] : ['node_modules/vite/bin/vite.js', ...(mode === 'preview' ? ['preview'] : ['--force']), '--host', '127.0.0.1', '--port', '0'], { cwd: gateway ? root : resolve(root, 'apps/video-preview'), detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WEBTOOLS_BASE_PATH: prefix, BROWSER: 'none' } })
     let output = ''
     try {
         const origin = await new Promise((resolve, reject) => {
@@ -132,6 +132,7 @@ async function replace(page, value) {
 
 /** Read the controlled interpolation, nested HTML and authoritative Graph/Value output from real frames. */
 async function values(page, expectedTime, firstGps) {
+    await page.bringToFront()
     const frames = await page.locator('#dashboard iframe').elementHandles()
     const output = []
     for (const element of frames) {
@@ -182,19 +183,227 @@ async function comparePixels(page, actual, expected) {
     }, [Array.from(actual),Array.from(expected)])
 }
 
-/** Generate a deterministic local canvas video; the same exact bytes are used for both log/video comparisons. */
-async function generateVideo(page) {
-    return Buffer.from(await page.evaluate(async () => {
-        const canvas = document.createElement('canvas'); canvas.width = 320; canvas.height = 180
-        const context = canvas.getContext('2d'); context.fillStyle = '#204060'; context.fillRect(0,0,320,180)
-        const stream = canvas.captureStream(10), recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' }), chunks = []
-        recorder.ondataavailable = event => chunks.push(event.data)
-        const stopped = new Promise(resolve => { recorder.onstop = resolve })
-        recorder.start(); const paint = setInterval(() => { context.fillRect(0,0,320,180) },100); await new Promise(resolve => setTimeout(resolve, 4200)); clearInterval(paint); recorder.stop(); await stopped
-        for (const track of stream.getTracks()) track.stop()
-        return Array.from(new Uint8Array(await new Blob(chunks, { type:'video/webm' }).arrayBuffer()))
-    }))
+/** Count capture clones in every widget document, including nested iframe documents. */
+async function snapshotClones(page) {
+    let count=0
+    for(const frame of page.frames()) count+=await frame.locator('iframe.html2canvas-container').count()
+    return count
 }
+
+/** Decode actual exported packets and selected frames with the pinned media library. */
+async function inspectExport(page, bytes) {
+    return page.evaluate(async bytes => {
+        const { Input, BlobSource, ALL_FORMATS, VideoSampleSink, AudioSampleSink } = window.Mediabunny
+        const input = new Input({ source: new BlobSource(new Blob([Uint8Array.from(bytes)])), formats: ALL_FORMATS })
+        try {
+            const track = await input.getPrimaryVideoTrack(), audio = await input.getPrimaryAudioTrack()
+            const frames = [], pixels = []
+            for await (const sample of new VideoSampleSink(track).samples()) {
+                try {
+                    frames.push({ timestamp: sample.timestamp, duration: sample.duration })
+                    if ([0, 12, 23].includes(frames.length - 1)) {
+                        const canvas = new OffscreenCanvas(track.displayWidth, track.displayHeight), context = canvas.getContext('2d')
+                        sample.draw(context, 0, 0); pixels.push(Array.from(context.getImageData(0, 0, canvas.width, canvas.height).data))
+                    }
+                } finally { sample.close() }
+            }
+            let audioDuration = 0, energy = 0, audioFrames = 0
+            if (audio) for await (const sample of new AudioSampleSink(audio).samples()) {
+                try {
+                    audioDuration += sample.duration; audioFrames += sample.numberOfFrames
+                    const values = new Float32Array(sample.allocationSize({ format: 'f32-planar', planeIndex: 0 }) / 4)
+                    sample.copyTo(values, { format: 'f32-planar', planeIndex: 0 }); for (const value of values) energy += value * value
+                } finally { sample.close() }
+            }
+            return { codec: track.codec, width: track.displayWidth, height: track.displayHeight, frames, pixels,
+                audio: audio ? { codec: audio.codec, duration: audioDuration, frames: audioFrames, energy } : null }
+        } finally { input.dispose() }
+    }, Array.from(bytes))
+}
+
+/** Capture a real browser download without accepting success solely from UI state. */
+async function exportedBytes(page, run) {
+    await page.bringToFront()
+    const pending = page.waitForEvent('download', { timeout: 60000 }); await run()
+    const result = await pending
+    assert.equal(result.suggestedFilename(), 'VideoOverlay.webm')
+    return readFile(await result.path())
+}
+
+/** Compare the same pinned codec outputs, packet timing and selected decoded overlay frames. */
+function compareExports(actual, legacy, withAudio) {
+    assert.equal(actual.codec, 'vp8'); assert.equal(actual.width, 320); assert.equal(actual.height, 180)
+    assert.equal(actual.frames.length, legacy.frames.length, 'same retained frame count for the trimmed overlapping packets')
+    assert.equal(actual.frames.length,25,'fixed trim retains the legacy overlapping boundary frame')
+    assert.deepEqual(actual.frames, legacy.frames, 'exact frame timestamps and durations')
+    assert.ok(Math.abs(actual.frames[0].timestamp) < 1e-9, 'trim timestamp begins at zero')
+    assert.ok(actual.frames.at(-1).timestamp <= 1.001 && actual.frames.at(-1).timestamp >= .95, 'last retained frame lies at trim end')
+    for (let frame = 0; frame < actual.pixels.length; frame++) {
+        const a = actual.pixels[frame], b = legacy.pixels[frame]
+        assert.equal(a.length, b.length)
+        let difference = 0, maximum = 0
+        for (let index = 0; index < a.length; index++) { const error = Math.abs(a[index] - b[index]); difference += error; maximum = Math.max(maximum, error) }
+        assert.ok(maximum <= 12 && difference / a.length <= .15, `decoded frame ${frame} max=${maximum} mean=${difference/a.length}`)
+    }
+    if (withAudio) {
+        assert.ok(actual.audio && legacy.audio, 'audio retained')
+        assert.equal(actual.audio.codec, legacy.audio.codec)
+        assert.equal(actual.audio.frames, legacy.audio.frames)
+        assert.ok(Math.abs(actual.audio.duration - legacy.audio.duration) < 1e-9)
+        assert.ok(actual.audio.energy > 1, 'local tone retained')
+        assert.ok(Math.abs(actual.audio.energy - legacy.audio.energy) < 1e-6)
+    } else assert.equal(actual.audio, null, 'silent input remains without an audio track')
+}
+
+/** Build fixed, timestamped VP8/Opus samples without recording devices or wall-clock jitter. */
+async function fixedVideo(page, withAudio) {
+    await page.addScriptTag({ content: await readFile(resolve(root,'apps/video-preview/node_modules/mediabunny/dist/bundles/mediabunny.min.cjs'),'utf8') })
+    return Buffer.from(await page.evaluate(async withAudio => {
+        const { Output, BufferTarget, WebMOutputFormat, VideoSampleSource, VideoSample, AudioSampleSource, AudioSample } = window.Mediabunny
+        const target = new BufferTarget(), output = new Output({ format:new WebMOutputFormat(),target })
+        const video = new VideoSampleSource({ codec:'vp8',bitrate:1000000 })
+        const audio = withAudio ? new AudioSampleSource({ codec:'opus',bitrate:128000 }) : undefined
+        output.addVideoTrack(video, { frameRate:10 }); if (audio) output.addAudioTrack(audio)
+        const canvas = new OffscreenCanvas(320,180), context = canvas.getContext('2d')
+        context.fillStyle='#204060';context.fillRect(0,0,320,180)
+        try {
+            await output.start()
+            for (let index=0;index<42;index++) {
+                const frame=new VideoSample(canvas,{timestamp:index/10,duration:.1})
+                try { await video.add(frame) } finally { frame.close() }
+                if (audio) {
+                    const data=new Float32Array(4800)
+                    for(let sample=0;sample<data.length;sample++) data[sample]=Math.sin(2*Math.PI*440*(index*4800+sample)/48000)*.2
+                    const sound=new AudioSample({data,format:'f32-planar',numberOfChannels:1,sampleRate:48000,timestamp:index/10})
+                    try { await audio.add(sound) } finally { sound.close() }
+                }
+            }
+            video.close();audio?.close();await output.finalize()
+            return Array.from(new Uint8Array(target.buffer))
+        } finally { if(output.state!=='finalized')await output.cancel();canvas.width=0;canvas.height=0 }
+    },withAudio))
+}
+
+/** Exercise complete exports and error/retry/cancellation against actual unchanged legacy export code. */
+async function validateExports(page, old, video) {
+    const mediaBundle = await readFile(resolve(root, 'apps/video-preview/node_modules/mediabunny/dist/bundles/mediabunny.min.cjs'), 'utf8')
+    for (const target of [page, old]) await target.addScriptTag({ content: mediaBundle })
+    await old.evaluate(() => {
+        document.querySelector('.video-container').id = 'overlay'
+        for (const [id, value] of Object.entries({ frame_rate:'24', export_width:'320', export_height:'180', start_time:'.25', end_time:'1.25', output_format:'webm', video_codec:'vp8', audio_codec:'opus' })) {
+            const input = document.createElement('input'); input.id = id; input.value = value; document.body.append(input)
+        }
+        const file = document.createElement('input'); file.id='vid-upload'; file.type='file'; document.body.append(file)
+        const loading = document.createElement('div'); loading.id='loading'; loading.append(document.createElement('output')); document.body.append(loading)
+    })
+    // A nested opaque background and moving, timestamp-dependent local pixels exercise composition order.
+    const fixture = { ...layout, widgets: {
+        0: { ...scripted, options: { ...scripted.options, sandbox: `div.style.cssText='position:absolute;inset:0;background:#00aa33';let speeds,timestamps;loadLog=function(log){const instance=log.messageTypes.GPS.instances?0:null;speeds=log.get_instance('GPS',instance,'Spd');timestamps=log.get_instance('GPS',instance,'TimeUS');div.dataset.loaded='true'};setTime=function(time){div.style.backgroundColor=(Math.floor((time+100)*24)%2)?'#00aa33':'#aa0033';div.textContent=time.toFixed(3)+' '+(speeds?linear_interp(speeds,timestamps,time*1000000).toFixed(4):'no log')}` } },
+        1: { ...layout.widgets[1], options: { ...layout.widgets[1].options, widgets: { 0: { ...custom, options: { ...custom.options, custom_HTML: '<html><body style="background:#ffffff;margin:0"><div style="height:60%;background:#2288dd"></div><script>addEventListener("message",e=>{if("time"in e.data)e.source.postMessage("renderDone","*")})</script></body></html>' } } } } },
+    } }
+    await replace(page, fixture); await old.evaluate(fixture => window.boot(fixture), fixture)
+    await page.getByLabel('Log offset', { exact:true }).fill('-12.5'); await old.locator('#log_offset').fill('-12.5')
+    await page.locator('#dashboard iframe').first().contentFrame().locator('body > div').waitFor()
+    await old.locator('#dashboard iframe').first().contentFrame().locator('body > div').waitFor()
+    for (const [withAudio, source] of [[false, video], [true, await fixedVideo(page,true)]]) {
+        const logFile = withAudio ? 'plane-4.6.2-prefix.BIN' : 'pymavlink-test.BIN', logBytes=await readFile(resolve(root,'packages/dataflash/fixtures',logFile))
+        await page.getByLabel('Log file',{exact:true}).setInputFiles({name:logFile,mimeType:'application/octet-stream',buffer:logBytes})
+        await page.getByText('Loading log…',{exact:true}).waitFor({state:'hidden'})
+        await old.bringToFront();await old.evaluate(bytes=>window.loadFixture(bytes),[...logBytes])
+        for(const target of [page,old])await target.locator('#dashboard iframe').first().contentFrame().locator('[data-loaded=true]').waitFor()
+        await page.getByLabel('Log offset',{exact:true}).fill('-12.5');await old.locator('#log_offset').fill('-12.5')
+        const file = { name:'export-fixture.webm', mimeType:'video/webm', buffer:source }
+        await page.getByLabel('Video file',{exact:true}).setInputFiles(file); await old.locator('#vid-upload').setInputFiles(file)
+        await page.waitForFunction(() => document.querySelector('input[aria-label="Export width"]').value === '320')
+        await page.getByLabel('Frame rate',{exact:true}).selectOption('24'); await page.getByLabel('Output format',{exact:true}).selectOption('webm')
+        await page.getByLabel('Video codec',{exact:true}).selectOption('vp8'); if (await page.getByLabel('Audio codec',{exact:true}).isEnabled()) await page.getByLabel('Audio codec',{exact:true}).selectOption('opus'); else assert.equal(await page.getByLabel('Audio codec',{exact:true}).inputValue(),'opus')
+        await page.getByLabel('Start time',{exact:true}).fill('.25'); await page.getByLabel('End time',{exact:true}).fill('1.25')
+        console.log('legacy export begin',withAudio)
+        const legacyBytes = await exportedBytes(old, () => old.evaluate(() => exportVideo()))
+        console.log('migrated export begin',withAudio)
+        const actualBytes = await exportedBytes(page, () => page.getByRole('button',{name:'Export',exact:true}).click())
+        await page.getByRole('button',{name:'Cancel export',exact:true}).waitFor({state:'hidden'})
+        const expected = await inspectExport(page, legacyBytes), actual = await inspectExport(page, actualBytes)
+        compareExports(actual, expected, withAudio)
+        const width=await page.locator('#dashboard').evaluate(element=>element.getBoundingClientRect().width)
+        const repeated = await exportedBytes(page, async () => {
+            await page.getByRole('button',{name:'Export',exact:true}).click()
+            await page.getByRole('button',{name:'Cancel export',exact:true}).waitFor()
+            await page.setViewportSize({width:1000,height:800})
+            assert.equal(await page.locator('#dashboard').evaluate(element=>element.getBoundingClientRect().width),width,'capture dimensions remain frozen while centered origin moves')
+        })
+        await page.getByRole('button',{name:'Cancel export',exact:true}).waitFor({state:'hidden'})
+        await page.setViewportSize({width:1200,height:900})
+        compareExports(await inspectExport(page,repeated), expected, withAudio)
+        assert.equal(await snapshotClones(page),0,'snapshot clone released')
+        console.log('export parity', {withAudio,frames:actual.frames.length,audio:actual.audio?.duration})
+    }
+    await page.getByLabel('Log offset',{exact:true}).fill('')
+    await page.getByRole('button',{name:'Export',exact:true}).click();await page.getByRole('alert').filter({hasText:'Invalid log offset'}).waitFor()
+    await page.getByRole('button',{name:'Dismiss',exact:true}).click();await page.getByLabel('Log offset',{exact:true}).fill('-12.5')
+    await page.evaluate(() => {
+        const original=FileReader.prototype.readAsText,abort=FileReader.prototype.abort,timers=new WeakMap()
+        FileReader.prototype.readAsText=function(file){if(file.name==='held-layout.json')timers.set(this,setTimeout(()=>original.call(this,file),10000));else original.call(this,file)}
+        FileReader.prototype.abort=function(){clearTimeout(timers.get(this));abort.call(this)}
+    })
+    await page.getByLabel('Overlay file',{exact:true}).setInputFiles({name:'held-layout.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(fixture))})
+    assert.equal(await page.getByRole('button',{name:'Export',exact:true}).isDisabled(),true,'pending layout read excludes capture')
+    await page.getByRole('button',{name:'Cancel loading',exact:true}).click()
+    await page.waitForFunction(()=>!document.querySelector('section[aria-label="Export settings"] button').disabled)
+    await page.evaluate(() => {window.nativeOffscreenCanvas=window.OffscreenCanvas;window.OffscreenCanvas=class{constructor(){throw new Error('Controlled canvas allocation failure')}}})
+    await page.getByRole('button',{name:'Export',exact:true}).click();await page.getByRole('alert').filter({hasText:'Controlled canvas allocation failure'}).waitFor()
+    await page.evaluate(()=>{window.OffscreenCanvas=window.nativeOffscreenCanvas});await page.getByRole('button',{name:'Dismiss',exact:true}).click()
+    await page.getByLabel('Start time',{exact:true}).fill('2'); await page.getByLabel('End time',{exact:true}).fill('1')
+    await page.getByRole('button',{name:'Export',exact:true}).click(); await page.getByRole('alert').filter({hasText:'Invalid export'}).waitFor()
+    await page.getByRole('button',{name:'Dismiss',exact:true}).click()
+    await page.getByLabel('Start time',{exact:true}).fill('0'); await page.getByLabel('End time',{exact:true}).fill('2')
+    await page.getByRole('button',{name:'Export',exact:true}).click(); await page.getByRole('status').filter({hasText:'Exporting'}).waitFor(); await page.getByRole('button',{name:'Cancel export',exact:true}).click()
+    await page.getByRole('button',{name:'Cancel export',exact:true}).waitFor({state:'hidden',timeout:15000})
+    assert.equal(await page.getByRole('button',{name:'Export',exact:true}).isEnabled(),true,'cancellation unlocks controls')
+    assert.equal(await snapshotClones(page),0,'cancelled clone released')
+    const downloads=[]
+    const received=download=>downloads.push(download)
+    page.on('download',received)
+    const unsupported={...custom,options:{...custom.options,custom_HTML:'<html><body style="color:oklch(50% 0.1 30)">Unsupported pinned renderer CSS<script>addEventListener("message",e=>{if("time"in e.data)e.source.postMessage("renderDone","*")})</script></body></html>'}}
+    await replace(page,{...layout,widgets:{0:unsupported}})
+    await page.getByRole('button',{name:'Export',exact:true}).click()
+    await page.getByRole('alert').filter({hasText:'unsupported color function'}).waitFor()
+    await page.getByRole('button',{name:'Cancel export',exact:true}).waitFor({state:'hidden'})
+    assert.equal(await snapshotClones(page),0,'actual pinned renderer rejection releases clones inside widget documents')
+    assert.equal(downloads.length,0,'failed rendering cannot download partial media')
+    await page.getByRole('button',{name:'Dismiss',exact:true}).click()
+    // Hold only the clone's resource request, proving cancellation while html2canvas owns an attached document.
+    let requests=0,release
+    const held=new Promise(resolve=>{release=resolve})
+    await page.route('**/snapshot-pixel.png',async route=>{
+        requests++
+        if(requests>1)await held
+        await route.fulfill({contentType:'image/png',headers:{'Cache-Control':'no-store'},body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/B9sAAAAASUVORK5CYII=','base64')})
+    })
+    const slow={...custom,options:{...custom.options,custom_HTML:`<html><body style="background-image:url('${new URL('snapshot-pixel.png',page.url()).href}')">Controlled capture<script>addEventListener('message',e=>{if('time'in e.data)e.source.postMessage('renderDone','*')})</script></body></html>`}}
+    await replace(page,{...layout,widgets:{0:slow}})
+    await page.getByRole('button',{name:'Export',exact:true}).click()
+    await page.waitForFunction(()=>[...document.querySelectorAll('#dashboard iframe')].some(frame=>frame.contentDocument?.querySelector('iframe.html2canvas-container')))
+    await page.getByRole('button',{name:'Cancel export',exact:true}).click()
+    await page.getByRole('button',{name:'Cancel export',exact:true}).waitFor({state:'hidden',timeout:3000})
+    release()
+    assert.equal(await snapshotClones(page),0,'cancelled capture releases its widget-document clone')
+    assert.equal(downloads.length,0,'cancelled capture cannot download partial media')
+    page.off('download',received)
+    const missing={...custom, options:{...custom.options,custom_HTML:'<html><body>Missing acknowledgement<script>addEventListener("message",()=>{})</script></body></html>'}}
+    await replace(page,{...layout,widgets:{0:missing}})
+    await page.getByRole('button',{name:'Export',exact:true}).click()
+    await page.getByRole('alert').filter({hasText:'acknowledgement timed out'}).waitFor({timeout:15000})
+    await page.getByRole('button',{name:'Cancel export',exact:true}).waitFor({state:'hidden'})
+    await replace(page,fixture); await page.getByRole('button',{name:'Dismiss',exact:true}).click()
+    await page.getByLabel('Start time',{exact:true}).fill('.25'); await page.getByLabel('End time',{exact:true}).fill('1.25')
+    await exportedBytes(page, () => page.getByRole('button',{name:'Export',exact:true}).click())
+    await page.getByRole('button',{name:'Cancel export',exact:true}).waitFor({state:'hidden'})
+    assert.equal(await snapshotClones(page),0)
+}
+
+/** Generate exact 42-frame local media bytes reused by the legacy and migrated fixture scenarios. */
+async function generateVideo(page) { return fixedVideo(page,false) }
 
 for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PREFIX] : ['/', '/Tools/WebTools/']) {
     for (const mode of process.env.VIDEO_TEST_MODE ? [process.env.VIDEO_TEST_MODE] : ['dev', 'preview']) test(`video preview ${mode} ${prefix}: differential, controls and lifecycle`, { timeout: 300000 }, async () => {
@@ -209,8 +418,8 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
             await context.route('**/*', async route => {
                 const url = route.request().url()
                 if (url === 'https://cdn.plot.ly/plotly-2.35.0.min.js') return route.fulfill({ contentType:'text/javascript', body: await readFile(resolve(root,'modules/plotly.js/dist/plotly.min.js')) })
-                // Export is a separate issue: this unused importer is isolated from preview tests.
-                if (url.includes('html2canvas@1.4.1')) return route.fulfill({ contentType:'text/javascript', body: 'export default function(){throw new Error("Export outside preview scope")}' })
+                // Replay the exact pinned canvas distribution locally for legacy differential exports.
+                if (url.includes('html2canvas@1.4.1')) return route.fulfill({ contentType:'text/javascript', body: await readFile(resolve(root,'apps/video-preview/node_modules/html2canvas/dist/html2canvas.esm.js')) })
                 if ([server.origin, legacy.origin].includes(new URL(url).origin)) return route.continue()
                 blocked.push(url); return route.abort()
             })
@@ -226,8 +435,8 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
             const page = await context.newPage(), old = await context.newPage()
             page.on('pageerror', error => {errors.push(String(error));if(!String(error).includes('flight-indicators-js@1.0.5'))console.error('preview page error',error)}); old.on('pageerror', error => errors.push(String(error)))
             page.on('dialog', dialog => dialog.accept()); old.on('dialog', dialog => dialog.accept())
-            await page.goto(server.origin + prefix + 'VideoOverlayPreview/index.html')
-            assert.equal(new URL(page.url()).pathname,prefix+'VideoOverlayPreview/')
+            await page.goto(server.origin + prefix + 'VideoOverlay/index.html')
+            assert.equal(new URL(page.url()).pathname,prefix+'VideoOverlay/')
             await page.locator('#dashboard[data-ready=true]').waitFor()
             await page.locator('.palette-grid[data-ready=true]').waitFor()
             assert.equal(await page.locator('.palette-grid > .grid-stack-item').count(), 7)
@@ -390,12 +599,96 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
             }
             await page.getByRole('button',{name:'Close preview'}).click()
             cacheUrls = await assertClosed(page, cacheUrls)
-            for (const path of ['missing','Widgets/missing.html']) assert.equal((await context.request.get(server.origin+prefix+'VideoOverlayPreview/'+path)).status(),404)
+            for (const path of ['missing','Widgets/missing.html']) assert.equal((await context.request.get(server.origin+prefix+'VideoOverlay/'+path)).status(),404)
             assert.equal((await context.request.get(server.origin+prefix+'modules/JsDataflashParser/parser.js')).status(),200)
             const allowed = 'Failed to fetch dynamically imported module: https://unpkg.com/flight-indicators-js@1.0.5/esm/module-flight-indicators.mjs'
             assert.deepEqual(errors.filter(error => !error.includes(allowed)),[])
             assert.ok(blocked.every(url=>url.includes('flight-indicators-js@1.0.5') || url.includes('fonts.cdnfonts.com')))
             console.log(`${mode} ${prefix}: both known logs, 24 timestamp/offset pairs, exact saved JSON, real media/editor/pointer/keyboard and repeated cleanup passed`)
         } finally { await context.close();await browser.close();await server.close();await legacy.close() }
+    })
+}
+
+
+for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PREFIX] : ['/', '/Tools/WebTools/']) {
+    for (const mode of process.env.VIDEO_TEST_MODE ? [process.env.VIDEO_TEST_MODE] : ['dev', 'preview']) test(`video composition export ${mode} ${prefix}: legacy media, errors and cancellation`, { timeout: 240000 }, async () => {
+        await build(prefix)
+        const server = await start(mode, prefix), legacy = await legacyServer()
+        const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, headless:true })
+        const context = await browser.newContext({ viewport:{ width:1200,height:900 },acceptDownloads:true })
+        context.setDefaultTimeout(15000)
+        try {
+            await context.route('**/*', async route => {
+                const url=route.request().url()
+                if (url.includes('html2canvas@1.4.1')) return route.fulfill({contentType:'text/javascript',body:await readFile(resolve(root,'apps/video-preview/node_modules/html2canvas/dist/html2canvas.esm.js'))})
+                if (url === 'https://cdn.plot.ly/plotly-2.35.0.min.js') return route.fulfill({contentType:'text/javascript',body:await readFile(resolve(root,'modules/plotly.js/dist/plotly.min.js'))})
+                if ([server.origin,legacy.origin].includes(new URL(url).origin)) return route.continue()
+                return route.abort()
+            })
+            await context.addInitScript(()=>{
+                window.liveObjectUrls=new Set();const create=URL.createObjectURL.bind(URL),revoke=URL.revokeObjectURL.bind(URL)
+                URL.createObjectURL=blob=>{const url=create(blob);window.liveObjectUrls.add(url);return url}
+                URL.revokeObjectURL=url=>{window.liveObjectUrls.delete(url);revoke(url)}
+            })
+            const page=await context.newPage(),old=await context.newPage(),errors=[]
+            page.on('pageerror',error=>errors.push(String(error)));old.on('pageerror',error=>errors.push(String(error)))
+            await page.goto(server.origin+prefix+'VideoOverlay/')
+            await page.locator('#dashboard[data-ready=true]').waitFor()
+            await old.goto(legacy.origin+'/VideoOverlay/')
+            await old.waitForFunction(()=>typeof window.boot==='function')
+            const size=await page.locator('.video-container').boundingBox()
+            await old.locator('.video-container').evaluate((element,size)=>{element.style.position='absolute';element.style.left=size.x+'px';element.style.top=size.y+'px';element.style.width=size.width+'px';element.style.height=size.height+'px'},size)
+            await validateExports(page,old,await generateVideo(page))
+            await page.getByRole('button',{name:'Close preview'}).click()
+            await page.waitForFunction(()=>window.liveObjectUrls.size===0&&document.querySelectorAll('#dashboard iframe').length===0&&Object.keys(window.Formio.forms??{}).length===0)
+            assert.equal(await snapshotClones(page),0)
+            assert.deepEqual(errors.filter(error=>!error.includes('Failed to fetch dynamically imported module: https://unpkg.com/flight-indicators-js@1.0.5/esm/module-flight-indicators.mjs')),[])
+        } finally { await context.close();await browser.close();await server.close();await legacy.close() }
+    })
+}
+
+
+for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PREFIX] : ['/', '/Tools/WebTools/']) {
+    for (const mode of process.env.VIDEO_TEST_MODE ? [process.env.VIDEO_TEST_MODE] : ['dev', 'preview']) test(`video gateway ${mode} ${prefix}: public route and local export`, { timeout:300000 }, async () => {
+        await build(prefix,true)
+        const server=await start(mode,prefix,true)
+        const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||undefined,headless:true})
+        const context=await browser.newContext({viewport:{width:1200,height:900},acceptDownloads:true})
+        context.setDefaultTimeout(15000)
+        try {
+            await context.route('**/*', async route=>{
+                const url=route.request().url()
+                if(url==='https://cdn.plot.ly/plotly-2.35.0.min.js')return route.fulfill({contentType:'text/javascript',body:await readFile(resolve(root,'modules/plotly.js/dist/plotly.min.js'))})
+                return new URL(url).origin===server.origin?route.continue():route.abort()
+            })
+            const page=await context.newPage(),errors=[]
+            page.on('pageerror',error=>errors.push(String(error)))
+            const redirect=await context.request.get(server.origin+prefix+'VideoOverlay/index.html?fixture=known',{maxRedirects:0})
+            assert.equal(redirect.status(),308);assert.equal(new URL(redirect.headers().location,server.origin).search,'?fixture=known')
+            const response=await page.goto(server.origin+prefix+'VideoOverlay/index.html')
+            assert.equal(response.status(),200);assert.equal(new URL(page.url()).pathname,prefix+'VideoOverlay/')
+            assert.doesNotMatch(await response.text(),/VideoOverlay\.js/,'public destination belongs to independent React Worker')
+            await page.locator('#dashboard[data-ready=true]').waitFor()
+            await replace(page,{...layout,widgets:{0:scripted}})
+            await page.getByLabel('Video file',{exact:true}).setInputFiles({name:'gateway.webm',mimeType:'video/webm',buffer:await generateVideo(page)})
+            await page.waitForFunction(()=>document.querySelector('input[aria-label="Export width"]').value==='320')
+            await page.getByLabel('Log file',{exact:true}).setInputFiles(resolve(root,'packages/dataflash/fixtures/pymavlink-test.BIN'))
+            await page.getByText('Loading log…',{exact:true}).waitFor({state:'hidden'})
+            await page.getByLabel('Log offset',{exact:true}).fill('-12.5')
+            await page.getByLabel('Frame rate',{exact:true}).selectOption('24');await page.getByLabel('Output format',{exact:true}).selectOption('webm')
+            await page.getByLabel('Video codec',{exact:true}).selectOption('vp8')
+            await page.getByLabel('Start time',{exact:true}).fill('.25');await page.getByLabel('End time',{exact:true}).fill('1.25')
+            const result=await inspectExport(page,await exportedBytes(page,()=>page.getByRole('button',{name:'Export',exact:true}).click()))
+            assert.equal(result.frames.length,25);assert.equal(result.codec,'vp8');assert.equal(result.width,320);assert.equal(result.height,180);assert.equal(result.audio,null)
+            await page.getByRole('button',{name:'Cancel export',exact:true}).waitFor({state:'hidden'})
+            await values(page,12.5)
+            for(const path of ['missing.js','Widgets/missing.html'])assert.equal((await context.request.get(server.origin+prefix+'VideoOverlay/'+path)).status(),404)
+            assert.equal((await context.request.get(server.origin+prefix+'VideoOverlay/Default_Layout.json')).status(),200)
+            assert.equal((await context.request.get(server.origin+prefix+'modules/JsDataflashParser/parser.js')).status(),200)
+            assert.equal((await context.request.get(server.origin+prefix)).status(),200,'same-origin portal remains available')
+            await page.getByRole('button',{name:'Close preview'}).click()
+            assert.equal(await page.locator('#dashboard iframe').count(),0);assert.equal(await snapshotClones(page),0)
+            assert.deepEqual(errors.filter(error=>!error.includes('Failed to fetch dynamically imported module: https://unpkg.com/flight-indicators-js@1.0.5/esm/module-flight-indicators.mjs')),[])
+        }finally{await context.close();await browser.close();await server.close()}
     })
 }

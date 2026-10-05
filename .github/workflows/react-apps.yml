@@ -27,7 +27,7 @@ jobs:
   browser:
     name: browser
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,6 +52,12 @@ jobs:
             test:portal \
             test:rotation-check:browser \
             test:react-workflows:browser \
+            test:widget-consumers:browser \
+            test:numerics:browser \
+            test:dataflash:browser \
+            test:mavlink:browser \
+            test:transfers:browser \
+            test:parameters:browser \
             test:hardware-parameters:browser \
             test:kinematic-tools:browser \
             test:scurve-tool:browser \

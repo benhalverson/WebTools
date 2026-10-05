@@ -198,6 +198,41 @@ export class WidgetHost {
     readonly content = document.createElement('div')
     readonly formElement = document.createElement('div')
     ready: Promise<void> = Promise.resolve()
+
+    /** Await actual playback document readiness before export, bounding waits and releasing cancellation listeners. */
+    async waitForRenderReady(signal: AbortSignal): Promise<void> {
+        signal.throwIfAborted()
+        if (this.destroyed) throw new Error('Widget was removed during export')
+        if (this.nested) { await Promise.all(this.nested.getWidgets().map(widget => widget.waitForRenderReady(signal))); return }
+        if (!this.iframe) return
+        await new Promise<void>((resolve, reject) => {
+            let timer: number | undefined
+            const deadline = performance.now() + 5000
+            /** Release the exact timer and signal callback at every terminal state. */
+            const cleanup = (): void => { window.clearTimeout(timer); signal.removeEventListener('abort', abort) }
+            /** Fail capture promptly without consuming or acknowledging a widget's pending frame. */
+            const abort = (): void => { cleanup(); reject(signal.reason) }
+            /** Observe document readiness without sending a premature frame request. */
+            const check = (): void => {
+                if (this.destroyed || this.readinessError || performance.now() >= deadline) {
+                    cleanup(); reject(this.readinessError ?? new Error('Widget document readiness failed during export')); return
+                }
+                if (this.frameLoaded) { cleanup(); resolve(); return }
+                timer = window.setTimeout(check, 16)
+            }
+            signal.addEventListener('abort', abort, { once: true }); check()
+        })
+    }
+
+    /** Enumerate legacy composition layers in DOM order, retaining nested backgrounds and frame bodies. */
+    getContentForRender(parent: DOMRect): { content: HTMLElement; pos: { x: number; y: number } }[] {
+        if (this.destroyed) throw new Error('Widget was removed during export')
+        const box = (this.nested ? this.content : this.element).getBoundingClientRect()
+        const content = this.iframe ? this.iframe.contentDocument?.body : this.content
+        if (!content || (this.iframe && !this.frameLoaded)) throw new Error('Widget document is not ready for export')
+        return [{ content, pos: { x: box.x - parent.x, y: box.y - parent.y } },
+            ...(this.nested?.getWidgets().flatMap(widget => widget.getContentForRender(parent)) ?? [])]
+    }
     private options: WidgetOptions
     private form: WidgetForm | undefined
     private iframe: HTMLIFrameElement | undefined
