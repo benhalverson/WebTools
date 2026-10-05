@@ -65,6 +65,19 @@ async function main(): Promise<void> {
     const origins: Record<Application, string> = {
         portal: await start('portal', mode, prefix),
         rotationCheck: await start('rotation-check', mode, prefix),
+        hardwareParameters: await start('hardware-report', mode, prefix),
+        kinematicTools: await start('kinematic-tools', mode, prefix),
+        scurveTool: await start('scurve-tool', mode, prefix),
+        pidReview: await start('pid-review', mode, prefix),
+        streamStats: await start('stream-stats', mode, prefix),
+        dfuLoader: await start('dfu-loader', mode, prefix),
+        logFinder: await start('log-finder', mode, prefix),
+        filterTool: await start('filter-tool', mode, prefix),
+        dashboardPlayback: await start('dashboard-playback', mode, prefix),
+        simplegcsPreview: await start('simplegcs', mode, prefix),
+        thrustExpo: await start('thrust-expo', mode, prefix),
+        magFit: await start('mag-fit', mode, prefix),
+        filterReviewPreview: await start('filter-review', mode, prefix),
         airspeedFit: await start('airspeed-fit', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {

@@ -2,14 +2,36 @@ name: React apps
 on:
   pull_request:
   push:
-    branches: [main, issue-5-rotationcheck-routing, issue-13-airspeed-fit]
+    branches: [main, issue-5-rotationcheck-routing, issue-11-hardware-parameters]
 jobs:
-  validate:
+  checks:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: git submodule update --init --depth 1 modules/JsDataflashParser modules/plotly.js modules/fft.js modules/tabulator
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck && pnpm lint
+      - run: pnpm test
+  browser:
+    name: browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with:
@@ -22,7 +44,49 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm build
-      - run: pnpm typecheck && pnpm lint
-      - run: pnpm test && pnpm test:routing && pnpm test:rotation-check && pnpm test:parameters && pnpm test:react-workflows && pnpm test:airspeed-fit
-      - run: pnpm test:portal && pnpm test:rotation-check:browser && pnpm test:react-workflows:browser && pnpm test:airspeed-fit:browser
-      - run: pnpm test:numerics:browser && pnpm test:mavlink:browser && pnpm test:dataflash:browser && pnpm test:transfers:browser && pnpm test:parameters:browser
+      - name: Run all browser suites
+        shell: bash
+        run: |
+          result=0
+          for suite in \
+            test:portal \
+            test:rotation-check:browser \
+            test:react-workflows:browser \
+            test:hardware-parameters:browser \
+            test:kinematic-tools:browser \
+            test:scurve-tool:browser \
+            test:pid-review:browser \
+            test:stream-stats:browser \
+            test:dfu-loader:browser \
+            test:log-finder:browser \
+            test:filter-tool:browser \
+            test:dashboard-playback:browser \
+            test:simplegcs:browser \
+            test:thrust-expo:browser \
+            test:mag-fit:browser \
+            test:simplegcs:parameters:browser \
+            test:simplegcs:video \
+            test:filter-review:browser \
+            test:airspeed-fit:browser
+          do
+            echo "::group::$suite"
+            if pnpm "$suite"; then
+              echo "Passed: $suite"
+            else
+              echo "::error::Browser suite failed: $suite"
+              result=1
+            fi
+            echo "::endgroup::"
+          done
+          exit "$result"
+  validate:
+    if: ${{ always() }}
+    needs: [checks, browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every check and browser suite to pass
+        env:
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: test "$CHECKS_RESULT" = success && test "$BROWSER_RESULT" = success
