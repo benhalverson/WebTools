@@ -12,13 +12,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && node tooling/build-vendor.mjs",
     "typecheck": "pnpm build && tsc -p tests/tsconfig.json",
-    "lint": "oxlint --deny-warnings src tests tooling",
+    "lint": "biome lint --error-on-warnings .",
     "test": "pnpm build && node --test tests/*.test.mjs",
     "test:browser": "pnpm build && node tests/browser.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2",
-    "oxlint": "1.81.0",
     "vite": "8.3.0"
   }
 }
