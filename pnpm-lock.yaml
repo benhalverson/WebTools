@@ -177,6 +177,15 @@ importers:
         specifier: 4.147.0
         version: 4.147.0(@types/node@26.6.4)
 
+  packages/dataflash:
+    devDependencies:
+      oxlint:
+        specifier: 1.81.0
+        version: 1.81.0
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
   packages/mavlink:
     devDependencies:
       oxlint:
