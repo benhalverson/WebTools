@@ -33,7 +33,9 @@ async function start(mode, prefix, gateway = false) {
 async function editorScenarios(page) {
     const dialog = page.getByRole('dialog', { name: 'Parameters', exact: true }), search = page.getByRole('searchbox', { name: 'Search parameters' });
     await page.waitForFunction(() => document.querySelectorAll('.mavparam-row').length === 6);
-    await page.waitForFunction(() => document.querySelector('.mavparam-metadata').textContent.includes('Rover descriptions'));
+    // Loading text also contains the vehicle name; wait for completed metadata before description search.
+    await page.waitForFunction(() => /^Rover descriptions(?: \((?:offline cached copy|cached)\))?\.$/.test(
+        document.querySelector('.mavparam-metadata span')?.textContent ?? ''), undefined, { timeout: 5000 });
     await search.fill('motor speed'); assert.equal(await page.locator('.mavparam-row').count(), 1);
     await page.getByRole('textbox', { name: 'TEST_I8 value', exact: true }).fill('7');
     await dialog.getByRole('button', { name: 'Apply', exact: true }).click(); await page.getByText('TEST_I8 saved and verified.', { exact: true }).waitFor();
