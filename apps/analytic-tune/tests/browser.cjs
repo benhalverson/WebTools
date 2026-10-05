@@ -322,10 +322,10 @@ test('compiled production App disposes plots, subscriptions and interrupted file
         await page.locator('#set_selection_3').check();
         assert.doesNotMatch(await page.locator('#sid_sets').innerText(), /undefined/);
         assert.equal(await page.locator('#ATC_RAT_PIT_P').isVisible(), true);
-        assert.equal(await page.locator('#bit_8_INS_HNTCH_HMNCS').isVisible(), false, 'old logs retain 8-bit harmonic controls');
+        assert.equal(await page.locator('#INS_HNTCH_HMNCS').getAttribute('data-type'), '8', 'old logs retain 8-bit harmonic controls');
         await page.locator('#fileItem').setInputFiles({ ...file, name: 'modern.bin', buffer: createLogFixture({ samples: 2048, rawLogOptions: true }) });
         await page.waitForFunction(() => document.title === 'SysID: modern.bin');
-        await page.locator('#bit_8_INS_HNTCH_HMNCS').waitFor({ state: 'visible' });
+        await page.waitForFunction(() => document.getElementById('INS_HNTCH_HMNCS').dataset.type === '32');
         await page.locator('#unmount-app').click();
         await page.waitForFunction(() => window.lifetimeTest.stats.subscribe === window.lifetimeTest.stats.unsubscribe);
         assert.deepEqual(errors, []);
