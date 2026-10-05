@@ -155,6 +155,6 @@ The preview owns local raw/batch gyro ingestion, IMU/source controls, FFT jobs,
 time selection, spectra and Open In. Each calculation uses a fresh, cancellable
 Worker; the DataFlash package is served as standalone ESM with adjacent vendor
 assets. Filter tracking and tuning remain in the complete tool.
-`pnpm test:filter-review` compares against unchanged integrated base
-`0c4e5ca`; `pnpm test:filter-review:browser` exercises actual Chromium,
+`pnpm test:filter-review` runs numerical compatibility tests.
+`pnpm test:filter-review:browser` exercises Chromium,
 independent dev/built Workers and the gateway at root and nested prefixes.
