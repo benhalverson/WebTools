@@ -15,7 +15,7 @@ export interface PlotElement extends HTMLDivElement {
 export interface PlotlyApi {
     /** Initialize the supplied node and resolve its event-capable plot element;
      * synchronous throws and rejections are reported by the Plot wrapper. */
-    newPlot(node: HTMLDivElement, data: readonly PlotFields[], layout: PlotFields, config: PlotFields): Promise<PlotElement>
+    newPlot(node: HTMLDivElement, data: readonly PlotFields[] | undefined, layout: PlotFields, config: PlotFields): Promise<PlotElement>
     /** Update an initialized plot and resolve when the vendor update settles. */
     react(node: HTMLDivElement, data: readonly PlotFields[], layout: PlotFields, config: PlotFields): Promise<PlotElement>
     /** Release vendor resources on the node, including during pending work.
@@ -30,17 +30,21 @@ export interface PlotProps {
     onRelayout?: PlotListener
     onError?: (error: unknown) => void
     id?: string
+    /** Initialize without data, then react with the first snapshot; preserves vendor initial-axis semantics. */
+    deferInitialData?: boolean
 }
 const emptyConfig: PlotFields = {}
 
 /** Own a vendor DOM node and serialize newPlot/react calls for its lifetime.
  * Changes to data/layout/config identity queue updates; replacing plotly creates
  * a fresh lifetime. Relayout and error callbacks always use the latest props.
+ * With deferInitialData, initialize without traces before applying the first snapshot;
+ * the disposal check between those operations prevents updates after unmount.
  * Vendor update failures reach onError while mounted, and later prop updates
  * can retry; onError should not throw. Unmount removes the owned listener, purges
  * and detaches the node, and skips queued work. In-flight work is not cancelled:
  * a late successful result is purged again without touching a subsequent mount. */
-export function Plot({ plotly, data, layout, config = emptyConfig, onRelayout, onError, id }: PlotProps) {
+export function Plot({ plotly, data, layout, config = emptyConfig, onRelayout, onError, id, deferInitialData = false }: PlotProps) {
     const ref = useRef<HTMLDivElement>(null)
     const session = useRef<{ update: (data: readonly PlotFields[], layout: PlotFields, config: PlotFields) => void } | null>(null)
     const callbacks = useRef({ onRelayout, onError })
@@ -62,9 +66,14 @@ export function Plot({ plotly, data, layout, config = emptyConfig, onRelayout, o
             pending = pending.then(async () => {
                 if (disposed) return
                 const first = !element
-                element = await (first ? plotly.newPlot(node, nextData, nextLayout, nextConfig) : plotly.react(node, nextData, nextLayout, nextConfig))
-                if (disposed) { plotly.purge(node); return }
-                if (first) element.on('plotly_relayout', listener)
+                if (first) {
+                    element = await plotly.newPlot(node, deferInitialData ? undefined : nextData, nextLayout, nextConfig)
+                    if (disposed) { plotly.purge(node); return }
+                    element.on('plotly_relayout', listener)
+                    if (!deferInitialData) return
+                }
+                element = await plotly.react(node, nextData, nextLayout, nextConfig)
+                if (disposed) plotly.purge(node)
             }).catch(error => { if (!disposed) callbacks.current.onError?.(error) })
         }
         session.current = { update }
@@ -75,7 +84,7 @@ export function Plot({ plotly, data, layout, config = emptyConfig, onRelayout, o
             plotly.purge(node)
             node.remove()
         }
-    }, [plotly])
-    useEffect(() => { session.current?.update(data, layout, config) }, [plotly, data, layout, config])
+    }, [plotly, deferInitialData])
+    useEffect(() => { session.current?.update(data, layout, config) }, [plotly, deferInitialData, data, layout, config])
     return <div id={id} ref={ref} />
 }

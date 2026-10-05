@@ -108,8 +108,9 @@ async function scenarios(browser, origin, prefix) {
         await sibling.waitForFunction(id => document.getElementById('component_id') && document.getElementById('component_id').value !== id, id); assert.notEqual(await sibling.locator('#component_id').inputValue(), id); await sibling.close();
         for (let i = 0; i < 3; i++) {
             await page.evaluate(() => simplegcsPreview.unmount()); await page.clock.runFor(100);
-            // Web Locks release in the browser process, outside the virtual timer clock.
-            await page.waitForFunction(async () => !(await navigator.locks.query()).held.some(lock => lock.name.startsWith('simplegcs.component.')));
+            // Web Locks settle in the browser service, independently of the mocked page clock.
+            // Keep the zero-resource assertion, but await native lease release (including the closed sibling).
+            await page.waitForFunction(async () => !(await navigator.locks.query()).held.some(lock => lock.name.startsWith('simplegcs.component.')), null, { polling: 50, timeout: 5000 });
             assert.deepEqual(await page.evaluate(async () => [fixture.sockets.filter(s => s.readyState !== 3).length, fixture.watches.size, fixture.maps.size, (await navigator.locks.query()).held.filter(l => l.name.startsWith('simplegcs.component.')).length]), [0, 0, 0, 0]);
             await page.evaluate(() => simplegcsPreview.mount()); await page.clock.runFor(100); await page.waitForFunction(() => fixture.maps.size === 1);
         }

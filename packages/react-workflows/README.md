@@ -1,7 +1,6 @@
 # Shared React workflows
 
-React controls and lifecycle helpers built on `@webtools/parameters` and the
-existing pinned browser vendors.
+React controls and lifecycle helpers backed by `@webtools/parameters` and the pinned browser libraries.
 
 ## Supported API
 
@@ -13,11 +12,16 @@ existing pinned browser vendors.
   Labels, units, values, optional range constraints, disabled controls, and
   signed bitmasks use the typed parameter package. `allowValues=false` retains
   a number input; `bitmaskSize` controls signed conversion and hidden bits.
+  Optional `step` and `placeholder` preserve native numeric input attributes.
   Unknown enumerated values remain unselected, matching the native legacy select.
 - `Plot`: inject the existing pinned `Plotly` bundle through `PlotlyApi`. Creates
   a plot, uses `Plotly.react` for changed data/layout/config, and owns only its
   relayout listener and vendor DOM node. Updates are serialized; pending work is
   isolated from a subsequent mount. Purge and listener disposal run on unmount.
+  `deferInitialData=true` initializes with undefined data before applying the first
+  snapshot with `react`, preserving the pinned vendor's initial Reset axes behavior
+  for consumers such as Thrust Expo. Disposal is checked between both operations;
+  the default initializes with the first data snapshot as before.
   `PlotFields` is an open vendor-options record with `unknown` field values, not
   a claim that the entire vendor library is statically described. Consumers
   narrow relayout payloads. `onError` exposes vendor failures without wrapping
@@ -88,12 +92,22 @@ ordering, labels, availability, payload/filename/bytes, and wildcard behavior.
 They also check external transport delay/cancellation, control markup contracts,
 and delegation of exact Blob identity to FileSaver. No Jest/Vitest is used.
 
-The ownership regressions in `tests/regressions.mjs` use WeakRefs and a separate
-CDP garbage-collection task to check retained FileReader, buffer, and recipient
-resources. Keep payloads and remote object handles out of test bookkeeping so
-the harness does not prevent collection. External recipients are local stand-ins;
-the suite must not contact live providers.
+## Regression test maintenance
 
-`WORKFLOWS_BASELINE=1` applies the regression harness to the original
-implementation and expects its nullish-metadata and retained-buffer failures.
-Normal runs assert corrected behavior and legacy parity.
+`tests/regressions.mjs` stores only WeakRefs and primitive delivery evidence;
+it never keeps sent payloads or remote object handles alive. The external
+recipient is a local stand-in that discards messages; no external provider is
+contacted. Forced GC uses a separate CDP task before dereferencing WeakRefs.
+The test also keeps pending buffers/recipients live, repeats concurrent sends,
+changes file props, cancels multiple recipients on unmount, and deliberately
+retains a completed public disposer to check its cleared references. The
+unchanged HardwareReport browser test still checks an actual recipient window,
+original filename and exact bytes. Deterministic Node tests cover read
+cancellation/error/abort, blocked windows, throwing open/read/postMessage calls,
+settlement counts and same-origin repeat loads. Metadata browser regressions
+cover null/undefined through enum/bitmask/range loading and back, unknown enum
+rerenders, preserved controlled values, and no change callbacks during loading.
+
+The `WORKFLOWS_BASELINE=1` browser-runner mode is only for applying this regression
+harness to the original implementation; it asserts the two pre-fix failures.
+The normal command asserts corrected behavior and legacy parity.

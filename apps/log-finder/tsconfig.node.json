@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.node.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "vite.config.ts",
+    "tooling",
+    "tests/lifecycle.config.ts"
+  ]
+}

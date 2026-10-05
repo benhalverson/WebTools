@@ -1,7 +1,6 @@
 # @webtools/mavlink
 
-Typed boundary for the existing MAVLink codec. This package provides no
-transport and does not connect to vehicles.
+Typed boundary for the pinned MAVLink codec. The caller owns the transport and connection lifetime.
 
 ## Build and consume
 
