@@ -120,9 +120,9 @@ Here is [more information on debugging with VSCode](https://code.visualstudio.co
 <img src="images/VSCode%20debug.png" width="80%">
 </p>
 
-### RotationCheck React migration and local app routing
+### RotationCheck and local app routing
 
-RotationCheck now has its own React/TypeScript app and Worker in
+RotationCheck has its own React/TypeScript app and Worker in
 `apps/rotation-check`. Root `pnpm dev` and `pnpm preview` compose it with the
 portal on one origin at the existing `RotationCheck/` destination. Both apps
 also build and run independently with their own package scripts.
@@ -134,14 +134,54 @@ See [the routing API](packages/routing/README.md) for the explicit contract,
 
 `pnpm test:routing`, `pnpm test:rotation-check`, and
 `pnpm test:rotation-check:browser` cover URL contracts, legacy numerical parity,
-and real app controls in development and built Worker preview. The comparison
-revision is `753a397e818593ac0943854fd7cea3468f49f095` (issue #4 / draft PR #43,
-which includes issue #3 / PR #39). The retained `RotationCheck/` scripts remain
-unchanged test oracles and legacy downloads; the React page does not load them.
+and real app controls in development and built Worker preview. The retained
+`RotationCheck/` scripts provide unchanged test oracles and legacy downloads;
+the React page does not load them.
 
-The issue #5 branch also includes prerequisite browser/JSDoc follow-up
-`91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
-identical to the original comparison revision above.
+### SimpleGCS
+
+`apps/simplegcs` owns the complete React app and independent Worker at `SimpleGCS/`.
+Use `pnpm --filter simplegcs dev` or the shared gateway with the common hosting
+prefix. Connection, telemetry, map providers, parameters, commands, mission/fence
+transfers and inset/popout video share the app's resource lifetimes.
+Parameter operations and mission/fence transfers use one serialized FTP manager
+per connection; cancellation is scoped to the owning operation.
+
+`pnpm test:simplegcs` covers protocol and model behavior.
+`pnpm test:simplegcs:browser:all` runs retained legacy acceptance plus telemetry,
+commands, parameter editing, video and native-WebSocket integration suites.
+Tests use controlled transports, media and provider fixtures.
+
+### FilterReview
+
+`apps/filter-review` owns the React app and independent Worker at `FilterReview/`,
+under the common hosting prefix. Run `pnpm --filter filter-review dev`, or use
+`pnpm build && pnpm preview` for the shared gateway and built Workers.
+
+The app supports raw/batch gyro ingestion, FFT spectra, filter tracking and
+comparisons, tuning, exports and Open In. Computation runs in cancellable Workers;
+the DataFlash package retains its standalone ESM and adjacent vendor assets.
+`pnpm test:filter-review` checks numerical compatibility, and
+`pnpm test:filter-review:browser` exercises independent dev/built Workers and
+the gateway at root and nested prefixes, including resource cleanup.
+
+### AirspeedFit
+
+`apps/airspeed-fit` provides an independent React app and Worker at `AirspeedFit/`.
+Use `pnpm --filter airspeed-fit dev` or the shared gateway with `pnpm dev`;
+build and preview use the same hosting prefix as the other registered apps.
+`pnpm test:airspeed-fit` covers numerical compatibility, including recorded-log
+window/sensor selections, fitting, residuals and calibration exports.
+`pnpm test:airspeed-fit:browser` exercises dev and Worker controls at both prefixes,
+file replacement, exports, Open In and resource cleanup.
+
+### Geofence Generator
+
+`apps/geofence-generator` owns the React app and independent Worker at
+`GeofenceGenerator/`. Use its `dev`, `build` and `preview` package scripts or
+the shared gateway with the common hosting prefix. `pnpm test:geofence` and
+`pnpm test:geofence:browser` cover geometry/export compatibility and actual
+map controls, request cancellation and disposal using offline provider fixtures.
 
 ### Linting and formatting
 

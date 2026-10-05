@@ -6,7 +6,7 @@ import { prefixedHtml } from '@webtools/routing/tooling'
 import mavlinkAssets from '@webtools/mavlink/vite'
 import { stageAssets } from './tooling/assets.js'
 
-/** Keep playback independently runnable while the public dashboard remains legacy-owned. */
+/** Build the public dashboard independently using the common routing contract. */
 export default defineConfig(async ({ isPreview }): Promise<UserConfig> => ({
     base: applicationBase('dashboardPlayback', process.env.WEBTOOLS_BASE_PATH ?? process.env.PORTAL_BASE_PATH),
     publicDir: isPreview ? '.legacy-assets' : await stageAssets(),
