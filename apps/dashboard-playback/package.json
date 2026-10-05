@@ -13,14 +13,17 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "@fortawesome/fontawesome-free": "6.6.0",
+    "@webtools/mavlink": "workspace:*",
     "@webtools/react-workflows": "workspace:*",
     "@webtools/routing": "workspace:*",
     "@webtools/widget-runtime": "workspace:*",
-    "@webtools/mavlink": "workspace:*",
+    "bootstrap": "4.6.0",
+    "formiojs": "4.21.7",
     "gridstack": "10.3.1",
-    "formiojs": "4.21.7"
+    "monaco-editor": "0.57.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.62.5",

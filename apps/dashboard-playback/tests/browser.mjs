@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
+import { editorWorkflow } from './editor-workflow.mjs'
 import { spawn, execFileSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:http'
-import { readFile, stat } from 'node:fs/promises'
+import { readFile, stat, writeFile } from 'node:fs/promises'
 import { resolve, extname, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { deflateRawSync } from 'node:zlib'
@@ -14,13 +15,13 @@ import { listeningOrigin } from '@webtools/routing/tooling'
 const root = resolve(fileURLToPath(new URL('../../../', import.meta.url)))
 const require = createRequire(new URL('../../../packages/mavlink/package.json', import.meta.url))
 const { mavlink20, MAVLink20Processor } = require('@webtools/mavlink')
-const baseRevision = '26687a5f54352699bb7d3ff3c9c811794043cf71'
+const baseRevision = 'e4d333f04cd3eb3da98fed787d5f3ce1c18ed7bd'
 const legacySource = execFileSync('git', ['show', `${baseRevision}:TelemetryDashboard/TelemetryDashboard.js`], { cwd: root, encoding: 'utf8' })
 assert.equal(await readFile(resolve(root, 'TelemetryDashboard/TelemetryDashboard.js'), 'utf8'), legacySource)
 const html = execFileSync('git', ['show', `${baseRevision}:TelemetryDashboard/index.html`], { cwd: root, encoding: 'utf8' })
 const templates = html.match(/<template[\s\S]*?<\/template>/g).join('\n')
 const layout = { header: { version: 1 }, grid: { columns: 6, rows: 6, color: 'rgb(255, 255, 255)' }, widgets: {
-    0: { x: '0', y: '0', w: '3', h: '3', type: 'WidgetSandBox', options: { form: { components: [{ type: 'number', key: 'gain', id: 'gain-fixture', label: 'Gain', input: true, defaultValue: 1 }] }, form_content: { gain: 2 }, about: { name: 'Controlled fixture' }, sandbox: 'div.id="telemetry";div.textContent="ready";handle_msg=function(msg){if(msg._name==="VFR_HUD")div.textContent=String(msg.groundspeed*options.gain)};handle_options=function(next){options=next}' } },
+    0: { x: '0', y: '0', w: '3', h: '3', type: 'WidgetSandBox', options: { form: { components: [{ type: 'number', key: 'gain', id: 'gain-fixture', label: 'Gain', input: true, defaultValue: 1 }] }, form_content: { gain: 2 }, about: { name: 'Controlled fixture' }, sandbox: 'div.id="telemetry";div.textContent="ready";fetch("../SandBoxWidgets/Value.json").then(response=>response.json()).then(value=>{div.dataset.relative=value.widget.type});handle_msg=function(msg){if(msg._name==="VFR_HUD")div.textContent=String(msg.groundspeed*options.gain)};handle_options=function(next){options=next}' } },
     1: { x: '3', y: '0', w: '3', h: '3', type: 'WidgetSubGrid', options: { form_content: { rows: 2, columns: 2, borderColor: '#c8c8c8', backgroundColor: '#ffffff' }, widgets: {
         0: { x: '0', y: '0', w: '2', h: '2', type: 'WidgetCustomHTML', options: { form: {}, form_content: {}, about: { name: 'HTML fixture' }, custom_HTML: '<!doctype html><html><body><output id="custom">waiting</output><script>const c=new BroadcastChannel("MAVLinkMSG");c.onmessage=e=>{if(e.data.MAVLink._name==="VFR_HUD")document.querySelector("#custom").textContent=String(e.data.MAVLink.groundspeed)}</script></body></html>' } },
     } } },
@@ -39,7 +40,7 @@ async function stop(child) {
 /** Start either an independent app Worker or the shared same-origin gateway. */
 async function start(mode, prefix, gateway = false) {
     const cwd = gateway ? root : resolve(root, 'apps/dashboard-playback')
-    const args = gateway ? ['tooling/serve.ts', mode, '--port', '0'] : ['node_modules/vite/bin/vite.js', ...(mode === 'preview' ? ['preview'] : []), '--host', '127.0.0.1', '--port', '0']
+    const args = gateway ? ['tooling/serve.ts', mode, '--port', '0'] : ['node_modules/vite/bin/vite.js', ...(mode === 'preview' ? ['preview'] : ['--force']), '--host', '127.0.0.1', '--port', '0']
     const child = spawn(process.execPath, args, { cwd, detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WEBTOOLS_BASE_PATH: prefix, BROWSER: 'none' } })
     let output = ''
     try {
@@ -72,7 +73,7 @@ async function legacyServer() {
             const pathname = new URL(request.url, 'http://localhost').pathname
             if (pathname === '/TelemetryDashboard/legacy.html') {
                 response.setHeader('Content-Type', 'text/html')
-                response.end(`<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/vendor/gridstack.min.css"><link rel="stylesheet" href="/vendor/gridstack-extra.min.css"><link rel="stylesheet" href="/vendor/formio.full.min.css"><style>html,body,#dashboard{height:100%;width:100%;margin:0}</style></head><body>${templates}<div id="dashboard" class="grid-stack"></div><button id="connect">Connection</button>
+                response.end(`<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/vendor/bootstrap.min.css"><link rel="stylesheet" href="/vendor/gridstack.min.css"><link rel="stylesheet" href="/vendor/gridstack-extra.min.css"><link rel="stylesheet" href="/vendor/formio.full.min.css"><style>html,body,#dashboard{height:100%;width:100%;margin:0}</style></head><body>${templates}<div id="dashboard" class="grid-stack"></div><button id="connect">Connection</button>
 <script src="/vendor/gridstack-all.js"></script><script src="/vendor/formio.full.min.js"></script><script src="/modules/build/floating-ui/dist/umd/popper.min.js"></script><script src="/modules/build/tippyjs/dist/tippy-bundle.umd.min.js"></script><script src="/modules/MAVLink/mavlink.js"></script>
 ${['Base_Class', 'SandBox', 'CustomHTML', 'SubGrid', 'Menu'].map(name => `<script src="Widgets/${name}.js"></script>`).join('')}<script src="TelemetryDashboard.js"></script><script>let grid;let grid_changed=false;const broadcast=new BroadcastChannel('MAVLinkMSG');let MAVLink;async function boot(){await mavlink20.ready;MAVLink=new MAVLink20Processor();const json=await decompress_layout(new URLSearchParams(location.hash.slice(1)).get('layout'));const layout=JSON.parse(json);load_layout(layout.grid,layout.widgets);setup_connect(document.querySelector('#connect'),color=>document.querySelector('#connect').dataset.color=color)}boot()</script></body></html>`)
                 return
@@ -105,7 +106,7 @@ async function frameValues(page, expected = '25') {
 async function readyFrames(page) {
     await page.locator('#dashboard iframe').first().waitFor()
     await page.waitForFunction(() => document.querySelectorAll('#dashboard iframe').length === 2)
-    await page.locator('#dashboard iframe').first().contentFrame().locator('#telemetry').waitFor()
+    await page.locator('#dashboard iframe').first().contentFrame().locator('#telemetry[data-relative=WidgetSandBox]').waitFor()
     await page.locator('#dashboard iframe').nth(1).contentFrame().locator('#custom').waitFor()
 }
 
@@ -124,18 +125,26 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH 
     await legacy.close(); await new Promise(resolve => relay.close(resolve)); throw error
 })
 try {
-    for (const prefix of ['/', '/Tools/WebTools/']) {
+    for (const prefix of process.env.DASHBOARD_TEST_PREFIX ? [process.env.DASHBOARD_TEST_PREFIX] : ['/', '/Tools/WebTools/']) {
         await build(prefix)
-        for (const mode of ['dev', 'preview']) {
+        for (const mode of process.env.DASHBOARD_TEST_MODE ? [process.env.DASHBOARD_TEST_MODE] : ['dev', 'preview']) {
             const server = await start(mode, prefix)
             const context = await browser.newContext({ viewport: { width: 1200, height: 720 } })
             context.setDefaultTimeout(15000)
             try {
-                // No external network; all scripts and frames for this fixture are local.
-                await context.route('**/*', route => [server.origin, legacy.origin].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort())
+                await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+                // The unchanged Attitude preset imports an external library; verify its legacy offline failure explicitly.
+                const instrumentUrl = 'https://unpkg.com/flight-indicators-js@1.0.5/esm/module-flight-indicators.mjs'
+                const instrumentError = `Failed to fetch dynamically imported module: ${instrumentUrl}`
+                let blockedInstrumentImports = 0
+                await context.route('**/*', route => {
+                    if (route.request().url() === instrumentUrl) blockedInstrumentImports++
+                    return [server.origin, legacy.origin].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort()
+                })
                 await context.routeWebSocket(/.*/, socket => { if (socket.url() === relayUrl || socket.url().startsWith(server.origin.replace('http:', 'ws:'))) socket.connectToServer(); else socket.close() })
                 await context.addInitScript(() => {
                     Math.random = () => 0.123456789
+                    window.realDateNow = Date.now
                     Date.now = () => 1800000000000
                     window.activeChannels = new Set()
                     const Original = BroadcastChannel
@@ -148,8 +157,31 @@ try {
                 })
                 const errors = []
                 context.on('page', created => created.on('pageerror', error => errors.push(error.message)))
+                const offlineLegacy = await context.newPage()
+                const attitude = JSON.parse(execFileSync('git', ['show', `${baseRevision}:TelemetryDashboard/SandBoxWidgets/Attitude.json`], { cwd: root, encoding: 'utf8' })).widget
+                const instrumentLayout = { ...layout, widgets: { 0: { ...attitude, x: 0, y: 0, w: 2, h: 2 } } }
+                const instrumentHash = new URLSearchParams({ layout: deflateRawSync(JSON.stringify(instrumentLayout)).toString('base64url') })
+                const offlineFailure = offlineLegacy.waitForEvent('pageerror')
+                await offlineLegacy.goto(`${legacy.origin}/TelemetryDashboard/legacy.html#${instrumentHash}`)
+                assert.equal((await offlineFailure).message, instrumentError, 'unchanged legacy Attitude has the same offline import failure')
+                await offlineLegacy.close()
                 const page = await context.newPage()
-                const base = `${server.origin}${prefix}DashboardPlayback/`
+                const base = `${server.origin}${prefix}TelemetryDashboard/`
+                const menuPage = await context.newPage()
+                // Isolate the authoritative Menu options: other default instruments import external libraries.
+                const menuLayout = JSON.parse(execFileSync('git', ['show', `${baseRevision}:TelemetryDashboard/Default_Layout.json`], { cwd: root, encoding: 'utf8' }))
+                menuLayout.widgets = Object.fromEntries(Object.entries(menuLayout.widgets).filter(([, widget]) => widget.type === 'WidgetMenu'))
+                await menuPage.route('**/Default_Layout.json', route => route.fulfill({ json: menuLayout }))
+                await menuPage.goto(base)
+                await menuPage.locator('#dashboard[data-ready=true]').waitFor()
+                await menuPage.getByRole('button', { name: 'Dashboard settings', exact: true }).click()
+                await menuPage.getByRole('region', { name: 'Saved layout' }).getByLabel('Enable widget edit', { exact: true }).check()
+                await menuPage.getByRole('button', { name: 'Close settings' }).click()
+                await menuPage.locator('#dashboard > .grid-stack-item').filter({ has: menuPage.getByRole('button', { name: 'Dashboard settings', exact: true }) }).focus()
+                await menuPage.keyboard.press('Enter')
+                await menuPage.getByRole('region', { name: 'Widget settings' }).waitFor()
+                for (const name of ['Copy widget', 'Delete widget', 'Save widget', 'Edit source and form']) assert.equal(await menuPage.getByRole('button', { name, exact: true }).count(), 0, `Menu disables ${name}`)
+                await menuPage.close()
                 await page.goto(`${base}#${hash}`)
                 await page.locator('#dashboard[data-ready=true]').waitFor()
                 await readyFrames(page)
@@ -170,6 +202,7 @@ try {
                     const expected = await original.locator('#dashboard iframe').nth(index).boundingBox()
                     for (const key of ['x', 'y', 'width', 'height']) assert.ok(Math.abs(actual[key] - expected[key]) <= 0.5, `${key}: ${actual[key]} vs ${expected[key]}`)
                 }
+                await page.bringToFront()
                 await page.getByRole('button', { name: 'Saved layout', exact: true }).click()
                 const downloadEvent = page.waitForEvent('download')
                 await page.getByRole('button', { name: 'Save layout', exact: true }).click()
@@ -178,10 +211,29 @@ try {
                 assert.equal(bytes, await original.evaluate(() => JSON.stringify(get_layout(), null, 2)), 'download exact legacy serializer bytes')
                 await page.getByRole('button', { name: 'Get dashboard link', exact: true }).click()
                 const link = await page.getByLabel('Dashboard link', { exact: true }).inputValue()
+                await page.waitForFunction(expected => navigator.clipboard.readText().then(value => value === expected), link)
+                await page.evaluate(() => {
+                    const write = navigator.clipboard.writeText
+                    window.restoreClipboard = () => { navigator.clipboard.writeText = write }
+                    navigator.clipboard.writeText = async () => { window.clipboardRejected = true; throw new Error('Injected clipboard denial') }
+                })
+                await page.getByRole('button', { name: 'Get dashboard link', exact: true }).click()
+                await page.waitForFunction(() => window.clipboardRejected)
+                assert.equal(await page.getByLabel('Dashboard link', { exact: true }).inputValue(), link)
+                assert.equal(await page.locator('.playback-error').count(), 0)
+                await page.evaluate(() => window.restoreClipboard())
+
                 assert.equal(new URL(link).hash, new URL(await original.evaluate(() => get_dashboard_link())).hash, 'exact legacy link hash')
                 assert.equal(received.length, 0, 'read-only mode sends no packets')
+                try { await editorWorkflow(page, original, bytes) }
+                catch (error) {
+                    await page.screenshot({ path: '/tmp/issue33-editor-failure.png' })
+                    await writeFile('/tmp/issue33-editor-failure.html', await page.content())
+                    throw error
+                }
                 await original.close()
                 await page.goto(link)
+                await page.reload() // A same-document hash navigation alone does not remount either implementation.
                 await page.locator('#dashboard[data-ready=true]').waitFor(); await readyFrames(page); send(); await frameValues(page)
                 await page.getByRole('button', { name: /^Connection / }).click()
                 await page.getByRole('button', { name: 'Disconnect', exact: true }).click()
@@ -304,27 +356,46 @@ try {
                 await failure.getByRole('button', { name: 'Connect', exact: true }).click()
                 await failure.getByLabel('Connection status', { exact: true }).filter({ hasText: 'failed' }).waitFor()
                 await failure.close()
+                for (const asset of ['Examples/Image.json', 'Examples/URDF_Viewer.json', 'Examples/WindyMap.json', 'SandBoxWidgets/Value.json', 'Readme.md']) {
+                    const response = await page.request.get(base + asset)
+                    assert.equal(response.status(), 200)
+                    assert.deepEqual(await response.body(), await readFile(resolve(root, 'TelemetryDashboard', asset)))
+                }
+                assert.equal(await page.request.get(base + 'index.html').then(response => response.status()), 200)
+                assert.equal(await page.request.get(base + 'assets/missing.js').then(response => response.status()), 404)
+                const redirect = await page.request.get(base.slice(0, -1) + '?probe=1', { maxRedirects: 0 })
+                assert.equal(redirect.status(), 308)
+                assert.equal(new URL(redirect.headers().location).search, '?probe=1')
                 assert.equal(await page.request.get(base + 'not-a-route').then(response => response.status()), 404)
                 assert.equal(await page.request.get(base.slice(0, -1), { maxRedirects: 0 }).then(response => response.status()), 308)
-                assert.deepEqual(errors, [])
+                assert.ok(blockedInstrumentImports > 1, 'legacy instrument and real palette previews both attempted the retained import')
+                assert.deepEqual(errors, Array(blockedInstrumentImports).fill(instrumentError), 'only exact legacy offline import failures are expected')
                 await page.goto('about:blank')
                 await new Promise(resolve => setTimeout(resolve, 100))
                 assert.equal(relay.clients.size, 0, 'page disposal closes simulated connections')
                 console.log(`PASS independent ${mode} ${prefix}: legacy telemetry, layout, bytes, restoration, reconnect, errors, cleanup`)
             } finally { await context.close(); await server.close() }
         }
-        // Actual gateway Workers preserve the complete public legacy entry and independent preview.
+        if (process.env.DASHBOARD_TEST_MODE) continue
+        // Actual gateway Workers assign the public dashboard to its independent React owner.
         const gateway = await start('preview', prefix, true)
         try {
             const page = await browser.newPage()
             await page.route('**/*', route => new URL(route.request().url()).origin === gateway.origin ? route.continue() : route.abort())
             const response = await page.request.get(`${gateway.origin}${prefix}TelemetryDashboard/`)
             assert.equal(response.status(), 200)
-            assert.match(await response.text(), /TelemetryDashboard\.js/)
-            await page.goto(`${gateway.origin}${prefix}DashboardPlayback/#${hash}`)
+            assert.doesNotMatch(await response.text(), /TelemetryDashboard\.js/)
+            for (const name of ['Base_Class', 'SandBox', 'SubGrid', 'CustomHTML']) {
+                const retained = await page.request.get(`${gateway.origin}${prefix}TelemetryDashboard/Widgets/${name}.js`)
+                assert.equal(retained.status(), 200)
+                assert.deepEqual(await retained.body(), await readFile(resolve(root, `TelemetryDashboard/Widgets/${name}.js`)))
+            }
+            assert.equal(await page.request.get(`${gateway.origin}${prefix}TelemetryDashboard/not-an-asset.js`).then(response => response.status()), 404)
+
+            await page.goto(`${gateway.origin}${prefix}TelemetryDashboard/#${hash}`)
             await page.locator('#dashboard[data-ready=true]').waitFor()
             await page.close()
-            console.log(`PASS gateway preview ${prefix}: public legacy ownership`)
+            console.log(`PASS gateway preview ${prefix}: public React ownership`)
         } finally { await gateway.close() }
     }
 } finally {

@@ -14,6 +14,10 @@ export async function stageAssets(): Promise<string> {
     for (const file of ['formio.full.min.js', 'formio.full.min.css']) {
         await copyFile(fileURLToPath(new URL(`../node_modules/formiojs/dist/${file}`, import.meta.url)), `${destination}/vendor/${file}`)
     }
+    await copyFile(fileURLToPath(new URL('../node_modules/bootstrap/dist/css/bootstrap.min.css', import.meta.url)), `${destination}/vendor/bootstrap.min.css`)
+    await cp(fileURLToPath(new URL('../node_modules/@fortawesome/fontawesome-free/css', import.meta.url)), `${destination}/vendor/fontawesome/css`, { recursive: true })
+    await cp(fileURLToPath(new URL('../node_modules/@fortawesome/fontawesome-free/webfonts', import.meta.url)), `${destination}/vendor/fontawesome/webfonts`, { recursive: true })
+    await cp(fileURLToPath(new URL('../node_modules/monaco-editor/min', import.meta.url)), `${destination}/assets/monaco`, { recursive: true })
     await cp(fileURLToPath(new URL('../../../packages/mavlink/dist/runtime', import.meta.url)), `${destination}/modules/MAVLink`, { recursive: true })
     return destination
 }
