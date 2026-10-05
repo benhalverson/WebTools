@@ -1,0 +1,49 @@
+{
+  "name": "@webtools/mavlink",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "browser": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/browser.mjs"
+      },
+      "require": {
+        "types": "./dist/node.d.cts",
+        "default": "./dist/index.cjs"
+      },
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      },
+      "default": "./dist/index.cjs"
+    },
+    "./browser": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/browser.mjs"
+    },
+    "./globals": {
+      "types": "./dist/globals.d.ts"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.cts",
+      "default": "./dist/vite.cjs"
+    },
+    "./node": {
+      "types": "./dist/node.d.cts",
+      "default": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "node tooling/build.cjs",
+    "typecheck": "pnpm build && tsc -p tsconfig.json && tsc -p tsconfig.browser.json",
+    "lint": "oxlint --deny-warnings src tooling tests",
+    "test": "pnpm build && node --test tests/*.test.cjs && node --experimental-vm-modules --test tests/browser-vm.cjs",
+    "test:browser": "pnpm build && node tests/browser.cjs"
+  },
+  "devDependencies": {
+    "oxlint": "1.81.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.0"
+  }
+}
