@@ -1,0 +1,11 @@
+import { runtimeAssetPlugin } from './runtime-assets.ts'
+import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
+import react from '@vitejs/plugin-react'
+import { defineConfig, type UserConfig } from 'vite'
+import { cloudflare } from '@cloudflare/vite-plugin'
+import { applicationBase } from '@webtools/routing'
+import { prefixedHtml } from '@webtools/routing/tooling'
+import mavlinkAssets from '@webtools/mavlink/vite'
+/** Independently build the complete GCS at its shared registered mount. */
+export default defineConfig((): UserConfig => ({ base: applicationBase('simplegcs', process.env.WEBTOOLS_BASE_PATH ?? process.env.PORTAL_BASE_PATH), appType: 'mpa', define: { __MAVLINK_DEV_PATHS__: JSON.stringify(['@fs' + fileURLToPath(new URL('../../modules/MAVLink/mavparam-ui.css', import.meta.url)), '@fs' + fileURLToPath(new URL('../../tests/fixtures/params.json', import.meta.url)), '@fs' + createRequire(import.meta.url).resolve('leaflet/dist/leaflet.css'), ...['browser.mjs', 'runtime/mavlink.js', 'runtime/local_modules/jspack/jspack.js'].map(file => '@fs' + fileURLToPath(new URL('../../packages/mavlink/dist/' + file, import.meta.url)))]) }, optimizeDeps: { include: ['@webtools/routing', '@webtools/transfers', '@webtools/parameters', '@webtools/react-workflows'], exclude: ['@webtools/mavlink'] }, plugins: [runtimeAssetPlugin(), react(), prefixedHtml(), mavlinkAssets(), cloudflare()] }))
