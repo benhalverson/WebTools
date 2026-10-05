@@ -17,7 +17,10 @@ export function Palette({ runtime, failure }: { runtime: WidgetRuntime; failure(
     const [revision, setRevision] = useState(0)
     const [destination, setDestination] = useState(0)
     const destinations = targets(runtime)
+    const names = { WidgetSubGrid: 'Subgrid', WidgetSandBox: 'Sandbox', WidgetCustomHTML: 'Custom HTML', WidgetMenu: 'Menu' }
     useEffect(() => {
+        const target = element.current
+        if (target) target.dataset.ready = 'false'
         let active = true
         let owner: WidgetRuntime | undefined
         const controller = new AbortController()
@@ -48,7 +51,7 @@ export function Palette({ runtime, failure }: { runtime: WidgetRuntime; failure(
             element.current.dataset.ready = 'true'
         }
         void initialize().catch(error => { if (active && !controller.signal.aborted) failure(error) })
-        return () => { active = false; controller.abort(); owner?.destroy() }
+        return () => { active = false; if (target) target.dataset.ready = 'false'; controller.abort(); owner?.destroy() }
     }, [runtime, failure, revision])
 
     /** Copy a definition to the selected shared grid without changing its saved source. */
@@ -58,7 +61,7 @@ export function Palette({ runtime, failure }: { runtime: WidgetRuntime; failure(
     }
     return <section aria-label="Widget palette"><div className="palette-grid grid-stack" ref={element} />
         <details><summary>Add with keyboard</summary><label>Destination<select value={destination} onChange={event => setDestination(Number(event.target.value))}>{destinations.map((target, index) => <option key={index} value={index}>{target.name}</option>)}</select></label>
-            {Object.entries(definitions).map(([key, model]) => <button key={key} onClick={() => void add(model)}>{String(model.options.about?.name ?? model.type)}</button>)}
+            {Object.entries(definitions).map(([key, model]) => <button key={key} onClick={() => void add(model)}>{String(model.options.about?.name ?? names[model.type])}</button>)}
         </details>
     </section>
 }

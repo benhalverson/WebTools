@@ -56,7 +56,7 @@ export function SourceEditor({ widget, close, failure }: { widget: WidgetHost; c
             formHost.current?.append(host.formElement)
             host.formElement.hidden = false
             formBuilder = await window.Formio.builder(builderHost.current, widget.getFormDefinition(), structuredClone(widgetBuilderOptions))
-            if (!active) { formBuilder.destroy(); return }
+            if (!active) { formBuilder.destroy(true); return }
             builder.current = formBuilder
             formBuilder.on('updateComponent', update)
             formBuilder.on('removeComponent', update)
@@ -80,7 +80,7 @@ export function SourceEditor({ widget, close, failure }: { widget: WidgetHost; c
             code.current = undefined
             formBuilder?.off('updateComponent', update)
             formBuilder?.off('removeComponent', update)
-            formBuilder?.destroy()
+            formBuilder?.destroy(true)
             builder.current = undefined
             draft.current = undefined
             previewRuntime.current = undefined

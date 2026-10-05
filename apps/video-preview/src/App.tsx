@@ -38,7 +38,7 @@ async function parser(): Promise<DataflashConstructor> {
 /** Own log/video IO, synchronization and React controls while the shared runtime owns overlay resources. */
 export function App() {
     const [layout, setLayout] = useState<Layout>()
-    const [ready, setReady] = useState(false)
+    const [readyLayout, setReadyLayout] = useState<Layout>()
     const [selected, setSelected] = useState<WidgetHost>()
     const [sourceEditing, setSourceEditing] = useState(false)
     const [editing, setEditing] = useState(true)
@@ -58,6 +58,7 @@ export function App() {
     const container = useRef<HTMLDivElement>(null)
     const grid = useRef<HTMLDivElement>(null)
     const runtime = useRef<WidgetRuntime | undefined>(undefined)
+    const ready = mounted && layout !== undefined && readyLayout === layout && runtime.current !== undefined
     const log = useRef<DataflashLog | undefined>(undefined)
     const synchronization = useRef({ time, offset })
     synchronization.current = { time, offset }
@@ -103,7 +104,7 @@ export function App() {
     useEffect(() => {
         if (!layout || !grid.current || !mounted) return
         let current = true
-        setReady(false); setSelected(undefined); setSourceEditing(false)
+        setReadyLayout(undefined); setSelected(undefined); setSourceEditing(false)
         const owner = new WidgetRuntime(grid.current, {
             createGrid: (options, element) => window.GridStack.init(options, element), forms: window.Formio,
             sandboxUrl: `${import.meta.env.BASE_URL}Widgets/SandBox.html`, defaultHtml, defaultSandboxScript: defaultScript,
@@ -113,7 +114,7 @@ export function App() {
             onError: cause => { if (current) failure(cause) },
         }, { ...layout, grid: { ...layout.grid, color: '' } })
         runtime.current = owner
-        void owner.ready.then(() => { if (current) { owner.setEditing(true); setEditing(true); setReady(true) } }).catch(cause => { if (current) failure(cause) })
+        void owner.ready.then(() => { if (current) { owner.setEditing(true); setEditing(true); setReadyLayout(layout) } }).catch(cause => { if (current) failure(cause) })
         return () => { current = false; runtime.current = undefined; owner.destroy() }
     }, [layout, mounted, failure])
 
@@ -139,6 +140,7 @@ export function App() {
     }, [time, offset, ready, logRevision, failure])
 
     useEffect(() => {
+        if (!mounted) return
         /** Match the original constrained video aspect ratio and integer-pixel overlay dimensions. */
         function size(): void {
             if (!container.current) return
@@ -252,22 +254,22 @@ export function App() {
         <label>Log<input aria-label="Log file" type="file" accept=".bin" disabled={!mounted} onChange={event => { const file = event.target.files?.[0]; if (file) void loadLog(file); event.target.value = '' }} /></label>
         <label>Overlay<input aria-label="Overlay file" type="file" accept=".json" disabled={!mounted} onChange={event => { const file = event.target.files?.[0]; if (file) void loadLayout(file); event.target.value = '' }} /></label>
         <button onClick={() => { for (const request of requests.current.values()) request.abort(); media.current?.dispose(); setBusy(false) }}>Cancel loading</button>{busy && <span role="status">Loading log…</span>}
-        <button onClick={() => mount(!mounted)}>{mounted ? 'Unmount preview' : 'Mount preview'}</button>
+        <button onClick={() => mount(!mounted)}>{mounted ? 'Close preview' : 'Open preview'}</button>
     </section><section aria-label="File information"><p>Video: {videoInfo.fps} FPS · {videoInfo.codec} · {videoInfo.resolution} · {videoInfo.duration}</p><p>Log: {logInfo.date} · Flight time: {logInfo.flight} · Duration: {logInfo.duration}</p></section>
         {error && <p role="alert">{error}<button onClick={() => setError('')}>Dismiss</button></p>}
-        {mounted && <><div className="video-container" ref={container}><video ref={video} onLoadedMetadata={event => setDuration(event.currentTarget.duration)} onTimeUpdate={event => setTime(event.currentTarget.currentTime)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><div id="dashboard" className="grid-stack" ref={grid} data-ready={ready} /></div>
+        {mounted && <><div className="video-container" ref={container}><video ref={video} onLoadedMetadata={event => setDuration(event.currentTarget.duration)} onTimeUpdate={event => setTime(event.currentTarget.currentTime)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><div id="dashboard" className="grid-stack" ref={grid} data-ready={ready} style={{ pointerEvents: editing ? 'auto' : 'none' }} /></div>
         <section className="timeline" aria-label="Playback"><button onClick={() => { if (video.current?.paused) void video.current.play().catch(failure); else video.current?.pause() }}>{playing ? '||' : '▶'}</button>
             <button onClick={() => seek(time - 5)}>−5s</button><button onClick={() => seek(time - 1 / Number(fps))}>Previous frame</button><button onClick={() => seek(time + 1 / Number(fps))}>Next frame</button><button onClick={() => seek(time + 5)}>+5s</button>
             <input aria-label="Seek" type="range" min="0" max="1" step="0.001" value={duration ? time / duration : 0} disabled={!duration} onChange={event => seek(Number(event.target.value) * duration)} /><output>{formatTime(time)} / {formatTime(duration || 1)}</output>
             <button onClick={() => { if (video.current) { video.current.muted = !muted; setMuted(!muted) } }}>{muted ? '🔇' : '🔊'}</button><input aria-label="Volume" type="range" min="0" max="1" step=".01" value={volume} onChange={event => { const value = Number(event.target.value); setVolume(value); if (video.current) video.current.volume = value }} />
-            <label>Speed<select value={rate} onChange={event => { const value = Number(event.target.value); setRate(value); if (video.current) video.current.playbackRate = value }}>{[.25, .5, 1, 1.5, 2].map(value => <option key={value} value={value}>{value}×</option>)}</select></label>
-            <label>Frame rate<select value={fps} onChange={event => setFps(event.target.value)}>{[24, 25, 30, 48, 50, 60, 90, 100, 120, 240].map(value => <option key={value}>{value}</option>)}</select></label>
+            <label>Speed<select aria-label="Speed" value={rate} onChange={event => { const value = Number(event.target.value); setRate(value); if (video.current) video.current.playbackRate = value }}>{[.25, .5, 1, 1.5, 2].map(value => <option key={value} value={value}>{value}×</option>)}</select></label>
+            <label>Frame rate<select aria-label="Frame rate" value={fps} onChange={event => setFps(event.target.value)}>{[24, 25, 30, 48, 50, 60, 90, 100, 120, 240].map(value => <option key={value}>{value}</option>)}</select></label>
             <label>Log offset (s)<input aria-label="Log offset" type="number" step="any" value={offset} onChange={event => setOffset(event.target.value)} /></label>
         </section><section aria-label="Layout controls"><label><input type="checkbox" checked={editing} onChange={event => { setEditing(event.target.checked); runtime.current?.setEditing(event.target.checked) }} />Edit overlay</label>
             <label>Rows<input type="number" min="1" value={layout?.grid.rows ?? 12} onChange={event => dimensions('rows', event.target.value)} /></label><label>Columns<input type="number" min="1" value={layout?.grid.columns ?? 12} onChange={event => dimensions('columns', event.target.value)} /></label><button disabled={!ready} onClick={save}>Save layout</button></section>
             {ready && runtime.current && editing && <Palette runtime={runtime.current} failure={failure} />}
-            {selected && <WidgetSettings widget={selected} close={() => setSelected(undefined)} edit={() => setSourceEditing(true)} failure={failure} />}
-            {selected && sourceEditing && <SourceEditor widget={selected} close={() => setSourceEditing(false)} failure={failure} />}
+            {ready && selected && <WidgetSettings widget={selected} close={() => setSelected(undefined)} edit={() => setSourceEditing(true)} failure={failure} />}
+            {ready && selected && sourceEditing && <SourceEditor widget={selected} close={() => setSourceEditing(false)} failure={failure} />}
         </>}
     </main>
 }

@@ -7,7 +7,8 @@ export interface WidgetBuilder {
     setForm(schema: Fields): Promise<unknown>
     on(event: 'updateComponent' | 'removeComponent', listener: () => void): void
     off(event: 'updateComponent' | 'removeComponent', listener: () => void): void
-    destroy(): void
+    /** Release builder forms, optionally removing Formio global registry entries. */
+    destroy(deleteFromGlobal?: boolean): void
 }
 export interface BuilderFactory {
     builder(element: HTMLElement, schema: Fields, options: Fields): Promise<WidgetBuilder>

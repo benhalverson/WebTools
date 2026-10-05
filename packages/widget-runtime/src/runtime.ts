@@ -120,8 +120,9 @@ export class WidgetRuntime {
         this.add(snapshot)
     }
 
-    /** Enumerate hosts in the same DOM order used by legacy layout serialization. */
+    /** Enumerate hosts in legacy DOM order, returning no released resources after disposal. */
     getWidgets(): readonly WidgetHost[] {
+        if (this.destroyed) return []
         return this.grid.getGridItems().flatMap(element => {
             const widget = this.widgets.get(element)
             return widget ? [widget] : []
@@ -216,8 +217,56 @@ export class WidgetHost {
     private gridElement: HTMLDivElement | undefined
     private menuCleanup: (() => void) | undefined
     private menuGrid: GridStack | undefined
-    /** Initialize each iframe navigation; removal detaches this exact listener. */
-    private readonly loadListener = (): void => { this.frameLoaded = true; this.sendInitialization(); this.loadLog(); void this.setTime(this.owner.dependencies.playback?.getTime() ?? 0).catch(error => this.owner.dependencies.onError?.(error)) }
+    private documentLoaded = false
+    private readinessTimer: number | undefined
+    private readinessError: Error | undefined
+    private readonly pendingModules = new Set<string>()
+    /** Initialize each navigation after its module evaluations and load event finish. */
+    private readonly loadListener = (): void => {
+        this.documentLoaded = true
+        if (this.pendingModules.size === 0) this.activateFrame()
+    }
+    /** Accept module completion only from this navigation of this custom frame. */
+    private readonly readyListener = (event: MessageEvent<unknown>): void => {
+        if (event.source !== this.iframe?.contentWindow || typeof event.data !== 'string') return
+        if (this.pendingModules.delete(event.data) && this.pendingModules.size === 0 && this.documentLoaded) this.activateFrame()
+    }
+
+    /** Initialize once the document has actually finished evaluating its modules. */
+    private activateFrame(): void {
+        if (this.destroyed || this.frameLoaded) return
+        this.frameLoaded = true
+        window.clearTimeout(this.readinessTimer)
+        this.readinessError = undefined
+        this.sendInitialization()
+        this.loadLog()
+        void this.setTime(this.owner.dependencies.playback?.getTime() ?? 0).catch(error => this.owner.dependencies.onError?.(error))
+    }
+
+    /** Await top-level module imports without modifying stored or exported custom source. */
+    private customDocument(source: string): string {
+        this.documentLoaded = false
+        this.pendingModules.clear()
+        window.clearTimeout(this.readinessTimer)
+        this.readinessError = undefined
+        if (!this.owner.dependencies.playback) return source
+        const document = new DOMParser().parseFromString(source, 'text/html')
+        const modules = document.querySelectorAll<HTMLScriptElement>('script[type="module"]:not([src])')
+        if (modules.length === 0) return source
+        for (const script of modules) {
+            const token = `widget-module:${crypto.randomUUID()}`
+            this.pendingModules.add(token)
+            const content = script.textContent ?? ''
+            script.textContent = `${content}\n;window.parent.postMessage(${JSON.stringify(token)},'*');`
+        }
+        this.readinessTimer = window.setTimeout(() => {
+            if (this.destroyed || this.pendingModules.size === 0) return
+            this.readinessError = new Error('Custom widget module readiness timed out or failed')
+            this.owner.dependencies.onError?.(this.readinessError)
+        }, 5000)
+
+        return `${source.match(/^\s*<!doctype[^>]*>/i)?.[0] ?? ''}${document.documentElement.outerHTML}`
+    }
     /** Forward only valid changed submissions, preserving live form data for serialization. */
     private readonly formListener = (event: { changed?: unknown }): void => {
         if (this.destroyed || event.changed == null || !this.form?.checkValidity(this.form.submission.data)) return
@@ -272,7 +321,10 @@ export class WidgetHost {
             this.iframe.style.cssText = 'border:none;width:100%;height:100%;overflow:hidden'
             this.iframe.addEventListener('load', this.loadListener)
             if (type === 'WidgetSandBox') this.iframe.src = this.owner.dependencies.sandboxUrl
-            else this.iframe.srcdoc = this.options.custom_HTML ?? ''
+            else {
+                window.addEventListener('message', this.readyListener)
+                this.iframe.srcdoc = this.customDocument(this.options.custom_HTML ?? '')
+            }
             this.content.append(this.iframe)
         } else {
             this.content.style.cssText += 'border:5px solid #c8c8c8;border-radius:10px;padding:5px;'
@@ -318,7 +370,7 @@ export class WidgetHost {
     /** Initialize Formio in legacy order; every async boundary guards removal during setup. */
     private async initializeForm(): Promise<void> {
         const form = await this.owner.dependencies.forms.createForm(this.formElement, this.options.form ?? {})
-        if (this.destroyed) { form.destroy(); return }
+        if (this.destroyed) { form.destroy(true); return }
         this.form = form
         await form.setForm(this.options.form ?? {})
         if (this.destroyed) return
@@ -342,7 +394,10 @@ export class WidgetHost {
     loadLog(): void {
         if (this.destroyed) return
         const logData = this.owner.dependencies.playback?.getLogData()
-        if (logData && this.frameLoaded) this.iframe?.contentWindow?.postMessage({ logData }, '*')
+        if (logData && this.frameLoaded) {
+            this.iframe?.contentWindow?.postMessage({ logData }, '*')
+            void this.setTime(this.owner.dependencies.playback?.getTime() ?? 0).catch(error => this.owner.dependencies.onError?.(error))
+        }
         for (const host of this.nested?.getWidgets() ?? []) host.loadLog()
     }
 
@@ -358,10 +413,12 @@ export class WidgetHost {
                     await this.renderTime(next)
                 }
             }
-            this.rendering = render().finally(() => {
+            let completed = false
+            this.rendering = render().then(() => { completed = true }).finally(() => {
                 this.rendering = undefined
                 // A request can arrive after the loop exits but before this finalizer runs.
-                if (!this.destroyed && this.latestTime !== undefined) return this.setTime(this.latestTime)
+                if (completed && !this.destroyed && this.latestTime !== undefined) return this.setTime(this.latestTime)
+                if (!completed) this.latestTime = undefined
             })
         }
         return this.rendering
@@ -370,6 +427,7 @@ export class WidgetHost {
     /** Send one frame request after the preceding acknowledgement has settled. */
     private async renderTime(time: number): Promise<void> {
         if (this.destroyed) return
+        if (this.readinessError) throw this.readinessError
         if (this.nested) {
             await Promise.all(this.nested.getWidgets().map(host => host.setTime(time)))
             return
@@ -385,7 +443,11 @@ export class WidgetHost {
             }
             /** Remove the exact callback identities owned by this request. */
             const cleanup = (): void => { window.removeEventListener('message', receive); window.clearTimeout(timer); this.pendingFrames.delete(cancel) }
-            const timer = window.setTimeout(() => { cleanup(); reject(new Error('Widget render acknowledgement timed out')) }, 5000)
+            const timer = window.setTimeout(() => {
+                cleanup()
+                this.readinessError = new Error('Widget render acknowledgement timed out; reload or edit the widget to resume')
+                reject(this.readinessError)
+            }, 5000)
             this.pendingFrames.add(cancel)
             window.addEventListener('message', receive)
             target.postMessage({ time }, '*')
@@ -510,13 +572,27 @@ export class WidgetHost {
     setText(text: string): void {
         if (this.destroyed) throw new Error('Widget is destroyed')
         const previous = this.getText()
-        if (this.model.type === 'WidgetSandBox') this.options.sandbox = text
+        // A timed-out document can still have a late untagged reply queued. Recovery
+        // owns a fresh WindowProxy, so it cannot acknowledge the replacement frame.
+        if (this.readinessError && this.iframe) {
+            const frame = this.iframe.cloneNode(false) as HTMLIFrameElement
+            frame.removeAttribute('src'); frame.removeAttribute('srcdoc')
+            this.iframe.removeEventListener('load', this.loadListener)
+            frame.addEventListener('load', this.loadListener)
+            this.iframe.replaceWith(frame)
+            this.iframe = frame
+            this.frameLoaded = false; this.documentLoaded = false
+            this.readinessError = undefined
+            if (this.model.type === 'WidgetSandBox') frame.src = this.owner.dependencies.sandboxUrl
+        }
+        if (this.model.type === 'WidgetSandBox') { this.readinessError = undefined; this.options.sandbox = text }
         else if (this.model.type === 'WidgetCustomHTML') {
             this.options.custom_HTML = text
             if (this.iframe) {
                 this.frameLoaded = false
+                this.documentLoaded = false
                 for (const cancel of this.pendingFrames) cancel()
-                this.iframe.srcdoc = text
+                this.iframe.srcdoc = this.customDocument(text)
             }
         } else throw new Error('Widget has no editable source')
         if (previous !== text) this.changed = true
@@ -544,7 +620,7 @@ export class WidgetHost {
         else {
             options = { form: this.form?.form ?? this.options.form ?? {}, form_content: data, about: this.options.about ?? { name: this.model.type } }
             if (this.model.type === 'WidgetSandBox') options.sandbox = this.options.sandbox ?? this.owner.dependencies.defaultSandboxScript ?? defaultScript
-            else options.custom_HTML = this.iframe?.srcdoc ?? this.options.custom_HTML ?? ''
+            else options.custom_HTML = this.options.custom_HTML ?? ''
         }
         return structuredClone({ x: this.element.getAttribute('gs-x'), y: this.element.getAttribute('gs-y'), w: this.element.getAttribute('gs-w'), h: this.element.getAttribute('gs-h'), type: this.model.type, options })
     }
@@ -564,8 +640,10 @@ export class WidgetHost {
         this.element.removeEventListener('dblclick', this.showForm)
         this.element.removeEventListener('keydown', this.editKey)
         this.form?.off('change', this.formListener)
-        this.form?.destroy()
+        this.form?.destroy(true)
         this.iframe?.removeEventListener('load', this.loadListener)
+        window.removeEventListener('message', this.readyListener)
+        window.clearTimeout(this.readinessTimer)
         this.iframe?.remove()
         this.image?.removeEventListener('load', this.resizeImage)
         this.observer?.disconnect()
