@@ -270,8 +270,8 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
                 await page.waitForFunction(time=>document.querySelector('video').currentTime>time+.1,initialTime)
                 beforePause = await page.locator('video').evaluate(video => ({ paused: video.paused, ended: video.ended, time: video.currentTime, duration: video.duration }))
                 await page.getByRole('button',{name:'||',exact:true}).click()
-                await page.waitForFunction(() => document.querySelector('video').paused, null, { timeout: 5000 })
-                assert.equal(await page.locator('video').evaluate(video=>video.paused),true)
+                await page.waitForFunction(() => { const video = document.querySelector('video'); return video.paused && !video.ended }, null, { timeout: 5000 })
+                assert.deepEqual(await page.locator('video').evaluate(video => ({ paused: video.paused, ended: video.ended })), { paused: true, ended: false })
             } finally {
                 let diagnosticTimer
                 try {
