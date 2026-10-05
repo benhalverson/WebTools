@@ -26,6 +26,7 @@ jobs:
       - run: pnpm test
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:simplegcs:browser:all
+      - run: pnpm test:stream-stats:browser
   browser:
     name: browser (${{ matrix.suite }})
     runs-on: ubuntu-latest
