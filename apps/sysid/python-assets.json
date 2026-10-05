@@ -1,0 +1,99 @@
+{
+  "micropip-0.6.0-py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/micropip-0.6.0-py3-none-any.whl",
+    "sha256": "1a3c889a69e6b2a15456f183e7711bd54175930cbe7ba09e91bec92cac8c418a"
+  },
+  "packaging-23.2-py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/packaging-23.2-py3-none-any.whl",
+    "sha256": "34c09d7d17c4b584b10edca9255281c11c4713f77c76945d918d7ffa0455c9fa"
+  },
+  "matplotlib-3.5.2-cp312-cp312-pyodide_2024_0_wasm32.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/matplotlib-3.5.2-cp312-cp312-pyodide_2024_0_wasm32.whl",
+    "sha256": "670024b6ec06a27fe933dda6cbca5140497ff67d80c70f70b6e6a2d4ccef9b5d"
+  },
+  "cycler-0.12.1-py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/cycler-0.12.1-py3-none-any.whl",
+    "sha256": "62243ceb501f58ad420395814f88d259d7546d115bd652e67d281b476b17c96e"
+  },
+  "six-1.16.0-py2.py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/six-1.16.0-py2.py3-none-any.whl",
+    "sha256": "176a02f2e3c155246b96ff0a8e8a35c35e74f666923a50e47d719f21e2d3b7f2"
+  },
+  "fonttools-4.51.0-py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/fonttools-4.51.0-py3-none-any.whl",
+    "sha256": "e27bd9df5b39f6210c66571b12aa2372310e9e96aee0b605fc5021716b5f3249"
+  },
+  "kiwisolver-1.4.5-cp312-cp312-pyodide_2024_0_wasm32.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/kiwisolver-1.4.5-cp312-cp312-pyodide_2024_0_wasm32.whl",
+    "sha256": "93324048b98508b7c87c8827f7fb810803f4c19e1216d3f44ea39ebefce5d977"
+  },
+  "numpy-1.26.4-cp312-cp312-pyodide_2024_0_wasm32.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/numpy-1.26.4-cp312-cp312-pyodide_2024_0_wasm32.whl",
+    "sha256": "4aeba609614f88fbb49d31bdafbc3f8e18e3ae4ba6d2b710c5281e5d22b64f9a"
+  },
+  "pillow-10.2.0-cp312-cp312-pyodide_2024_0_wasm32.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pillow-10.2.0-cp312-cp312-pyodide_2024_0_wasm32.whl",
+    "sha256": "b1ef215cdd2abc38fab5d821a86d730bc495e0450d34ed99d90c74f319f90f55"
+  },
+  "pyparsing-3.1.2-py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyparsing-3.1.2-py3-none-any.whl",
+    "sha256": "8db11035317ae75a36c2b4dea44eeba5630c8bd2f501e74a243dbbe93f511895"
+  },
+  "python_dateutil-2.9.0.post0-py2.py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+    "sha256": "1adf6847a0ae4a09bef1fc9954089766800ce6d9688a5329d04ad54bcf7d1f2c"
+  },
+  "pytz-2024.1-py2.py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pytz-2024.1-py2.py3-none-any.whl",
+    "sha256": "62dfa923a4643d5d56371fe08a8aa2ea63854d154cf46c09e7c91c167207eb1a"
+  },
+  "matplotlib_pyodide-0.2.2-py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/matplotlib_pyodide-0.2.2-py3-none-any.whl",
+    "sha256": "07d56729d9625b2b9bb9778a92c88c5c750476abb80f58d71b1386fed434eb8c"
+  },
+  "scipy-1.12.0-cp312-cp312-pyodide_2024_0_wasm32.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/scipy-1.12.0-cp312-cp312-pyodide_2024_0_wasm32.whl",
+    "sha256": "3eb24e2939b223bc946db8cd193b33ad2ebbd6c98004cf17f26e2bd4e5bad92c"
+  },
+  "openblas-0.3.26.zip": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/openblas-0.3.26.zip",
+    "sha256": "bdc0f6c43169c8cd80a6f708d873fd441e6e475f3615476907f8865c3efd5668"
+  },
+  "sympy-1.12-py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/sympy-1.12-py3-none-any.whl",
+    "sha256": "7a4792ab8d537fa71e1a0ee316e106132212e7ef1473fb6a31b325ad868f1802"
+  },
+  "mpmath-1.3.0-py3-none-any.whl": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/mpmath-1.3.0-py3-none-any.whl",
+    "sha256": "9fd7b1f3a8a915006c2b48071c89ba620780c714d7e60560d9095f38bb440d9d"
+  },
+  "control-0.10.2-py3-none-any.whl": {
+    "url": "https://files.pythonhosted.org/packages/f2/0a/9f4c2a811b065c92f2483f26657dca373699388c959193ef27a644af1805/control-0.10.2-py3-none-any.whl",
+    "sha256": "8f7b5c58f5ccd761a6c070e3dedceca4c53c7a9cf105fcc22caba7a67f99025a"
+  },
+  "pyodide.js": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js",
+    "sha256": "509cc18c8f8a650dcf739d94012726f1b9e3263312c13814c6a1e77ceffc6bd6",
+    "sha384": "66dfadc415158a777d4833ed0b1ec74cd2bc8e266214a5ff0a6dcc975b449c098628efd04919f556a33e56be3909bae3"
+  },
+  "pyodide.asm.js": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.asm.js",
+    "sha256": "1b849b89faaeafecd9dc038d3c40c10f2993a0ddae8446dcae57bd949dd223e1",
+    "sha384": "d0f969fa8b9c086552988bc9d45bd671f628a24f2677d6342da7f77d2f659e16f324b53e2b96d181be136d729b04d904"
+  },
+  "pyodide.asm.wasm": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.asm.wasm",
+    "sha256": "6513434bacb1842fcb0835289fd59f94ad4ece53637ff28e609fe5716751652f",
+    "sha384": "4a01305790b8c3517f0dc59fb5e6638b086fca2c98d25379a255687d5e6ec8d9b3f5a549591a0ec8b81d26d1e9af8acd"
+  },
+  "python_stdlib.zip": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/python_stdlib.zip",
+    "sha256": "d816de0c44c907f953b409c2de507a4609b3ba743df973eca8a09d3a3ed0ea47",
+    "sha384": "c6972a13e40abf811c56ec7095e7bdcf37e7b309336d0b47ce49e636a2c03fe5ef66a08017e2f8c76d4171e68e03b8ce"
+  },
+  "pyodide-lock.json": {
+    "url": "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide-lock.json",
+    "sha256": "b31c8b0f5e5e1f4370ca2413b4c68ca6bfa61e34dc2357d6701677767cc23098",
+    "sha384": "9b008b39c9028f9837e71e67ac2115104e63c7a32ffe924d64cd8c8f712b99ccd4022bb54702ed1d20e9f7df9a763aa8"
+  }
+}
