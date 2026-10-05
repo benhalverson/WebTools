@@ -54,7 +54,8 @@ jobs:
             test:react-workflows:browser \
             test:hardware-parameters:browser \
             test:kinematic-tools:browser \
-            test:scurve-tool:browser
+            test:scurve-tool:browser \
+            test:pid-review:browser
           do
             echo "::group::$suite"
             if pnpm "$suite"; then
