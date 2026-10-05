@@ -8,7 +8,7 @@ import { loadDataflashParser } from '../../../packages/dataflash/dist/index.js'
 /** Copies only the fixture's bytes into the ArrayBuffer consumed by the parser. */
 function buffer(bytes) { return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) }
 
-for (const fixture of ['pymavlink-test.BIN', 'plane-4.6.2-prefix.BIN']) test(`production log accessor matches every legacy message and last instance exactly: ${fixture}`, async () => {
+for (const fixture of ['pymavlink-test.BIN', 'plane-4.6.2-prefix.BIN']) test(`production log accessor matches every legacy message and last instance exactly: ${fixture}`, /** Verify the named log-service scenario against retained parser behavior. */ async () => {
     const legacyLog = await fixtureLog(fixture)
     const bytes = await readFile(new URL(`../../../packages/dataflash/fixtures/${fixture}`, import.meta.url))
     const service = createLogService('/', loadDataflashParser)
@@ -16,10 +16,10 @@ for (const fixture of ['pymavlink-test.BIN', 'plane-4.6.2-prefix.BIN']) test(`pr
     const mock = mockProvider({ existing: true })
     const legacy = legacySession(mock, legacyLog)
     await legacy.run('connectIfNeeded()')
-    for (const name of Object.keys(legacyLog.messageTypes).filter(name => !name.includes('['))) {
+    for (const name of Object.keys(legacyLog.messageTypes).filter(/** Compare base message names; instance aliases are selected by the accessor. */ name => !name.includes('['))) {
         const before = mock.calls.length
         await legacy.run(`window.get(${JSON.stringify(name)})`)
-        const uploaded = mock.calls.slice(before).find(([operation]) => operation === 'files.create')
+        const uploaded = mock.calls.slice(before).find(/** Locate the legacy upload that contains the selected message bytes. */ ([operation]) => operation === 'files.create')
         assert.equal(await service.getMessage(name), uploaded ? JSON.parse(uploaded[1]).bytes : undefined, name)
     }
     assert.equal(await service.getMessage('MISSING'), undefined)
@@ -28,7 +28,7 @@ for (const fixture of ['pymavlink-test.BIN', 'plane-4.6.2-prefix.BIN']) test(`pr
     assert.equal(await service.getMessage('GPS'), undefined)
 })
 
-test('repeated loads, corrupt replacement and disposal release previous parsed data', async () => {
+test('repeated loads, corrupt replacement and disposal release previous parsed data', /** Verify the named log-service scenario against retained parser behavior. */ async () => {
     await fixtureLog()
     const bytes = await readFile(new URL('../../../packages/dataflash/fixtures/plane-4.6.2-prefix.BIN', import.meta.url))
     const service = createLogService('/', loadDataflashParser)
@@ -43,11 +43,11 @@ test('repeated loads, corrupt replacement and disposal release previous parsed d
     assert.equal(service.hasLog(), false)
 })
 
-test('a parser resolving after unmount cannot restore retained log buffers', async () => {
+test('a parser resolving after unmount cannot restore retained log buffers', /** Verify the named log-service scenario against retained parser behavior. */ async () => {
     await fixtureLog()
     let resolve
-    const pending = new Promise(done => { resolve = done })
-    const service = createLogService('/', () => pending)
+    const pending = new Promise(/** Expose parser-load completion after disposal. */ done => { resolve = done })
+    const service = createLogService('/', /** Hold the parser constructor until the test releases it. */ () => pending)
     const loading = service.load(new ArrayBuffer(0))
     service.dispose()
     resolve(await loadDataflashParser())
@@ -55,7 +55,7 @@ test('a parser resolving after unmount cannot restore retained log buffers', asy
     assert.equal(service.hasLog(), false)
 })
 
-test('parser throwing during replacement cannot expose the preceding successful log', async () => {
+test('parser throwing during replacement cannot expose the preceding successful log', /** Verify the named log-service scenario against retained parser behavior. */ async () => {
     await fixtureLog()
     const Parser = await loadDataflashParser()
     const bytes = await readFile(new URL('../../../packages/dataflash/fixtures/plane-4.6.2-prefix.BIN', import.meta.url))
@@ -66,7 +66,7 @@ test('parser throwing during replacement cannot expose the preceding successful 
         /** Throws directly instead of relying on internally caught malformed fixture errors. */
         processData() { throw new Error('recorded parser failure') }
     }
-    const service = createLogService('/', async () => broken ? ThrowingParser : Parser)
+    const service = createLogService('/', /** Switch the next replacement to a parser that throws. */ async () => broken ? ThrowingParser : Parser)
     await service.load(buffer(bytes))
     assert.ok(await service.getMessage('BAT'))
     broken = true

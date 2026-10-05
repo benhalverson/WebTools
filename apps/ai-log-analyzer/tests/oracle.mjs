@@ -33,7 +33,7 @@ export function mockProvider(options = {}) {
     function record(name, args) { calls.push([name, JSON.stringify(args)]) }
     /** Implements deterministic SDK endpoints with recorded arguments. */
     function endpoint(name, result) {
-        return async (...args) => { record(name, args); return typeof result === 'function' ? result() : result }
+        return /** Record one mock SDK invocation before returning its configured result. */ async (...args) => { record(name, args); return typeof result === 'function' ? result() : result }
     }
     const client = {
         beta: {
@@ -48,9 +48,9 @@ export function mockProvider(options = {}) {
                 runs: {
                     /** SDK streaming starts synchronously and returns an async iterator. */
                     stream(...args) { record('runs.stream', args); return stream(runs.shift()) },
-                    create: endpoint('runs.create', () => stream(runs.shift())),
+                    create: endpoint('runs.create', /** Consume the next recorded response stream. */ () => stream(runs.shift())),
                     cancel: endpoint('runs.cancel', {}),
-                    submitToolOutputs: endpoint('runs.submitToolOutputs', () => stream(runs.shift())),
+                    submitToolOutputs: endpoint('runs.submitToolOutputs', /** Consume the next recorded response stream. */ () => stream(runs.shift())),
                 },
             },
         },
@@ -59,7 +59,7 @@ export function mockProvider(options = {}) {
             del: endpoint('files.del', {}),
             /** Captures the Blob verbatim instead of normalizing typed-array JSON. */
             async create({ file, purpose }) {
-                const operation = file.text().then(bytes => calls.push(['files.create', JSON.stringify({ name: file.name, type: file.type, purpose, bytes })]))
+                const operation = file.text().then(/** Record uploaded file text without numerical normalization. */ bytes => calls.push(['files.create', JSON.stringify({ name: file.name, type: file.type, purpose, bytes })]))
                 pending.push(operation)
                 await operation
                 return { id: 'file-1' }
@@ -77,8 +77,8 @@ export function legacySession(mock, log) {
         .replace(/^import .*$/gm, '')
     const messages = []
     const context = vm.createContext({
-        console: { log() {}, error() {} }, Blob, File, Response, URL, setTimeout, clearTimeout,
-        window: {}, document: { addEventListener() {}, getElementById() { return null } },
+        console: { /** Silence legacy diagnostics in the isolated oracle. */ log() {}, /** Silence expected legacy errors in the isolated oracle. */ error() {} }, Blob, File, Response, URL, setTimeout, clearTimeout,
+        window: {}, document: { /** Prevent automatic page initialization in the VM. */ addEventListener() {}, /** Omit unused DOM nodes from the provider-only oracle. */ getElementById() { return null } },
         /** Provides unchanged instructions and tool documents to the legacy loader. */
         fetch: async file => new Response(legacyFile(`AILogAnalyzer/${file}`)),
         /** Injects a fully recorded local SDK in place of the external provider. */
@@ -88,15 +88,15 @@ export function legacySession(mock, log) {
     })
     vm.runInContext(source, context)
     vm.runInContext(`log = suppliedLog; apiKey = 'mock-key';
-        addChatMessage = (content, sender) => messages.push({content, sender});
-        showThinkingMessage = () => {}; setProcessingState = () => {};
-        handleInvalidApiKey = () => {};`, context)
+        addChatMessage = /** Capture legacy message boundaries for differential assertions. */ (content, sender) => messages.push({content, sender});
+        showThinkingMessage = /** Suppress DOM-only thinking state in the oracle. */ () => {}; setProcessingState = /** Suppress DOM-only processing state in the oracle. */ () => {};
+        handleInvalidApiKey = /** Avoid constructing a credential modal in predicate tests. */ () => {};`, context)
     return {
         context, messages,
         /** Runs one legacy operation and drains detached tool-stream microtasks. */
         async run(expression) {
             await vm.runInContext(expression, context)
-            for (let iteration = 0; iteration < 30; iteration++) await new Promise(resolve => setImmediate(resolve))
+            for (let iteration = 0; iteration < 30; iteration++) await new Promise(/** Drain detached legacy tool continuations. */ resolve => setImmediate(resolve))
             await Promise.all(mock.pending)
         },
     }
@@ -104,7 +104,7 @@ export function legacySession(mock, log) {
 
 /** Loads each authoritative binary through the pinned retained parser. */
 export async function fixtureLog(name = 'plane-4.6.2-prefix.BIN') {
-    globalThis.self ??= { addEventListener() {} }
+    globalThis.self ??= { /** Provide the retained parser's worker-event registration surface. */ addEventListener() {} }
     const { default: Parser } = await import('../../../modules/JsDataflashParser/parser.js')
     const bytes = await readFile(new URL(`../../../packages/dataflash/fixtures/${name}`, import.meta.url))
     const log = new Parser()

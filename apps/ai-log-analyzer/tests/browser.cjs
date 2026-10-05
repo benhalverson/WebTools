@@ -12,7 +12,7 @@ async function stopProcess(child) {
     if (child.exitCode !== null || child.signalCode !== null) return;
     const exited = once(child, 'exit');
     process.kill(-child.pid, 'SIGTERM');
-    const timer = setTimeout(() => {
+    const timer = setTimeout(/** Terminate a process group that exceeds its cleanup or build deadline. */ () => {
         try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
     }, 5000);
     try { await exited; } finally { clearTimeout(timer); }
@@ -26,8 +26,8 @@ async function startServer(mode, base) {
     });
     let output = '';
     try {
-        const origin = await new Promise((resolve, reject) => {
-            const timer = setTimeout(() => reject(new Error('Gateway startup timeout:\n' + output)), 60000);
+        const origin = await new Promise(/** Resolve gateway readiness or reject startup failures. */ (resolve, reject) => {
+            const timer = setTimeout(/** Fail startup with captured gateway diagnostics. */ () => reject(new Error('Gateway startup timeout:\n' + output)), 60000);
             /** Parses the gateway readiness URL from complete output chunks. */
             const read = chunk => {
                 output += chunk.toString();
@@ -36,10 +36,10 @@ async function startServer(mode, base) {
             };
             child.stdout.on('data', read);
             child.stderr.on('data', read);
-            child.once('error', error => { clearTimeout(timer); reject(error); });
-            child.once('exit', code => { clearTimeout(timer); reject(new Error(`Gateway exited ${code}:\n${output}`)); });
+            child.once('error', /** Propagate server launch errors and release the readiness timer. */ error => { clearTimeout(timer); reject(error); });
+            child.once('exit', /** Report a gateway that exits before becoming ready. */ code => { clearTimeout(timer); reject(new Error(`Gateway exited ${code}:\n${output}`)); });
         });
-        return { origin, stop: () => stopProcess(child) };
+        return { origin, stop: /** Stop this gateway and all of its child Workers. */ () => stopProcess(child) };
     } catch (error) { await stopProcess(child); throw error; }
 }
 
@@ -50,9 +50,9 @@ async function build(base) {
         env: { ...process.env, WEBTOOLS_BASE_PATH: base, PORTAL_BASE_PATH: base },
     });
     let output = '';
-    child.stdout.on('data', chunk => { output += chunk.toString(); });
-    child.stderr.on('data', chunk => { output += chunk.toString(); });
-    const timer = setTimeout(() => { void stopProcess(child); }, 180000);
+    child.stdout.on('data', /** Retain build output for failure diagnostics. */ chunk => { output += chunk.toString(); });
+    child.stderr.on('data', /** Retain build output for failure diagnostics. */ chunk => { output += chunk.toString(); });
+    const timer = setTimeout(/** Terminate a process group that exceeds its cleanup or build deadline. */ () => { void stopProcess(child); }, 180000);
     try {
         const [code] = await once(child, 'exit');
         assert.equal(code, 0, `Build at ${base} failed:\n${output}`);
@@ -62,7 +62,7 @@ async function build(base) {
 
 /** Formats recorded events as a finite Assistants API server-sent event stream. */
 function eventStream(events) {
-    return events.map(event => `event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`).join('') + 'data: [DONE]\n\n';
+    return events.map(/** Encode one recorded provider event as an SSE frame. */ event => `event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`).join('') + 'data: [DONE]\n\n';
 }
 
 /** Delivers genuine SDK-compatible message lifecycle events with malicious HTML for sanitizer checks. */
@@ -82,7 +82,7 @@ async function mockNetwork(context, origin) {
     let failAuth = false;
     let failRun = false;
     let holdRun;
-    await context.route('**/*', async route => {
+    await context.route('**/*', /** Serve local assets or recorded provider responses without external traffic. */ async route => {
         const request = route.request();
         const url = new URL(request.url());
         if (url.origin === origin) return route.continue();
@@ -110,7 +110,7 @@ async function mockNetwork(context, origin) {
         } else if (url.pathname === '/v1/files') value = request.method() === 'GET' ? { data: [{ id: 'old-file', filename: 'output.json' }], object: 'list', has_more: false } : { id: 'file-1' };
         return route.fulfill({ status: 200, headers, json: value });
     });
-    return { calls, unauthorized() { failAuth = true; }, failedRun() { failRun = true; }, hold(promise) { holdRun = promise; } };
+    return { calls, /** Make the next assistant lookup return the recorded 401 error. */ unauthorized() { failAuth = true; }, /** Make the next run return a recorded failure event. */ failedRun() { failRun = true; }, /** Hold subsequent run responses until the supplied promise resolves. */ hold(promise) { holdRun = promise; } };
 }
 
 /** Enters a test-only credential using the real owned React form. */
@@ -142,8 +142,8 @@ async function workflow(context, page, origin, base, mock, expectedBytes) {
     await page.goto(origin + base + 'AILogAnalyzer/');
     await connect(page);
     assert.equal(await page.title(), 'Log Analyzer AI');
-    assert.equal(await page.evaluate(() => performance.getEntriesByType('resource').some(entry => new URL(entry.name).pathname.endsWith('/AILogAnalyzer/logAnalyzer.js'))), false, 'React app never executes retained owned legacy script');
-    const parsed = page.waitForResponse(response => response.url().includes('/parser/vendor/parser.js'));
+    assert.equal(await page.evaluate(/** Inspect executed resources for accidental legacy script loading. */ () => performance.getEntriesByType('resource').some(/** Identify the retained owned legacy script URL. */ entry => new URL(entry.name).pathname.endsWith('/AILogAnalyzer/logAnalyzer.js'))), false, 'React app never executes retained owned legacy script');
+    const parsed = page.waitForResponse(/** Observe the real staged parser asset becoming available. */ response => response.url().includes('/parser/vendor/parser.js'));
     await page.locator('#fileInput').setInputFiles(path.join(root, 'packages/dataflash/fixtures/plane-4.6.2-prefix.BIN'));
     await page.getByText('Log File Ready', { exact: true }).waitFor();
     // Wait for the real parser's staged import before asking for the local data.
@@ -151,24 +151,24 @@ async function workflow(context, page, origin, base, mock, expectedBytes) {
     await page.locator('#messageInput').fill('Analyze battery');
     await page.locator('#messageInput').press('Enter');
     await page.locator('#chatMessages strong').filter({ hasText: 'Recorded result' }).waitFor();
-    const upload = mock.calls.find(call => call.path === '/v1/files' && call.method === 'POST');
+    const upload = mock.calls.find(/** Locate the provider request asserted by this workflow. */ call => call.path === '/v1/files' && call.method === 'POST');
     assert.ok(upload, 'real SDK uploaded the tool output');
     assert.ok(upload.body.includes('filename="output.json"'));
     assert.ok(upload.body.includes('\r\n\r\n' + expectedBytes + '\r\n'), 'exact typed-array JSON bytes in multipart body');
-    const message = mock.calls.find(call => call.path.endsWith('/messages') && call.body.includes('Continue processing'));
+    const message = mock.calls.find(/** Locate the provider request asserted by this workflow. */ call => call.path.endsWith('/messages') && call.body.includes('Continue processing'));
     assert.deepEqual(JSON.parse(message.body).attachments, [{ file_id: 'file-1', tools: [{ type: 'code_interpreter' }] }]);
-    assert.ok(mock.calls.some(call => call.path.endsWith('/run-1/cancel')));
-    assert.equal(await page.evaluate(() => window.injected), undefined);
+    assert.ok(mock.calls.some(/** Check that the expected provider lifecycle operation occurred. */ call => call.path.endsWith('/run-1/cancel')));
+    assert.equal(await page.evaluate(/** Detect whether unsanitized provider HTML executed. */ () => window.injected), undefined);
     assert.equal(await page.locator('#chatMessages [onerror]').count(), 0);
-    assert.deepEqual(await page.evaluate(() => ({ local: { ...localStorage }, session: { ...sessionStorage } })), { local: {}, session: {} });
+    assert.deepEqual(await page.evaluate(/** Inspect browser storage for unintended credential persistence. */ () => ({ local: { ...localStorage }, session: { ...sessionStorage } })), { local: {}, session: {} });
     mock.failedRun();
     await page.locator('#messageInput').fill('Fail this mock run');
     await page.locator('#sendBtn').click();
     await page.getByText('Sorry, there was an error processing your request. Please try again.', { exact: true }).waitFor();
-    await page.waitForFunction(() => !document.querySelector('#sendBtn').disabled);
+    await page.waitForFunction(/** Wait until the owned send control exits processing state. */ () => !document.querySelector('#sendBtn').disabled);
     await page.locator('#updateAssistantBtn').click();
     await page.getByRole('button', { name: 'Updated', exact: true }).waitFor();
-    assert.ok(mock.calls.some(call => call.method === 'DELETE' && call.path === '/v1/assistants/assistant-1'));
+    assert.ok(mock.calls.some(/** Check that the expected provider lifecycle operation occurred. */ call => call.method === 'DELETE' && call.path === '/v1/assistants/assistant-1'));
     for (let cycle = 0; cycle < 3; cycle++) {
         await page.goto(origin + base);
         await page.goto(origin + base + 'AILogAnalyzer/');
@@ -177,9 +177,9 @@ async function workflow(context, page, origin, base, mock, expectedBytes) {
         await connect(page);
     }
     let release;
-    mock.hold(new Promise(resolve => { release = resolve; }));
+    mock.hold(new Promise(/** Expose release of the interrupted mock network response. */ resolve => { release = resolve; }));
     await page.locator('#messageInput').fill('Interrupted stream');
-    const request = page.waitForRequest(request => request.url().endsWith('/runs'));
+    const request = page.waitForRequest(/** Observe the run request before navigating away. */ request => request.url().endsWith('/runs'));
     await page.locator('#sendBtn').click();
     await request;
     await page.goto(origin + base);
@@ -194,23 +194,23 @@ async function workflow(context, page, origin, base, mock, expectedBytes) {
     await connect(page);
 }
 
-test('AILogAnalyzer mock provider, parser and Worker gateway in Chromium root/prefix dev/build', { timeout: 600000 }, async t => {
+test('AILogAnalyzer mock provider, parser and Worker gateway in Chromium root/prefix dev/build', { timeout: 600000 }, /** Run the same hermetic workflow across both hosting prefixes and server modes. */ async t => {
     const { fixtureLog, legacySession, mockProvider } = await import('./oracle.mjs');
     const log = await fixtureLog();
     const provider = mockProvider({ existing: true });
     const legacy = legacySession(provider, log);
     await legacy.run('connectIfNeeded()');
     await legacy.run('window.get("BAT")');
-    const expectedBytes = JSON.parse(provider.calls.find(([name]) => name === 'files.create')[1]).bytes;
+    const expectedBytes = JSON.parse(provider.calls.find(/** Extract the legacy upload used as the exact multipart oracle. */ ([name]) => name === 'files.create')[1]).bytes;
     const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/usr/bin/chromium', headless: true });
     try {
         for (const base of ['/Tools/WebTools/', '/']) {
             await build(base);
-            for (const mode of ['dev', 'preview']) await t.test(`${mode} ${base}`, { timeout: 120000 }, async () => {
+            for (const mode of ['dev', 'preview']) await t.test(`${mode} ${base}`, { timeout: 120000 }, /** Validate one actual gateway, Worker, and browser configuration. */ async () => {
                 const server = await startServer(mode, base);
                 const context = await browser.newContext();
                 const errors = [];
-                context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
+                context.on('page', /** Attach uncaught-error capture to every page in this context. */ page => page.on('pageerror', /** Preserve unhandled browser failures for the final assertion. */ error => errors.push(error.message)));
                 try {
                     const mock = await mockNetwork(context, server.origin);
                     await routes(context, server.origin, base);
