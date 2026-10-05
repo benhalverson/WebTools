@@ -24,32 +24,10 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck && pnpm lint
       - run: pnpm test
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:simplegcs:browser:all
-      - run: pnpm test:stream-stats:browser
   browser:
-    name: browser (${{ matrix.suite }})
+    name: browser
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      max-parallel: 4
-      matrix:
-        include:
-          - suite: pid-review
-            script: test:pid-review:browser
-          - suite: scurve-tool
-            script: test:scurve-tool:browser
-          - suite: portal
-            script: test:portal
-          - suite: rotation-check
-            script: test:rotation-check:browser
-          - suite: react-workflows
-            script: test:react-workflows:browser
-          - suite: hardware-parameters
-            script: test:hardware-parameters:browser
-          - suite: kinematic-tools
-            script: test:kinematic-tools:browser
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,7 +44,31 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm build
-      - run: pnpm ${{ matrix.script }}
+      - name: Run all browser suites
+        shell: bash
+        run: |
+          result=0
+          for suite in \
+            test:portal \
+            test:rotation-check:browser \
+            test:react-workflows:browser \
+            test:hardware-parameters:browser \
+            test:kinematic-tools:browser \
+            test:scurve-tool:browser \
+            test:pid-review:browser \
+            test:stream-stats:browser \
+            test:simplegcs:browser:all
+          do
+            echo "::group::$suite"
+            if pnpm "$suite"; then
+              echo "Passed: $suite"
+            else
+              echo "::error::Browser suite failed: $suite"
+              result=1
+            fi
+            echo "::endgroup::"
+          done
+          exit "$result"
   validate:
     if: ${{ always() }}
     needs: [checks, browser]
