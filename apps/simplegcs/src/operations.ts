@@ -1,10 +1,12 @@
+import { connectedParameters } from './parameters/connected-session.ts'
+import type { ParameterSession } from './parameters/session.ts'
 import { mavlink20 } from '@webtools/mavlink'
 import type { Connection, ConnectionEvent } from './connection.ts'
 import { CommandAcks, commandName, resultName, sendCommand } from './commands.ts'
 import { Downloads, emptyDownloads, type AutoDownloads, type DownloadsState, type DownloadKind } from './downloads.ts'
-export interface OperationsState extends DownloadsState { fenceEnabled: boolean; target: { lat: number; lng: number; seen: number } | null; status: string }
+export interface OperationsState extends DownloadsState { fenceEnabled: boolean; target: { lat: number; lng: number; seen: number } | null; status: string; parameterSession: ParameterSession | null }
 /** Construct fresh command/download state without timers or transport ownership. */
-export function emptyOperations(): OperationsState { return { ...emptyDownloads(), fenceEnabled: true, target: null, status: '' } }
+export function emptyOperations(): OperationsState { return { ...emptyDownloads(), fenceEnabled: true, target: null, status: '', parameterSession: null } }
 /** Coordinate selected-vehicle commands and transfers on the connection's existing codec. */
 export class Operations {
     private readonly connection: Connection
@@ -32,6 +34,7 @@ export class Operations {
         if (this.bound || !link) return
         this.bound = true
         this.downloads.manager.setLink(link.processor, link.transport, link.telemetry.system, link.telemetry.component)
+        this.update({ parameterSession: connectedParameters(this.downloads.manager, link.vehicleType) })
         this.downloads.start()
     }
     /** Consume only connection-filtered packets; target-addressed ACKs remain strict. */
@@ -69,7 +72,7 @@ export class Operations {
     /** Queue a manually requested mission or fence download. */
     fetch(kind: DownloadKind): void { this.downloads.fetch(kind) }
     /** Invalidate all per-vehicle state before a replacement socket can deliver packets. */
-    private reset(): void { this.bound = false; this.acks.clear(); this.downloads.reset(); this.state = emptyOperations(); this.publish(this.state) }
+    private reset(): void { this.bound = false; this.state.parameterSession?.model.disconnect(); this.acks.clear(); this.downloads.reset(); this.state.parameterSession?.dispose(); this.state = emptyOperations(); this.publish(this.state) }
     /** Release subscription and pending work before the React resource lifetime ends. */
     dispose(): void { this.unsubscribe(); this.reset() }
 }

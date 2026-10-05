@@ -93,7 +93,7 @@ async function scenarios(browser, origin, prefix) {
         assert.deepEqual(await page.evaluate(() => [fixture.map.getCenter().lat, fixture.map.getCenter().lng, fixture.map.getZoom()]), [-34, 148, 12]);
         await page.locator('#send_heartbeat').uncheck(); await page.locator('#connection_button').click(); await page.clock.runFor(100);
         const sent = await page.evaluate(() => fixture.sent.length); await page.clock.runFor(2000); assert.equal(await page.evaluate(() => fixture.sent.length), sent);
-        await page.locator('#menuBtn').click(); await page.getByLabel('Show Grid', { exact: true }).check(); await page.getByLabel('Show My Location', { exact: true }).check();
+        await page.locator('#menuBtn').click(); await page.getByRole('button', { name: 'Settings', exact: true }).click(); await page.getByLabel('Show Grid', { exact: true }).check(); await page.getByLabel('Show My Location', { exact: true }).check();
         assert.equal(await page.evaluate(() => fixture.watches.size), 1); assert.equal(await page.locator('#map canvas').count(), 1);
         await page.evaluate(() => fixture.watches.values().next().value.error({ code: 2 })); assert.equal(await page.evaluate(() => fixture.watches.size), 0);
         await page.clock.runFor(15000); assert.equal(await page.evaluate(() => fixture.watches.size), 1);

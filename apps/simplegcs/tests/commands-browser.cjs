@@ -95,7 +95,7 @@ async function parityScenario(browser, origin, prefix, legacy, fixtures) {
         const commands = await page.evaluate(() => fixture.sent.filter(bytes => new MAVLink20Processor().decode(bytes)._name === 'COMMAND_INT'));
         // These are real UI requests on React; legacy's public module API drives the same transfer scenarios.
         if (legacy) await page.evaluate(() => { Mission.fetch(); Fence.fetch(); });
-        else { await page.locator('#menuBtn').click(); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await page.getByRole('button', { name: 'Fetch Fence', exact: true }).click(); }
+        else { await page.locator('#menuBtn').click(); await openMenu(page); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await openMenu(page); await page.getByRole('button', { name: 'Fetch Fence', exact: true }).click(); }
         await page.clock.runFor(250); await page.waitForFunction(() => document.querySelectorAll('.mission-wp-label').length === 3);
         const rendered = await layers(page), packets = await page.evaluate(() => fixture.sent);
         assert.deepEqual(await page.locator('.mission-wp-label').allTextContents(), ['0', '7', '12']);
@@ -113,19 +113,19 @@ async function lifecycleScenario(browser, origin, prefix) {
         await page.goto(origin + prefix + 'SimpleGCS-preview/'); await page.waitForFunction(() => !!window.fixture.map); await page.clock.install(); await connect(page, false);
         await page.locator('#menuBtn').click();
         let accept = false; page.on('dialog', dialog => accept ? dialog.accept() : dialog.dismiss());
-        await page.getByRole('button', { name: 'ForceArm', exact: true }).click(); assert.equal(await page.evaluate(() => fixture.sent.length), 0);
-        accept = true; await page.getByRole('button', { name: 'ForceArm', exact: true }).click(); await page.getByRole('button', { name: 'ForceDisarm', exact: true }).click(); await page.getByRole('button', { name: 'Reboot', exact: true }).click(); await page.clock.runFor(100);
+        await openMenu(page); await page.getByRole('button', { name: 'ForceArm', exact: true }).click(); assert.equal(await page.evaluate(() => fixture.sent.length), 0);
+        accept = true; await openMenu(page); await page.getByRole('button', { name: 'ForceArm', exact: true }).click(); await openMenu(page); await page.getByRole('button', { name: 'ForceDisarm', exact: true }).click(); await openMenu(page); await page.getByRole('button', { name: 'Reboot', exact: true }).click(); await page.clock.runFor(100);
         assert.deepEqual(await page.evaluate(() => fixture.requests.filter(m => m._name === 'COMMAND_INT').map(m => [m.command, m.param1, m.param2])), [[400, 1, 21196], [400, 0, 21196], [246, 1, 0]]);
         await page.evaluate(() => { fixture.noACK = true; }); await page.locator('#armBtn').click(); await page.clock.runFor(4000);
         await page.evaluate(() => fixture.receive(fixture.sockets.at(-1), new mavlink20.messages.command_ack(400, 5, 50, 0, 255, 190))); await page.clock.runFor(4000); assert.match(await page.locator('#operations-status').textContent(), /IN_PROGRESS/);
         await page.clock.runFor(1000); assert.match(await page.locator('#operations-status').textContent(), /no acknowledgement/);
         await page.evaluate(() => { fixture.failSend = true; }); await page.locator('#armBtn').click(); assert.match(await page.locator('.toast').textContent(), /not sent/); await page.evaluate(() => { fixture.failSend = false; fixture.noACK = false; });
-        await page.getByLabel('Fetch mission on first heartbeat', { exact: true }).check(); await page.evaluate(() => { fixture.failFTP = true; }); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await page.clock.runFor(100);
+        await openSettings(page); await page.getByLabel('Fetch mission on first heartbeat', { exact: true }).check(); await page.evaluate(() => { fixture.failFTP = true; }); await openMenu(page); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await page.clock.runFor(100);
         assert.match(await page.locator('#operations-status').textContent(), /Failed to fetch mission/); const beforeRetry = await page.evaluate(() => fixture.requests.length);
         await page.clock.runFor(4900); assert.equal(await page.evaluate(() => fixture.requests.length), beforeRetry);
         await page.evaluate(() => { fixture.failFTP = false; }); await page.clock.runFor(200); assert.equal(await page.locator('.mission-wp-label').count(), 3);
-        await page.evaluate(() => { fixture.holdFTP = true; }); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); assert.equal(await page.getByRole('button', { name: 'Fetch Mission', exact: true }).isDisabled(), true);
-        await page.getByLabel('Fetch mission on first heartbeat', { exact: true }).uncheck(); await page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true }).click();
+        await page.evaluate(() => { fixture.holdFTP = true; }); await openMenu(page); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await openMenu(page); assert.equal(await page.getByRole('button', { name: 'Fetch Mission', exact: true }).isDisabled(), true);
+        await openSettings(page); await page.getByLabel('Fetch mission on first heartbeat', { exact: true }).uncheck(); await page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true }).click();
         await page.evaluate(() => { fixture.staleHandler = fixture.sockets.at(-1).onmessage; });
         await page.locator('#connectBtn').click(); await page.locator('#disconnection_button').click(); await page.clock.runFor(50); await page.waitForFunction(() => document.querySelectorAll('.mission-wp-label').length === 0); assert.equal(await page.locator('.mission-wp-label').count(), 0);
         await page.evaluate(() => { fixture.holdFTP = false; fixture.vehicle = 43; }); await page.locator('#connection_button').click(); await page.clock.runFor(100);
@@ -137,7 +137,7 @@ async function lifecycleScenario(browser, origin, prefix) {
             fixture.reply(old, new mavlink20.messages.command_ack(400, 2, 0, 0, 255, 190), fixture.staleHandler);
         }); await page.clock.runFor(100); assert.equal(await page.locator('.mission-wp-label').count(), 0); assert.equal(await page.locator('#operations-status').textContent(), 'ARM sent');
         await page.evaluate(() => { fixture.noACK = false; fixture.receive(fixture.sockets.at(-1), new mavlink20.messages.command_ack(400, 0, 0, 0, 255, 190)); });
-        await page.locator('#menuBtn').click(); await page.getByLabel('Fetch mission on first heartbeat', { exact: true }).check(); await page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true }).click();
+        await openSettings(page); await page.getByLabel('Fetch mission on first heartbeat', { exact: true }).check(); await page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true }).click();
         await page.locator('#connectBtn').click(); await page.locator('#disconnection_button').click(); await page.locator('#connection_button').click(); await page.clock.runFor(200); await page.waitForFunction(() => document.querySelectorAll('.mission-wp-label').length === 3);
 
         /** Count only command frames so background transfers cannot obscure gesture assertions. */
@@ -174,8 +174,8 @@ async function simulatorScenario(browser, origin, prefix) {
         const page = await context.newPage(), errors = []; page.on('pageerror', error => errors.push(error.message));
         await page.goto(origin + prefix + 'SimpleGCS-preview/'); await page.locator('#connectBtn').click(); await page.locator('#signing_passphrase').fill('local-test-key'); await page.locator('#connection_button').click(); await page.waitForFunction(() => document.getElementById('link-status').textContent === 'Live');
         await page.locator('#disarmBtn').click(); await page.waitForFunction(() => document.getElementById('armed-pill').textContent === 'DISARM');
-        await page.locator('#menuBtn').click(); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await page.waitForFunction(() => document.querySelectorAll('.mission-wp-label').length === 3);
-        await page.getByRole('button', { name: 'Fetch Fence', exact: true }).click(); await page.waitForFunction(() => document.getElementById('operations-status').textContent === 'Loaded 1 fence items');
+        await page.locator('#menuBtn').click(); await openMenu(page); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await page.waitForFunction(() => document.querySelectorAll('.mission-wp-label').length === 3);
+        await openMenu(page); await page.getByRole('button', { name: 'Fetch Fence', exact: true }).click(); await page.waitForFunction(() => document.getElementById('operations-status').textContent === 'Loaded 1 fence items');
         assert.deepEqual(errors, []);
     } finally { await context.close(); }
 }
@@ -198,3 +198,8 @@ async function main() {
     } finally { await browser.close(); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
+
+/** Reopen the legacy action menu only when a previous action dismissed it. */
+async function openMenu(page) { if (!(await page.getByRole('region', { name: 'GCS Menu', exact: true }).isVisible())) await page.locator('#menuBtn').click(); }
+/** Keep preference editing separate from one-shot command actions. */
+async function openSettings(page) { if (!(await page.getByRole('region', { name: 'Display Settings', exact: true }).isVisible())) { await openMenu(page); await page.getByRole('button', { name: 'Settings', exact: true }).click(); } }

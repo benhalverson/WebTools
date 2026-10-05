@@ -265,6 +265,9 @@ importers:
       leaflet:
         specifier: 1.9.4
         version: 1.9.4
+      leaflet.gridlayer.googlemutant:
+        specifier: 0.16.0
+        version: 0.16.0
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -1417,6 +1420,9 @@ packages:
   leaflet-rotatedmarker@0.2.0:
     resolution: {integrity: sha512-yc97gxLXwbZa+Gk9VCcqI0CkvIBC9oNTTjFsHqq4EQvANrvaboib4UdeQLyTnEqDpaXHCqzwwVIDHtvz2mUiDg==}
 
+  leaflet.gridlayer.googlemutant@0.16.0:
+    resolution: {integrity: sha512-wN8DxR5zplhZA6a5998AOluCL97H5lkr1yCLOT7siaQyc+hT6E8kcGqjAuSsEUSoaf/U3H25x8Avkp9OpgJpng==}
+
   leaflet@1.9.4:
     resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
 
@@ -2452,6 +2458,8 @@ snapshots:
   kleur@4.1.5: {}
 
   leaflet-rotatedmarker@0.2.0: {}
+
+  leaflet.gridlayer.googlemutant@0.16.0: {}
 
   leaflet@1.9.4: {}
 

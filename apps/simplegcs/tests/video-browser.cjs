@@ -87,7 +87,7 @@ async function scenarios(browser, origin, prefix, legacy = false) {
         if (!legacy) await page.waitForFunction(() => window.videoMap);
         await page.evaluate(fixtures); await page.clock.install();
         /** Trigger the same user action through each implementation's owned UI. */
-        async function toggle() { if (legacy) await page.evaluate(() => VideoPanel.toggle()); else { await page.locator('#menuBtn').click(); await page.locator('#video-inset').click(); await page.getByRole('region', { name: 'Display Settings' }).getByRole('button', { name: 'Close', exact: true }).click(); } }
+        async function toggle() { if (legacy) await page.evaluate(() => VideoPanel.toggle()); else { await page.locator('#menuBtn').click(); await page.locator('#video-inset').click(); } }
         const resizeListeners = await page.evaluate(() => videoListeners.get('resize')?.size || 0);
         await toggle(); await page.locator('#video-panel video').waitFor();
         const options = await page.evaluate(() => { const { url, user, pass } = videoFixture.readers.at(-1).options; return { url: url.replace(location.hostname, 'HOST'), user, pass }; });

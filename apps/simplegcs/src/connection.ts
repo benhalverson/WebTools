@@ -13,13 +13,14 @@ export interface LinkState { telemetry: Telemetry; status: string; stale: boolea
 /** Own the parser, replay windows, socket and every link timer for one React mount. */
 export class Connection {
     private generation = 0
+    private vehicleType = 0
     private readonly subscribers = new Set<(event: ConnectionEvent) => void>()
     /** Observe selected-vehicle packets and synchronous disconnects; unsubscribe before disposal. */
     subscribe(listener: (event: ConnectionEvent) => void): () => void { this.subscribers.add(listener); return () => { this.subscribers.delete(listener) } }
     /** Borrow the active codec/transport; consumers must relinquish them on disconnect. */
     vehicleLink() {
         const telemetry = this.state.telemetry
-        return this.socket?.readyState === 1 && telemetry.system > 0 ? { generation: this.generation, processor: this.processor, transport: this.socket, telemetry } : null
+        return this.socket?.readyState === 1 && telemetry.system > 0 ? { generation: this.generation, vehicleType: this.vehicleType, processor: this.processor, transport: this.socket, telemetry } : null
     }
     private readonly processor = new MAVLink20Processor()
     private readonly streams = new Map<string, Record<string, number>>()
@@ -98,6 +99,7 @@ export class Connection {
             }
             const telemetry = receiveTelemetry(this.state.telemetry, message, this.last!.url)
             if (!telemetry) continue
+            if (message._name === 'HEARTBEAT') this.vehicleType = message.type
             this.lastRx = Date.now(); this.attempts = 0
             this.update({ telemetry, status: 'Live', stale: false, phase: 'connected', lagSeconds: 0, mapIdentity: telemetry.identity })
             for (const listener of this.subscribers) listener({ type: 'message', message })
@@ -125,7 +127,7 @@ export class Connection {
         const socket = this.socket; this.socket = null
         for (const listener of this.subscribers) listener({ type: 'disconnect' })
         if (socket) { socket.onopen = socket.onclose = socket.onerror = socket.onmessage = null; try { socket.close(code, reason) } catch { /* A closed transport already relinquished its resources. */ } }
-        this.named.clear()
+        this.vehicleType = 0; this.named.clear()
         if (intentional) { this.last = null; this.attempts = 0 }
         this.update({ telemetry: emptyTelemetry(), status: 'Disconnected', stale: true, lagSeconds: 0, phase: 'disconnected', mapIdentity: intentional ? null : this.state.mapIdentity })
     }
