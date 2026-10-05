@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const { spawn, execFileSync } = require('node:child_process');
 const { once } = require('node:events');
+const { setTimeout: delay } = require('node:timers/promises');
 const path = require('node:path');
 const { chromium } = require('playwright');
 const { listeningOrigin } = require('@webtools/routing/tooling');
@@ -119,13 +120,17 @@ async function scenarios(browser, origin, prefix) {
         await sibling.waitForFunction(id => document.getElementById('component_id') && document.getElementById('component_id').value !== id, id); assert.notEqual(await sibling.locator('#component_id').inputValue(), id); await sibling.close();
         for (let i = 0; i < 3; i++) {
             await page.evaluate(() => simplegcsPreview.unmount()); await page.clock.runFor(100);
-            // An in-flight native request can be absent from both query lists. Its promise
-            // settles only after release, so observe completion before checking the lock table.
-            await page.waitForFunction(async () => {
+            // Playwright's waitForFunction treats an async predicate's Promise as truthy.
+            // Poll awaited results in Node so native release is independent of the mocked clock.
+            const deadline = performance.now() + 5000;
+            while (!await page.evaluate(async () => {
                 if (fixture.lockRequests.size !== 0) return false;
                 const { held, pending } = await navigator.locks.query();
-                return ![...held, ...pending].some(lock => lock.name.startsWith('simplegcs.component.'));
-            }, undefined, { timeout: 5000 });
+                return fixture.lockRequests.size === 0 && ![...held, ...pending].some(lock => lock.name.startsWith('simplegcs.component.'));
+            })) {
+                assert.ok(performance.now() < deadline, 'component lock requests and held/pending leases released within 5 seconds');
+                await delay(25);
+            }
             assert.deepEqual(await page.evaluate(async () => [fixture.sockets.filter(s => s.readyState !== 3).length, fixture.watches.size, fixture.maps.size, (await navigator.locks.query()).held.filter(l => l.name.startsWith('simplegcs.component.')).length]), [0, 0, 0, 0]);
             await page.evaluate(() => simplegcsPreview.mount()); await page.clock.runFor(100); await page.waitForFunction(() => fixture.maps.size === 1);
         }
