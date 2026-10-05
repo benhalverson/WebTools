@@ -12,5 +12,5 @@ apps/*/dist/
 apps/*/.wrangler/
 apps/*/worker-configuration.d.ts
 
-# Shared package build output
+# Compiled shared packages
 packages/*/dist/
