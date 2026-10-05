@@ -138,43 +138,62 @@ and real app controls in development and built Worker preview. The retained
 `RotationCheck/` scripts provide unchanged test oracles and legacy downloads;
 the React page does not load them.
 
-### SimpleGCS preview
+### SimpleGCS
 
-`apps/simplegcs` provides simulated connection, telemetry and parameter editing.
-Open `SimpleGCS-preview/` through `pnpm dev`, or run
-`pnpm --filter simplegcs dev` independently. Its own `build` and `preview`
-commands use the same `WEBTOOLS_BASE_PATH`/`PORTAL_BASE_PATH` convention and
-an independent Worker. The public `SimpleGCS/` destination still serves the
-complete legacy app, including commands and video.
+`apps/simplegcs` owns the complete React app and independent Worker at `SimpleGCS/`.
+Use `pnpm --filter simplegcs dev` or the shared gateway with the common hosting
+prefix. Connection, telemetry, map providers, parameters, commands, mission/fence
+transfers and inset/popout video share the app's resource lifetimes.
+Parameter operations and mission/fence transfers use one serialized FTP manager
+per connection; cancellation is scoped to the owning operation.
 
-The preview uses an in-memory MAVLink vehicle and simulated user location.
-Its offline Leaflet surface supports vehicle position/heading, retained pan
-and zoom, recentering and the metric grid. Tile-provider and auto-fetch choices
-retain their existing storage keys for the complete app; the preview makes no
-relay, vehicle, map-provider or device-location requests. Tests can inject
-`SIMPLEGCS_PREVIEW.socket`, `.location`, `.onMap`, `.parameters`, and
-`.onParameters` before the React entry
-loads. The socket factory receives the submitted URL and immutable settings;
-reconnects never read the in-progress editor draft.
+`pnpm test:simplegcs` covers protocol and model behavior.
+`pnpm test:simplegcs:browser:all` runs retained legacy acceptance plus telemetry,
+commands, parameter editing, video and native-WebSocket integration suites.
+Tests use controlled transports, media and provider fixtures.
 
-The parameter session factory supplies the shared `MAVParam` model, metadata
-loader, vehicle name, cancellation and disposal. Sessions are invalidated on
-transport disconnect; drafts and pending file/metadata callbacks cannot cross
-session boundaries. The editor provides defaults/reset, enum and signed bitmask
-controls, readonly validation, text-file import/export and upload/readback feedback.
+### FilterReview
 
-`pnpm test:simplegcs` compares telemetry, grid arithmetic, parameter formats and
-signed bytes with pinned legacy source.
-`pnpm test:simplegcs:browser` runs Chromium against the independent development
-and built Worker previews at root and prefix, plus the shared local gateway
-and the actual baseline legacy page. Its CDN replay accepts only pinned npm
-bytes matching the legacy HTML's SHA-384 integrity hashes; all other external
-browser requests are blocked. Fetch full Git history before running the
-comparison tests.
+`apps/filter-review` owns the React app and independent Worker at `FilterReview/`,
+under the common hosting prefix. Run `pnpm --filter filter-review dev`, or use
+`pnpm build && pnpm preview` for the shared gateway and built Workers.
 
-`pnpm test:simplegcs:parameters:browser` covers the React parameter editor in
-desktop/mobile Chromium, exact legacy file and protocol bytes, root/prefix
-routing, rejected or cancelled writes, and asynchronous resource cleanup.
+The app supports raw/batch gyro ingestion, FFT spectra, filter tracking and
+comparisons, tuning, exports and Open In. Computation runs in cancellable Workers;
+the DataFlash package retains its standalone ESM and adjacent vendor assets.
+`pnpm test:filter-review` checks numerical compatibility, and
+`pnpm test:filter-review:browser` exercises independent dev/built Workers and
+the gateway at root and nested prefixes, including resource cleanup.
+
+### AirspeedFit
+
+`apps/airspeed-fit` provides an independent React app and Worker at `AirspeedFit/`.
+Use `pnpm --filter airspeed-fit dev` or the shared gateway with `pnpm dev`;
+build and preview use the same hosting prefix as the other registered apps.
+`pnpm test:airspeed-fit` covers numerical compatibility, including recorded-log
+window/sensor selections, fitting, residuals and calibration exports.
+`pnpm test:airspeed-fit:browser` exercises dev and Worker controls at both prefixes,
+file replacement, exports, Open In and resource cleanup.
+
+### Geofence Generator
+
+`apps/geofence-generator` owns the React app and independent Worker at
+`GeofenceGenerator/`. Use its `dev`, `build` and `preview` package scripts or
+the shared gateway with the common hosting prefix. `pnpm test:geofence` and
+`pnpm test:geofence:browser` cover geometry/export compatibility and actual
+map controls, request cancellation and disposal using offline provider fixtures.
+
+### Video Overlay preview
+
+`apps/video-preview` owns the independent React app and Worker at
+`VideoOverlayPreview/`, under the common hosting prefix. The public
+`VideoOverlay/` route continues to serve the legacy application. Use
+`pnpm --filter video-preview dev` or the shared gateway with `pnpm dev`.
+`pnpm test:video-preview` checks log mapping and time formatting;
+`pnpm test:video-preview:browser` covers local video/log playback, widget editing,
+exports, root and nested prefixes, and resource cleanup. The optional
+`pnpm test:widget-consumers:browser` command runs dashboard, video preview and
+shared widget browser acceptance together.
 
 ### Linting and formatting
 

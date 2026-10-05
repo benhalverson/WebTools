@@ -31,11 +31,13 @@ React controls and lifecycle helpers backed by `@webtools/parameters` and the pi
   the original Blob and filename to injected legacy `FileSaver.saveAs` without
   re-encoding or replacing its browser-specific download behavior.
 - `useLoading` and `LoadingOverlay`: retain styling and double-animation-frame
-  scheduling. **Deliberately preserve the reviewed legacy bug:** the returned
+  scheduling. **Legacy loading contract:** the returned
   promise resolves after scheduling (not completion), and rejection leaves the
   overlay visible. Rejection is reported through `onError`; this does not repair
   or conceal the failure overlay. Unmount cancels queued frames and prevents
   stale state changes; it cannot cancel arbitrary caller-owned operations.
+  Explicit `cancel()` also discards queued frames and stale completions, dismisses
+  the overlay, and permits fresh work. Callers must separately abort their requests.
 - `OpenIn`: React renders the same destination input buttons and enable rules.
   Relative same-origin paths retain common hosting prefixes. `transferFile`
   returns an idempotent disposer for the legacy load listener or FileReader/delay

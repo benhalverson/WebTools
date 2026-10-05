@@ -7,13 +7,13 @@ import { compressLayout, decompressLayout, dashboardLink, readSettings } from '.
 import { applicationBase, applicationForPath } from '@webtools/routing'
 
 // Actual unchanged legacy comparison revision, before this issue's implementation.
-const base = '26687a5f54352699bb7d3ff3c9c811794043cf71'
+const base = 'e4d333f04cd3eb3da98fed787d5f3ce1c18ed7bd'
 const source = execFileSync('git', ['show', `${base}:TelemetryDashboard/TelemetryDashboard.js`], { encoding: 'utf8' })
 const oracle = vm.createContext({ TextEncoder, CompressionStream, DecompressionStream, Response, Uint8Array, btoa, atob, URL, URLSearchParams })
 vm.runInContext(source, oracle)
 
 test('legacy scripts and authoritative saved layouts stay byte-identical to the prerequisite base', async () => {
-    for (const file of ['TelemetryDashboard.js', 'index.html', 'Default_Layout.json', 'Widgets/SandBox.html']) {
+    for (const file of ['TelemetryDashboard.js', 'index.html', 'Default_Layout.json', 'Widgets/SandBox.html', 'WidgetEdit.js', 'Widgets/Base_Class.js', 'Widgets/Menu.js', 'Widgets/SubGrid.js', 'Widgets/SandBox.js', 'Widgets/CustomHTML.js']) {
         assert.deepEqual(await readFile(`TelemetryDashboard/${file}`), execFileSync('git', ['show', `${base}:TelemetryDashboard/${file}`]))
     }
 })
@@ -26,7 +26,7 @@ test('compressed layouts and dashboard links match unchanged legacy exact bytes'
         assert.equal(await decompressLayout(expected), json)
         assert.equal(await vm.runInContext('decompress_layout(json = ' + JSON.stringify(expected) + ')', oracle), json)
     }
-    const href = 'https://example.test/Tools/DashboardPlayback/?discard=1#old'
+    const href = 'https://example.test/Tools/TelemetryDashboard/?discard=1#old'
     for (const settings of [readSettings(''), readSettings('#ws=ws%3A%2F%2Flocalhost%3A1234&heartbeat=0&sysid=42&compid=0&signing=+secret+')]) {
         oracle.settings = settings; oracle.window = { location: { href } }; oracle.fixture = { header: { version: 1 }, widgets: {} }
         vm.runInContext('get_connection_params = () => settings; get_layout = () => fixture', oracle)
@@ -42,12 +42,12 @@ test('hash settings preserve legacy truthiness, IDs, whitespace and defaults', (
     })
 })
 
-test('playback routing leaves the public dashboard and unrelated routes with the portal', () => {
+test('public dashboard routing assigns the complete app and retains unrelated portal routes', () => {
     for (const prefix of ['/', '/Tools/WebTools/']) {
         const base = applicationBase('dashboardPlayback', prefix)
         assert.equal(applicationForPath(base, prefix), 'dashboardPlayback')
         assert.equal(applicationForPath(base.slice(0, -1), prefix), 'dashboardPlayback')
-        assert.equal(applicationForPath(prefix + 'TelemetryDashboard/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'TelemetryDashboard/', prefix), 'dashboardPlayback')
         assert.equal(applicationForPath(prefix + 'DashboardPlaybackExtra/', prefix), 'portal')
     }
 })

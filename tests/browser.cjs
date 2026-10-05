@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
 const paramFixture = require('./fixtures/params.json');
+const { cdnFixtures } = require('../apps/simplegcs/tests/legacy.cjs');
 
 (async () => {
     const root = path.resolve(__dirname, '..');
@@ -25,6 +26,14 @@ const paramFixture = require('./fixtures/params.json');
         browser = process.env.SIMPLEGCS_CDP_URL ? await chromium.connectOverCDP(process.env.SIMPLEGCS_CDP_URL) :
             await chromium.launch({headless:true, executablePath:process.env.CHROME_PATH || undefined});
         context = await browser.newContext({viewport:{width:1280,height:900},hasTouch:true});
+        const fixtures = cdnFixtures(), origin = `http://127.0.0.1:${server.address().port}`;
+        /** Replay verified pinned vendor bytes and block all live provider traffic. */
+        await context.route('**/*', route => {
+            const url = route.request().url();
+            if (new URL(url).origin === origin) return route.continue();
+            const fixture = fixtures.get(url);
+            return fixture ? route.fulfill(fixture) : route.abort();
+        });
         await context.addInitScript(({paramsHex,paramOffsets}) => {
             const state = window.testVehicle = {sent:[], sockets:[], armed:false, mode:0, reject: false, passphrase:"test-signing"};
             state.paramBytes=Uint8Array.from(paramsHex.match(/../g),byte=>parseInt(byte,16));

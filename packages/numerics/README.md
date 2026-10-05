@@ -24,7 +24,6 @@ against the original DOM helper. It does not contact external services.
 
 ## Compatibility boundary
 
-Comparison revision: `ac32dd6815808a5f3f4894e155c8cfdb72a715f4`.
 FFT submodule: `f8be92e1369f684da3e121e4c5b7fbcc8d50f868` (4.0.4).
 `build-vendor.mjs` copies the pinned CommonJS `lib/fft.js` **byte for byte**, along
 with the upstream README containing its MIT license. It never installs a new FFT
