@@ -61,7 +61,13 @@ jobs:
             test:log-finder:browser \
             test:filter-tool:browser \
             test:dashboard-playback:browser \
-            test:simplegcs:browser:all \
+            test:browser \
+            test:video \
+            test:simplegcs:browser \
+            test:simplegcs:commands:browser \
+            test:simplegcs:parameters:browser \
+            test:simplegcs:video \
+            test:simplegcs:integration:browser \
             test:thrust-expo:browser \
             test:mag-fit:browser \
             test:filter-review:browser \
