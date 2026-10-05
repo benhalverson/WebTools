@@ -22,7 +22,8 @@
     "test:simplegcs": "pnpm --filter @webtools/mavlink build && pnpm --filter simplegcs test",
     "test:simplegcs:browser": "node apps/simplegcs/tests/browser.cjs",
     "test:transfers:browser": "pnpm --filter @webtools/transfers test:browser",
-    "test:parameters:browser": "pnpm --filter @webtools/parameters test:browser"
+    "test:parameters:browser": "pnpm --filter @webtools/parameters test:browser",
+    "test:simplegcs:parameters:browser": "node apps/simplegcs/tests/parameters-browser.cjs"
   },
   "engines": {
     "node": ">=24 <25"

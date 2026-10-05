@@ -106,6 +106,9 @@ importers:
 
   apps/simplegcs:
     dependencies:
+      '@webtools/parameters':
+        specifier: workspace:*
+        version: link:../../packages/parameters
       '@webtools/mavlink':
         specifier: workspace:*
         version: link:../../packages/mavlink
