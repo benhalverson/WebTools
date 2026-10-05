@@ -113,10 +113,22 @@ for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'prev
         page.on('response', response => { if (response.status() >= 400 && !response.url().endswith('missing')) console.error('HTTP', response.status(), response.url()) })
         page.on('pageerror', error => { errors.push(error.message); console.error('Preview error', error.message) })
         await page.addInitScript(() => {
-            window.metrics = { created: 0, terminated: 0, purges: 0, sent: [] }
+            window.metrics = { created: 0, terminated: 0, purges: 0, progress: 0, cancelled: 0, sent: [] }
             const OriginalWorker = window.Worker
             window.Worker = class extends OriginalWorker {
-                constructor(...args) { super(...args); window.metrics.created++ }
+                constructor(...args) {
+                    super(...args); window.metrics.created++
+                    this.addEventListener('message', event => {
+                        if (event.data.kind === 'progress') {
+                            window.metrics.progress++
+                            if (window.cancelOnProgress) {
+                                window.cancelOnProgress = false
+                                document.querySelectorAll('button').forEach(button => { if (button.textContent === 'Cancel') button.click() })
+                                window.metrics.cancelled++
+                            }
+                        }
+                    })
+                }
                 terminate() { window.metrics.terminated++; super.terminate() }
             }
             let vendor
@@ -181,14 +193,10 @@ for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'prev
             await page.getByLabel('Load log').setInputFiles({ name: 'replace.bin', mimeType: 'application/octet-stream', buffer: bytes })
             await ready(page)
         }
-        await page.evaluate(() => {
-            const post = Worker.prototype.postMessage
-            window.restorePost = () => { Worker.prototype.postMessage = post }
-            Worker.prototype.postMessage = function(...args) { window.releaseJob = () => post.apply(this, args) }
-        })
+        await page.evaluate(() => { window.cancelOnProgress = true })
         await page.getByRole('button', { name: 'Recalculate', exact: true }).click()
-        await page.getByRole('button', { name: 'Cancel', exact: true }).click()
-        await page.evaluate(() => { window.restorePost(); window.releaseJob?.() })
+        await page.waitForFunction(() => window.metrics.cancelled === 1)
+        assert.equal(await page.locator('#FFTPlot').count(), 0, 'cancel from actual FFT progress suppresses queued results')
         await page.getByRole('button', { name: 'Reset', exact: true }).click()
         await page.evaluate(bytes => window.postMessage({ type: 'arrayBuffer', data: new Uint8Array(bytes).buffer }, '*'), [...fixture('raw')])
         await ready(page)
