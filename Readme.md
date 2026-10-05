@@ -194,3 +194,12 @@ contracts; `pnpm test:video-preview:browser` covers actual browser playback,
 exports, root and nested prefixes, and resource cleanup.
 `pnpm test:widget-consumers:browser` runs dashboard, video and shared widget
 browser acceptance sequentially, retaining failures while completing all suites.
+
+### Linting and formatting
+
+Owned workspace code uses pinned Biome tooling. Run `pnpm lint` for the
+read-only lint gate, `pnpm format:check -- <path>` to inspect formatting, and
+`pnpm format -- <path>` to format a selected owned file. See
+[the tooling policy](tooling/biome-policy.md) for source boundaries and the
+explicit compatibility rules. Formatting is opt-in; existing files were not
+mass-reformatted.

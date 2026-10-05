@@ -15,13 +15,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "oxlint --deny-warnings src tests",
+    "lint": "biome lint --error-on-warnings .",
     "test": "pnpm --filter @webtools/transfers build && pnpm build && tsc -p tsconfig.tests.json && node --test tests/*.test.mjs",
     "test:browser": "pnpm build && node tests/browser.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2",
-    "oxlint": "1.81.0",
     "vite": "8.3.0",
     "@webtools/transfers": "workspace:*"
   }
