@@ -1,0 +1,10 @@
+{
+  "vendor/plotly.min.js": "modules/plotly.js/dist/plotly.min.js",
+  "images/AP_favicon.png": "images/AP_favicon.png",
+  "images/ArduPilot.png": "images/ArduPilot.png",
+  "images/github-mark.png": "images/github-mark.png",
+  "images/GitHub_Logo.png": "images/GitHub_Logo.png",
+  "Matrix3.js": "RotationCheck/Matrix3.js",
+  "RotationCheck.js": "RotationCheck/RotationCheck.js",
+  "Readme.md": "RotationCheck/Readme.md"
+}

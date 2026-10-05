@@ -1,0 +1,6 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rotation-check", "main": "worker/index.ts", "compatibility_date": "2026-10-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "binding": "ASSETS", "html_handling": "none", "not_found_handling": "none", "run_worker_first": true }
+}
