@@ -238,19 +238,39 @@ async function checkLifecycle(context, page, origin, base, oracle) {
             await comparePlots(unavailable, await oracle.runLegacy({}));
         } finally { await unavailable.close(); }
         const interrupted = await context.newPage();
+        const started = performance.now();
+        const timeline = [];
+        /** Retain bounded diagnostics for this page's startup without waiting on a blocked renderer. */
+        function record(event, detail = '') {
+            if (timeline.length < 200) timeline.push({ milliseconds: Math.round(performance.now() - started), event, detail });
+        }
+        interrupted.on('request', request => record('request', request.url()));
+        interrupted.on('requestfinished', request => record('requestfinished', request.url()));
+        interrupted.on('requestfailed', request => record('requestfailed', `${request.url()}: ${request.failure()?.errorText}`));
+        interrupted.on('domcontentloaded', () => record('domcontentloaded'));
+        interrupted.on('load', () => record('load'));
+        interrupted.on('pageerror', error => record('pageerror', error.message));
+        interrupted.on('console', message => { if (message.type() === 'error') record('console', message.text()); });
         let release;
         let observed;
+        let timer;
         const held = new Promise(resolve => { release = resolve; });
         const requested = new Promise(resolve => { observed = resolve; });
-        await interrupted.route(pattern, async route => { observed(); await held; await route.abort().catch(() => {}); });
+        await interrupted.route(pattern, async route => { record('intercepted', route.request().url()); observed(); await held; await route.abort().catch(() => {}); });
         try {
             await interrupted.goto(app, { waitUntil: 'commit' });
+            record('navigation committed', interrupted.url());
+            // A commit precedes blocking vendor scripts and Vite startup. Require the
+            // request within the same bounded budget as the unavailable-resource check.
             await Promise.race([requested, new Promise((_, reject) => {
-                const timer = setTimeout(() => reject(new Error('Resource request not observed: ' + pattern)), 15000);
-                requested.then(() => clearTimeout(timer));
+                timer = setTimeout(() => reject(new Error('Resource request not observed within 60 seconds: ' + pattern)), 60000);
             })]);
+            clearTimeout(timer);
             await interrupted.goto(origin + base, { waitUntil: 'domcontentloaded' });
-        } finally { release(); await interrupted.close(); }
+        } catch (error) {
+            console.error('Interrupted resource startup failure', { pattern, url: interrupted.url(), timeline });
+            throw error;
+        } finally { clearTimeout(timer); release(); await interrupted.close(); }
     }
 }
 

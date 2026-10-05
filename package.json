@@ -51,6 +51,7 @@
     "test:mag-fit": "node --test apps/mag-fit/tests/*.test.cjs",
     "test:mag-fit:browser": "node --test apps/mag-fit/tests/browser.cjs",
     "test:simplegcs:parameters:browser": "node apps/simplegcs/tests/parameters-browser.cjs",
+    "test:simplegcs:video": "node apps/simplegcs/tests/video-browser.cjs",
     "format": "biome format --write",
     "format:check": "biome format"
   },

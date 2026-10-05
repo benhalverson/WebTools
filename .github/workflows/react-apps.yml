@@ -65,7 +65,8 @@ jobs:
             test:simplegcs:browser \
             test:thrust-expo:browser \
             test:mag-fit:browser \
-            test:simplegcs:parameters:browser
+            test:simplegcs:parameters:browser \
+            test:simplegcs:video
           do
             echo "::group::$suite"
             if pnpm "$suite"; then
