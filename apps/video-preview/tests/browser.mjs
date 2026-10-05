@@ -3,9 +3,10 @@ import test from 'node:test'
 import { spawn, execFileSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createServer } from 'node:http'
-import { readFile, stat } from 'node:fs/promises'
+import { readFile, stat, mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { resolve, extname, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { tmpdir } from 'node:os'
 import { chromium } from 'playwright'
 import { listeningOrigin } from '@webtools/routing/tooling'
 
@@ -172,14 +173,16 @@ async function comparePixels(page, actual, expected) {
             const canvas = new OffscreenCanvas(image.width,image.height), context = canvas.getContext('2d')
             context.drawImage(image,0,0); return context.getImageData(0,0,image.width,image.height).data
         })
+        const dimensions = images.map(image => ({ width: image.width, height: image.height }))
+        const differences = []
         let maximum = 0, changed = 0
         for (let offset=0;offset<values[0].length;offset+=4) {
             let difference=0
             for (let channel=0;channel<4;channel++) difference=Math.max(difference,Math.abs(values[0][offset+channel]-values[1][offset+channel]))
-            maximum=Math.max(maximum,difference);if(difference)changed++
+            maximum=Math.max(maximum,difference);if(difference){changed++; if(differences.length<100) differences.push({x:(offset/4)%images[0].width,y:Math.floor(offset/4/images[0].width),actual:Array.from(values[0].slice(offset,offset+4)),expected:Array.from(values[1].slice(offset,offset+4)),difference})}
         }
         for (const image of images) image.close()
-        return { maximum, changed }
+        return { maximum, changed, dimensions, differences }
     }, [Array.from(actual),Array.from(expected)])
 }
 
@@ -536,6 +539,19 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
                 frame.contentWindow.postMessage({logData:new Uint8Array(bytes).buffer},'*');
                 frame.contentWindow.postMessage({time},'*');await done;
             },{widget:layout.widgets[3],bytes:[...bytes],time:finalTime-finalOffset})
+            // Widget renderDone does not acknowledge native video seeking/presentation.
+            // A paused video may not issue another video-frame callback, so wait for
+            // its native state synchronously, then allow two animation frames.
+            const mediaState = target => target.locator('video').evaluate(video => ({ currentTime: video.currentTime, paused: video.paused, seeking: video.seeking, readyState: video.readyState }))
+            const beforeMedia = await Promise.all([page, old].map(mediaState))
+            for (const target of [page, old]) {
+                await target.waitForFunction(time => {
+                    const video = document.querySelector('video')
+                    return video.paused && !video.seeking && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && Math.abs(video.currentTime - time) < 1e-6
+                }, finalTime, { timeout: 5000 })
+                await target.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+            }
+            console.log('pixel media readiness', { mode, prefix, before: beforeMedia, after: await Promise.all([page, old].map(mediaState)) })
             // Settled dimensions and pixels must match the same legacy widget documents.
             const actualFrames = page.locator('#dashboard iframe'), legacyFrames = old.locator('#dashboard iframe')
             for (let index=0;index<4;index++) {
@@ -543,6 +559,26 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
                 assert.ok(Math.abs(a.width-b.width)<=.5 && Math.abs(a.height-b.height)<=.5,'iframe geometry rounding tolerance')
                 const ai=await actualFrames.nth(index).screenshot(),bi=await legacyFrames.nth(index).screenshot()
                 const pixels = await comparePixels(page, ai, bi)
+                const sameDimensions = pixels.dimensions[0].width === pixels.dimensions[1].width && pixels.dimensions[0].height === pixels.dimensions[1].height
+                if (!sameDimensions || pixels.maximum > 6 || pixels.changed > 8) {
+                    const artifactRoot = process.env.WEBTOOLS_BROWSER_ARTIFACTS || tmpdir()
+                    await mkdir(artifactRoot, { recursive: true })
+                    const directory = await mkdtemp(resolve(artifactRoot, `video-pixels-${mode}-${prefix === '/' ? 'root' : 'prefix'}-${index}-`))
+                    const geometry = async frame => frame.evaluate(element => {
+                        const ancestors = []
+                        for (let current = element; current; current = current.parentElement) {
+                            const style = getComputedStyle(current)
+                            ancestors.push({ tag: current.tagName, id: current.id, className: current.className, rect: current.getBoundingClientRect().toJSON(), background: style.background, borderRadius: style.borderRadius, border: style.border, transform: style.transform })
+                        }
+                        const video = document.querySelector('video')
+                        const media = video ? { currentTime: video.currentTime, seeking: video.seeking, readyState: video.readyState, rect: video.getBoundingClientRect().toJSON() } : null
+                        return { devicePixelRatio, ancestors, media }
+                    })
+                    const diagnostic = { actualBox: a, expectedBox: b, actual: await geometry(actualFrames.nth(index)), expected: await geometry(legacyFrames.nth(index)), ...pixels }
+                    await Promise.all([writeFile(`${directory}/actual.png`, ai), writeFile(`${directory}/expected.png`, bi), writeFile(`${directory}/diagnostic.json`, JSON.stringify(diagnostic, null, 2))])
+                    console.log('pixel mismatch artifacts', directory, JSON.stringify(diagnostic))
+                }
+                assert.deepEqual(pixels.dimensions[0], pixels.dimensions[1], `iframe ${index}: decoded screenshot dimensions`)
                 assert.ok(pixels.maximum <= 6 && pixels.changed <= 8, `iframe ${index}: ${JSON.stringify(pixels)} exceeds border antialias tolerance`)
             }
             const download = page.waitForEvent('download'); await page.getByRole('button',{name:'Save layout',exact:true}).click()
