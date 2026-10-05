@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.23.0",
   "scripts": {
-    "dev": "pnpm --filter @webtools/react-workflows... build && node tooling/serve.ts dev",
+    "dev": "pnpm --filter mag-fit^... build && node tooling/serve.ts dev",
     "typecheck": "pnpm -r --if-present typecheck && pnpm --filter portal exec tsc -p ../../tooling/tsconfig.json",
     "lint": "pnpm -r --if-present lint && apps/portal/node_modules/.bin/oxlint --deny-warnings tooling",
     "test": "pnpm --filter @webtools/numerics test && node --test tests/*.test.cjs && pnpm test:dataflash",
@@ -20,7 +20,9 @@
     "test:rotation-check:browser": "node --test apps/rotation-check/tests/browser.cjs",
     "test:numerics:browser": "pnpm --filter @webtools/numerics test:browser",
     "test:dataflash": "pnpm --filter @webtools/dataflash test",
-    "test:dataflash:browser": "pnpm --filter @webtools/dataflash test:browser"
+    "test:dataflash:browser": "pnpm --filter @webtools/dataflash test:browser",
+    "test:mag-fit": "node --test apps/mag-fit/tests/*.test.cjs",
+    "test:mag-fit:browser": "node --test apps/mag-fit/tests/browser.cjs"
   },
   "engines": {
     "node": ">=24 <25"

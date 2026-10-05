@@ -7,10 +7,10 @@ import { applicationBase, applicationForPath, hostingPrefix, serveAssets } from 
 const binding = { async fetch(request: Request) { return new Response(new URL(request.url).pathname === '/index.html' ? 'page' : 'missing', { status: new URL(request.url).pathname === '/index.html' ? 200 : 404 }) } }
 
 test('mount and prefix contracts enforce path boundaries', () => {
-    for (const prefix of ['/', '/Tools/WebTools/']) {
-        const base = applicationBase('rotationCheck', prefix)
-        assert.equal(applicationForPath(base, prefix), 'rotationCheck')
-        assert.equal(applicationForPath(base.slice(0, -1), prefix), 'rotationCheck')
+    for (const prefix of ['/', '/Tools/WebTools/']) for (const application of ['rotationCheck', 'magFit'] as const) {
+        const base = applicationBase(application, prefix)
+        assert.equal(applicationForPath(base, prefix), application)
+        assert.equal(applicationForPath(base.slice(0, -1), prefix), application)
         assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
     }
     assert.equal(hostingPrefix('/Tools'), '/Tools/')
