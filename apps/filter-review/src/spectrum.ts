@@ -3,7 +3,8 @@ import type { WindowCorrection } from '@webtools/numerics'
 import type { Sensor, Source } from './ingestion.ts'
 
 export interface Spectrum { bins: number[]; time: number[]; average_sample_rate: number; window_size: number; correction: WindowCorrection; x: number[][]; y: number[][]; z: number[][] }
-export interface Settings { size: number; perBatch: number }
+/** Preserve raw control text until legacy parseInt is applied in the Worker. */
+export interface Settings { size: number | string; perBatch: number | string }
 export type Scale = 'linear' | 'db' | 'psd'
 
 /** Compute FilterReview's Hann-windowed, 50%-overlapping gyro FFT.

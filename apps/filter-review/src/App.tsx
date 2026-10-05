@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { OpenIn, Plot, useOpenInReceiver, type PlotlyApi, type PlotFields } from '@webtools/react-workflows'
-import { fft_amplitude_scale, fft_frequency_scale } from '@webtools/numerics'
+import { fft_amplitude_scale, fft_frequency_scale, fft_window_size_inc } from '@webtools/numerics'
 import { applicationBase } from '@webtools/routing'
 import type { Source } from './ingestion.ts'
 import { displayed, type Scale } from './spectrum.ts'
@@ -14,7 +14,7 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
     const [file, setFile] = useState<File | null>(null)
     const [source, setSource] = useState<Source>('batch')
     const [instance, setInstance] = useState(0)
-    const [size, setSize] = useState(1024), [perBatch, setPerBatch] = useState(1)
+    const [size, setSize] = useState('1024'), [perBatch, setPerBatch] = useState('1')
     const [range, setRange] = useState<[number, number]>([0, 0])
     const [scale, setScale] = useState<Scale>('db')
     const [rpm, setRpm] = useState(false), [logFrequency, setLogFrequency] = useState(false)
@@ -75,8 +75,8 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
                 </select></label>
             </fieldset>
             <fieldset><legend>FFT</legend>
-                <label>Window size <input aria-label="Window size" type="number" min="2" value={size} disabled={source === 'batch'} onChange={event => setSize(Number(event.target.value))} /></label>
-                <label>Windows per batch <input aria-label="Windows per batch" type="number" min="1" value={perBatch} disabled={source === 'raw'} onChange={event => setPerBatch(Number(event.target.value))} /></label>
+                <label>Window size <input aria-label="Window size" type="number" min="2" value={size} disabled={source === 'batch'} onChange={event => { fft_window_size_inc({ target: event.currentTarget }); setSize(event.currentTarget.value) }} /></label>
+                <label>Windows per batch <input aria-label="Windows per batch" type="number" min="1" value={perBatch} disabled={source === 'raw'} onChange={event => setPerBatch(event.target.value)} /></label>
                 <button disabled={!file} onClick={() => recalculate()}>Recalculate</button>
                 <button disabled={review.progress === null} onClick={review.cancel}>Cancel</button>
                 <button onClick={reset}>Reset</button>

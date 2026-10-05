@@ -66,3 +66,10 @@ test('fractional FFT controls retain parseInt behavior', () => {
         assert.equal(serialize(calculate(actual.sensors[0], source, settings, () => {})), serialize(legacy.spectrum(0)))
     }
 })
+
+test('scientific notation retains legacy parseInt input semantics', () => {
+    const log = parse(fixture('raw')), settings = {size: '1.024e3', perBatch: '1'}
+    const actual = ingest(log, 'raw'), legacy = oracle(log, 'raw', settings)
+    assert.throws(() => legacy.spectrum(0))
+    assert.throws(() => calculate(actual.sensors[0], 'raw', settings, () => {}))
+})
