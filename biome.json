@@ -1,0 +1,335 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "files": {
+    "includes": [
+      "tooling/**",
+      "apps/airspeed-fit/src/**",
+      "apps/airspeed-fit/worker/**",
+      "apps/airspeed-fit/tooling/**",
+      "apps/airspeed-fit/tests/**",
+      "apps/airspeed-fit/vite.config.ts",
+      "apps/dashboard-playback/src/**",
+      "apps/dashboard-playback/worker/**",
+      "apps/dashboard-playback/tooling/**",
+      "apps/dashboard-playback/tests/**",
+      "apps/dashboard-playback/vite.config.ts",
+      "apps/dfu-loader/src/**",
+      "apps/dfu-loader/worker/**",
+      "apps/dfu-loader/tests/**",
+      "apps/dfu-loader/vite.config.ts",
+      "apps/filter-review/src/**",
+      "apps/filter-review/worker/**",
+      "apps/filter-review/tooling/**",
+      "apps/filter-review/tests/**",
+      "apps/filter-review/vite.config.ts",
+      "apps/filter-tool/src/**",
+      "apps/filter-tool/worker/**",
+      "apps/filter-tool/tooling/**",
+      "apps/filter-tool/tests/**",
+      "apps/filter-tool/vite.config.ts",
+      "apps/hardware-report/src/**",
+      "apps/hardware-report/worker/**",
+      "apps/hardware-report/tooling/**",
+      "apps/hardware-report/tests/**",
+      "apps/hardware-report/vite.config.ts",
+      "apps/kinematic-tools/src/**",
+      "apps/kinematic-tools/worker/**",
+      "apps/kinematic-tools/tooling/**",
+      "apps/kinematic-tools/tests/**",
+      "apps/kinematic-tools/vite.config.ts",
+      "apps/log-finder/src/**",
+      "apps/log-finder/worker/**",
+      "apps/log-finder/tests/**",
+      "apps/log-finder/vite.config.ts",
+      "apps/mag-fit/src/**",
+      "apps/mag-fit/worker/**",
+      "apps/mag-fit/tests/**",
+      "apps/mag-fit/vite.config.ts",
+      "apps/pid-review/src/**",
+      "apps/pid-review/worker/**",
+      "apps/pid-review/tooling/**",
+      "apps/pid-review/tests/**",
+      "apps/pid-review/vite.config.ts",
+      "apps/portal/src/**",
+      "apps/portal/worker/**",
+      "apps/portal/tooling/**",
+      "apps/portal/tests/**",
+      "apps/portal/vite.config.ts",
+      "apps/rotation-check/src/**",
+      "apps/rotation-check/worker/**",
+      "apps/rotation-check/tooling/**",
+      "apps/rotation-check/tests/**",
+      "apps/rotation-check/vite.config.ts",
+      "apps/scurve-tool/src/**",
+      "apps/scurve-tool/worker/**",
+      "apps/scurve-tool/tooling/**",
+      "apps/scurve-tool/tests/**",
+      "apps/scurve-tool/vite.config.ts",
+      "apps/simplegcs/src/**",
+      "apps/simplegcs/worker/**",
+      "apps/simplegcs/tests/**",
+      "apps/simplegcs/vite.config.ts",
+      "apps/stream-stats/src/**",
+      "apps/stream-stats/worker/**",
+      "apps/stream-stats/tooling/**",
+      "apps/stream-stats/tests/**",
+      "apps/stream-stats/vite.config.ts",
+      "apps/thrust-expo/src/**",
+      "apps/thrust-expo/worker/**",
+      "apps/thrust-expo/tooling/**",
+      "apps/thrust-expo/tests/**",
+      "apps/thrust-expo/vite.config.ts",
+      "packages/dataflash/src/**",
+      "packages/dataflash/tests/**",
+      "packages/dataflash/build.mjs",
+      "packages/mavlink/src/**",
+      "packages/mavlink/tooling/**",
+      "packages/mavlink/tests/**",
+      "packages/numerics/src/**",
+      "packages/numerics/tests/**",
+      "packages/numerics/tooling/**",
+      "packages/parameters/src/**",
+      "packages/parameters/tests/**",
+      "packages/react-workflows/src/**",
+      "packages/react-workflows/tests/**",
+      "packages/routing/src/**",
+      "packages/routing/tests/**",
+      "packages/transfers/src/**",
+      "packages/transfers/tooling/**",
+      "packages/transfers/tests/**",
+      "packages/widget-runtime/src/**",
+      "packages/widget-runtime/tests/**",
+      "!!**/fixtures/**",
+      "!!**/vendor/**",
+      "!!**/dist/**",
+      "!!**/node_modules/**",
+      "!**/worker-configuration.d.ts"
+    ],
+    "ignoreUnknown": true
+  },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 4,
+    "lineWidth": 120
+  },
+  "assist": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": false,
+      "complexity": {
+        "noBannedTypes": "error",
+        "noExtraBooleanCast": "error",
+        "noUselessCatch": "error",
+        "noUselessEmptyExport": "error",
+        "noUselessEscapeInRegex": "error",
+        "noUselessRename": "error",
+        "noUselessThisAlias": "error"
+      },
+      "correctness": {
+        "noConstAssign": "error",
+        "noConstantCondition": "error",
+        "noEmptyCharacterClassInRegex": "error",
+        "noEmptyPattern": "error",
+        "noGlobalObjectCalls": "error",
+        "noInvalidBuiltinInstantiation": "error",
+        "noInvalidConstructorSuper": "error",
+        "noNonoctalDecimalEscape": "error",
+        "noPrecisionLoss": "error",
+        "noSelfAssign": "error",
+        "noSetterReturn": "error",
+        "noUnreachable": "error",
+        "noUnreachableSuper": "error",
+        "noUnsafeFinally": "error",
+        "noUnsafeOptionalChaining": "error",
+        "noUnusedLabels": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUnusedVariables": "error",
+        "useIsNan": "error",
+        "useValidForDirection": "error",
+        "useValidTypeof": "error",
+        "useYield": "error",
+        "useHookAtTopLevel": "error"
+      },
+      "security": {
+        "noGlobalEval": "error"
+      },
+      "style": {
+        "useAsConstAssertion": "error",
+        "useComponentExportOnlyModules": {
+          "level": "error",
+          "options": {
+            "allowConstantExport": true
+          }
+        }
+      },
+      "suspicious": {
+        "noAssignInExpressions": "error",
+        "noAsyncPromiseExecutor": "error",
+        "noCatchAssign": "error",
+        "noClassAssign": "error",
+        "noCompareNegZero": "error",
+        "noConstantBinaryExpressions": "error",
+        "noControlCharactersInRegex": "error",
+        "noDebugger": "error",
+        "noDuplicateCase": "error",
+        "noDuplicateClassMembers": "error",
+        "noDuplicateElseIf": "error",
+        "noDuplicateEnumValues": "error",
+        "noDuplicateObjectKeys": "error",
+        "noEmptySource": "error",
+        "noExtraNonNullAssertion": "error",
+        "noForIn": "error",
+        "noFunctionAssign": "error",
+        "noGlobalAssign": "error",
+        "noImportAssign": "error",
+        "noIrregularWhitespace": "error",
+        "noMisleadingCharacterClass": "error",
+        "noMisleadingInstantiator": "error",
+        "noNonNullAssertedOptionalChain": "error",
+        "noShadowRestrictedNames": "error",
+        "noSparseArray": "error",
+        "noThenProperty": "error",
+        "noUnassignedVariables": "error",
+        "noUnsafeDeclarationMerging": "error",
+        "noUnsafeNegation": "error",
+        "noUnusedExpressions": "error",
+        "noUselessRegexBackrefs": "error",
+        "noWith": "error",
+        "useArraySortCompare": "error",
+        "useGetterReturn": "error",
+        "useNamespaceKeyword": "error"
+      }
+    }
+  },
+  "css": {
+    "linter": {
+      "enabled": false
+    }
+  },
+  "json": {
+    "linter": {
+      "enabled": false
+    }
+  },
+  "html": {
+    "linter": {
+      "enabled": false
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "apps/mag-fit/src/quaternion.ts"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noPrecisionLoss": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/hardware-report/src/model/log-extractions.ts",
+        "apps/hardware-report/src/model/log-report.ts",
+        "apps/pid-review/src/model.ts",
+        "apps/simplegcs/tests/browser.cjs",
+        "apps/simplegcs/tests/video-browser.cjs",
+        "apps/thrust-expo/tests/browser.cjs",
+        "apps/thrust-expo/tests/legacy.cjs",
+        "packages/react-workflows/tests/regressions.mjs",
+        "packages/widget-runtime/tests/consumer/main.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noAssignInExpressions": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/hardware-report/tests/log-plots.test.mjs",
+        "apps/stream-stats/src/App.tsx",
+        "apps/sysid/tests/parity.test.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "useArraySortCompare": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/hardware-report/src/OpenInMenu.tsx",
+        "apps/log-finder/src/App.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noShadowRestrictedNames": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/analytic-tune/src/filters.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noForIn": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "packages/mavlink/src/globals.d.ts"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noUselessEmptyExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/ai-log-analyzer/tests/lifecycle-fixture/main.tsx",
+        "apps/analytic-tune/tests/lifetime.tsx",
+        "apps/geofence-generator/tests/lifecycle/main.tsx",
+        "apps/hardware-report/src/LogReport.tsx",
+        "apps/log-finder/tests/lifecycle.tsx",
+        "apps/thrust-expo/src/ThrustTable.tsx",
+        "packages/react-workflows/src/files.tsx",
+        "packages/react-workflows/src/loading.tsx",
+        "packages/react-workflows/src/open-in.tsx",
+        "packages/react-workflows/tests/consumer/main.tsx",
+        "packages/widget-runtime/tests/consumer/main.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useComponentExportOnlyModules": "off"
+          }
+        }
+      }
+    }
+  ]
+}
