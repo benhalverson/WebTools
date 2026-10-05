@@ -12,6 +12,9 @@ test('mount and prefix contracts enforce path boundaries', () => {
         assert.equal(applicationForPath(base, prefix), 'rotationCheck')
         assert.equal(applicationForPath(base.slice(0, -1), prefix), 'rotationCheck')
         assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'FilterReview/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'FilterReviewPreview/', prefix), 'filterReviewPreview')
+        assert.equal(applicationForPath(prefix + 'FilterReviewPreviewExtra/', prefix), 'portal')
     }
     assert.equal(hostingPrefix('/Tools'), '/Tools/')
     for (const value of ['https://bad/', '//bad/', '/../', '/%2e/', '/a?b']) assert.throws(() => hostingPrefix(value))

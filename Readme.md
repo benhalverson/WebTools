@@ -142,3 +142,19 @@ unchanged test oracles and legacy downloads; the React page does not load them.
 The issue #5 branch also includes prerequisite browser/JSDoc follow-up
 `91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
 identical to the original comparison revision above.
+
+### FilterReview spectrum preview
+
+The independent React preview is at `/FilterReviewPreview/` (under
+`WEBTOOLS_BASE_PATH` or the compatible `PORTAL_BASE_PATH` prefix).
+Run `pnpm --filter filter-review dev`, or `pnpm build && pnpm preview`
+for the same-origin gateway and built Workers. The complete public
+`/FilterReview/` route remains legacy until issue #16.
+
+The preview owns local raw/batch gyro ingestion, IMU/source controls, FFT jobs,
+time selection, spectra and Open In. Each calculation uses a fresh, cancellable
+Worker; the DataFlash package is served as standalone ESM with adjacent vendor
+assets. Filter tracking and tuning remain in the complete tool.
+`pnpm test:filter-review` compares against unchanged integrated base
+`0c4e5ca`; `pnpm test:filter-review:browser` exercises actual Chromium,
+independent dev/built Workers and the gateway at root and nested prefixes.
