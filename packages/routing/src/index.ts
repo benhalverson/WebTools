@@ -1,5 +1,5 @@
 /** Stable public mount names shared by apps, Workers and local tooling. */
-export const applications = { portal: '', rotationCheck: 'RotationCheck/', hardwareParameters: 'HardwareReportParameters/', kinematicTools: 'KinematicTool/', scurveTool: 'SCurveTool/', pidReview: 'PIDReview/', simplegcsPreview: 'SimpleGCS-preview/' } as const
+export const applications = { portal: '', rotationCheck: 'RotationCheck/', hardwareParameters: 'HardwareReportParameters/', kinematicTools: 'KinematicTool/', scurveTool: 'SCurveTool/', pidReview: 'PIDReview/', simplegcs: 'SimpleGCS/' } as const
 export type Application = keyof typeof applications
 
 /** Normalize a common hosting prefix, rejecting encoded paths and traversal. */

@@ -18,7 +18,7 @@ export interface AppProps { simulated?: boolean; parameters?: ParameterSessionFa
 function unavailableParameters(): ParameterSession { throw new Error('No injected parameter factory') }
 const providers = [['osm', 'OpenStreetMap (default)'], ['opentopomap', 'OpenTopoMap'], ['carto-light', 'Carto Light'], ['carto-dark', 'Carto Dark'], ['esri-world-imagery', 'Esri World Imagery (Satellite)'], ['au-ga-topo', 'Australia — Geoscience Topographic'], ['uk-os-opendata', 'UK — Ordnance Survey OpenData'], ['google', 'Google Maps (Roadmap)'], ['google-terrain', 'Google Maps (Terrain)'], ['google-satellite', 'Google Maps (Satellite)'], ['google-hybrid', 'Google Maps (Hybrid)']]
 const options = [['showGrid', 'Show Grid'], ['showLocation', 'Show My Location'], ['showGPSNumSats', 'Show GPS NumSats'], ['autoFetchFence', 'Fetch fence on first heartbeat'], ['autoFetchMission', 'Fetch mission on first heartbeat']] as const
-/** Render the intermediate telemetry, command and transfer flow; all converted UI state is owned by React. */
+/** Render the complete connection, command, parameter, map and video workflows; all converted UI state is owned by React. */
 export default function App({ socket, location, storage, locks, onMap, config, simulated, parameters, onParameters }: AppProps) {
     const { connection, draft, link, busy, error, connect, disconnect, edit } = useConnection(socket, storage, locks, config)
     const [logError, setLogError] = useState<{ text: string } | null>(null)

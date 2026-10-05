@@ -19,7 +19,7 @@
     "test:rotation-check": "node --test apps/rotation-check/tests/*.test.*",
     "test:rotation-check:browser": "node --test apps/rotation-check/tests/browser.cjs",
     "test:mavlink:browser": "pnpm --filter @webtools/mavlink test:browser",
-    "test:simplegcs": "pnpm --filter @webtools/transfers... build && pnpm --filter simplegcs test",
+    "test:simplegcs": "pnpm --filter @webtools/transfers... --filter @webtools/parameters build && pnpm --filter simplegcs test",
     "test:simplegcs:browser": "node apps/simplegcs/tests/browser.cjs",
     "test:simplegcs:video": "node apps/simplegcs/tests/video-browser.cjs",
     "test:dataflash": "pnpm --filter @webtools/dataflash test",
@@ -38,9 +38,11 @@
     "test:scurve-tool": "node --test apps/scurve-tool/tests/*.test.ts",
     "test:scurve-tool:browser": "node --test apps/scurve-tool/tests/browser.cjs",
     "test:simplegcs:integration:browser": "node --test apps/simplegcs/tests/integration-browser.cjs",
-    "test:simplegcs:acceptance": "pnpm test:simplegcs && pnpm test:simplegcs:browser && pnpm test:simplegcs:commands:browser && pnpm test:simplegcs:parameters:browser && pnpm test:simplegcs:video && pnpm test:simplegcs:integration:browser",
+    "test:simplegcs:acceptance": "pnpm test:simplegcs && pnpm test:simplegcs:browser:all",
     "test:pid-review": "node --test apps/pid-review/tests/*.test.mjs",
-    "test:pid-review:browser": "node --test apps/pid-review/tests/browser.mjs"
+    "test:pid-review:browser": "node --test apps/pid-review/tests/browser.mjs",
+    "test:simplegcs:legacy:browser": "pnpm test:browser && pnpm test:video",
+    "test:simplegcs:browser:all": "pnpm test:simplegcs:legacy:browser && pnpm test:simplegcs:browser && pnpm test:simplegcs:commands:browser && pnpm test:simplegcs:parameters:browser && pnpm test:simplegcs:video && pnpm test:simplegcs:integration:browser"
   },
   "engines": {
     "node": ">=24 <25"

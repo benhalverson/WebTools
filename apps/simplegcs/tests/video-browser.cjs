@@ -83,7 +83,7 @@ async function scenarios(browser, origin, prefix, legacy = false) {
         });
         const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
         if (!legacy) await page.addInitScript(() => { window.SIMPLEGCS_PREVIEW = { onMap(map) { window.videoMap = map; } }; });
-        await page.goto(origin + (legacy ? '/' : prefix + 'SimpleGCS-preview/?retained=1'));
+        await page.goto(origin + (legacy ? '/' : prefix + 'SimpleGCS/?retained=1&simulate=1'));
         if (!legacy) await page.waitForFunction(() => window.videoMap);
         await page.evaluate(fixtures); await page.clock.install();
         /** Trigger the same user action through each implementation's owned UI. */
@@ -178,7 +178,7 @@ async function scenarios(browser, origin, prefix, legacy = false) {
             assert.equal(await popup.locator('video').evaluate(video => video.srcObject), null);
             await popup.close();
         }
-        if (!legacy) { assert.equal(new URL(page.url()).search, '?retained=1'); await page.evaluate(() => simplegcsPreview.unmount()); }
+        if (!legacy) { assert.equal(new URL(page.url()).search, '?retained=1&simulate=1'); await page.evaluate(() => simplegcsPreview.unmount()); }
         assert.deepEqual(errors, []); return { options, auth, hls };
     } finally { await context.close(); }
 }
@@ -197,18 +197,18 @@ async function realReader(browser, origin, prefix) {
             window.addEventListener = (name, callback, options) => { if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(callback); add(name, callback, options); };
             window.removeEventListener = (name, callback, options) => { listeners.get(name)?.delete(callback); remove(name, callback, options); };
         });
-        const page = await context.newPage(); await page.goto(origin + prefix + 'SimpleGCS-preview/');
+        const page = await context.newPage(); await page.goto(origin + prefix + 'SimpleGCS/?simulate=1');
         await page.locator('#menuBtn').click(); await page.locator('#video-inset').click();
         await page.getByText(/WebRTC · Authentication failed/).waitFor();
         for (let i = 0; i < 2; i++) {
-            const pending = context.waitForEvent('page'); await page.locator('#video-new-window').click(); const popup = await pending;
+            const pending = context.waitForEvent('page'); await page.locator('#menuBtn').click(); await page.locator('#video-new-window').click(); const popup = await pending;
             await popup.getByText(/WebRTC · Authentication failed/).waitFor();
-            assert.equal(new URL(popup.url()).pathname, prefix + 'SimpleGCS-preview/video.html'); assert.equal(new URL(popup.url()).search, ''); assert.equal(await popup.evaluate(() => opener), null);
+            assert.equal(new URL(popup.url()).pathname, prefix + 'SimpleGCS/video.html'); assert.equal(new URL(popup.url()).search, ''); assert.equal(await popup.evaluate(() => opener), null);
             await popup.close();
         }
         await page.evaluate(() => simplegcsPreview.unmount()); const count = requests.length; await page.waitForTimeout(2300); assert.equal(requests.length, count);
         assert.ok(requests.some(request => request.method === 'POST')); assert.ok(requests.filter(request => ['POST', 'OPTIONS'].includes(request.method)).every(request => request.auth === 'Basic ' + Buffer.from('viewer:fixture-view').toString('base64')));
-        const direct = await context.newPage(); await direct.goto(origin + prefix + 'SimpleGCS-preview/video.html'); await direct.getByText('Open video from the GCS video panel.').waitFor();
+        const direct = await context.newPage(); await direct.goto(origin + prefix + 'SimpleGCS/video.html'); await direct.getByText('Open video from the GCS video panel.').waitFor();
     } finally { await context.close(); }
 }
 /** Validate independent development and built Worker routing at root and the configured prefix. */
@@ -226,10 +226,10 @@ async function main() {
         try {
             assert.deepEqual(await scenarios(browser, gateway.origin, '/Tools/WebTools/'), expected);
             await realReader(browser, gateway.origin, '/Tools/WebTools/');
-            const response = await fetch(gateway.origin + '/Tools/WebTools/SimpleGCS/video.js');
+            const response = await fetch(gateway.origin + '/Tools/WebTools/SimpleGCS/vendor/mediamtx/reader.js');
             assert.equal(response.status, 200);
-            assert.deepEqual(Buffer.from(await response.arrayBuffer()), execFileSync('git', ['show', '2ce2994419c96d5912f952c3cd659d1b6e630aff:SimpleGCS/video.js'], { cwd: root }));
-            console.log('PASS video same-origin gateway; public legacy video bytes unchanged');
+            assert.deepEqual(Buffer.from(await response.arrayBuffer()), execFileSync('git', ['show', '2ce2994419c96d5912f952c3cd659d1b6e630aff:SimpleGCS/vendor/mediamtx/reader.js'], { cwd: root }));
+            console.log('PASS video same-origin gateway; public video route with unchanged pinned reader bytes');
         } finally { await stop(gateway.child); }
     } finally { await legacy.stop(); await browser.close(); }
 }

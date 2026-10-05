@@ -39,12 +39,13 @@ test('Vite readiness handles plain, colored and incomplete startup output', () =
     assert.equal(listeningOrigin('http://127.0.0.1:\u001b['), undefined)
 })
 
-test('intermediate SimpleGCS preview never takes over the public complete tool', () => {
+test('complete SimpleGCS owns the public destination and sibling video at each prefix', () => {
     for (const prefix of ['/', '/Tools/WebTools/']) {
-        assert.equal(applicationBase('simplegcsPreview', prefix), prefix + 'SimpleGCS-preview/')
-        assert.equal(applicationForPath(prefix + 'SimpleGCS-preview/', prefix), 'simplegcsPreview')
-        assert.equal(applicationForPath(prefix + 'SimpleGCS-preview', prefix), 'simplegcsPreview')
-        assert.equal(applicationForPath(prefix + 'SimpleGCS/', prefix), 'portal')
-        assert.equal(applicationForPath(prefix + 'SimpleGCS-previewExtra/', prefix), 'portal')
+        assert.equal(applicationBase('simplegcs', prefix), prefix + 'SimpleGCS/')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS/', prefix), 'simplegcs')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS', prefix), 'simplegcs')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS/video.html', prefix), 'simplegcs')
+        assert.equal(applicationForPath(prefix + 'SimpleGCSExtra/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS-preview/', prefix), 'portal')
     }
 })

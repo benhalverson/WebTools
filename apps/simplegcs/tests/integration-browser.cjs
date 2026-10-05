@@ -71,7 +71,7 @@ test('native local sockets, shared command/parameter FTP, config, tiles, message
                 });
                 await context.addInitScript(() => { window.SIMPLEGCS_PREVIEW = { onParameters(session) { window.nativeSession = session; }, onMap(map) { window.nativeMap = map; } }; });
                 const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
-                await page.goto(server.origin + prefix + 'SimpleGCS-preview/?native=1');
+                await page.goto(server.origin + prefix + 'SimpleGCS/');
                 await page.waitForFunction(() => !!window.simplegcsPreview);
                 assert.equal(await page.title(), 'Local GCS acceptance');
                 await page.locator('#connectBtn').click(); assert.equal(await page.locator('#target_url').inputValue(), `ws://127.0.0.1:${ws.address().port}`);
@@ -100,7 +100,7 @@ test('native local sockets, shared command/parameter FTP, config, tiles, message
                     await page.locator('#connectBtn').click(); await page.locator('#disconnection_button').click(); await page.locator('#connection_button').click(); await page.waitForFunction(() => document.querySelector('#link-status').textContent === 'Live');
                 }
                 await page.evaluate(() => { simplegcsPreview.unmount(); window.__onGMapsLoaded(); }); await assertEventually(() => sockets.size === 0 && peers.size === 0);
-                for (const missing of ['no-such.js', 'video-missing.html', 'assets/no-such.js']) assert.equal((await page.request.get(server.origin + prefix + 'SimpleGCS-preview/' + missing)).status(), 404);
+                for (const missing of ['no-such.js', 'video-missing.html', 'assets/no-such.js']) assert.equal((await page.request.get(server.origin + prefix + 'SimpleGCS/' + missing)).status(), 404);
                 assert.deepEqual(errors, []); console.log(`PASS native integration ${mode} ${prefix}`);
             } finally { await context.close(); await stop(server.child); }
         }

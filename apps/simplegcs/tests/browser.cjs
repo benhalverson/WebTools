@@ -78,7 +78,7 @@ async function scenarios(browser, origin, prefix) {
         await context.addInitScript(inject);
         const page = await context.newPage(), errors = []; page.on('pageerror', error => errors.push(error.message));
         page.on('console', msg => { if(msg.type() === 'error') console.error(msg.text()); }); page.on('response', response => { if(response.status() >= 400) console.error(response.status(), response.url()); });
-        await page.goto(origin + prefix + 'SimpleGCS-preview/');
+        await page.goto(origin + prefix + 'SimpleGCS/?simulate=1');
         await page.waitForFunction(() => window.simplegcsPreview && window.fixture.map);
         await page.clock.install();
         await page.locator('#connectBtn').click(); await page.locator('#component_id').fill('190'); await page.locator('#connection_button').click(); await page.clock.runFor(100);
@@ -115,7 +115,7 @@ async function scenarios(browser, origin, prefix) {
         assert.equal(await page.locator('#map canvas').count(), 1);
         await page.clock.runFor(1600); await page.waitForFunction(() => !document.querySelector('.toast')); assert.equal(await page.locator('.toast').count(), 0);
         const id = await page.locator('#component_id').inputValue(); const sibling = await context.newPage();
-        await sibling.addInitScript(id => sessionStorage.setItem('gcs.componentId', id), id); await sibling.goto(origin + prefix + 'SimpleGCS-preview/');
+        await sibling.addInitScript(id => sessionStorage.setItem('gcs.componentId', id), id); await sibling.goto(origin + prefix + 'SimpleGCS/?simulate=1');
         await sibling.waitForFunction(id => document.getElementById('component_id') && document.getElementById('component_id').value !== id, id); assert.notEqual(await sibling.locator('#component_id').inputValue(), id); await sibling.close();
         for (let i = 0; i < 3; i++) {
             await page.evaluate(() => simplegcsPreview.unmount()); await page.clock.runFor(100);
@@ -135,12 +135,12 @@ async function scenarios(browser, origin, prefix) {
         await page.locator('#target_url').fill('ws://test'); await page.evaluate(() => { fixture.reject = true; }); await page.locator('#connection_button').click(); await page.waitForFunction(() => document.querySelector('.toast')?.textContent.includes('constructor failure')); assert.match(await page.locator('.toast').textContent(), /constructor failure/); await page.clock.runFor(60000); assert.equal(await page.locator('.toast').count(), 0); await page.locator('#connection_button').click(); await page.waitForFunction(() => document.querySelector('.toast')?.textContent.includes('constructor failure'));
         const simulated = await context.newPage();
         await simulated.addInitScript(() => { delete window.SIMPLEGCS_PREVIEW.socket; });
-        await simulated.goto(origin + prefix + 'SimpleGCS-preview/');
+        await simulated.goto(origin + prefix + 'SimpleGCS/?simulate=1');
         await simulated.locator('#connectBtn').click(); await simulated.locator('#signing_passphrase').fill('local-simulation-key'); await simulated.locator('#connection_button').click();
         await simulated.waitForFunction(() => document.getElementById('link-status').textContent === 'Live');
         assert.equal(await simulated.locator('#speed-value').textContent(), '9.7 knots'); await simulated.close();
         assert.deepEqual(errors, []);
-        assert.equal((await page.request.get(origin + prefix + 'SimpleGCS-preview/no-such-page')).status(), 404);
+        assert.equal((await page.request.get(origin + prefix + 'SimpleGCS/no-such-page')).status(), 404);
     } finally { await context.close(); }
 }
 /** Compare the same rendered flow with unchanged legacy in a real browser. */
@@ -160,7 +160,7 @@ async function compareLegacy(browser, previewOrigin) {
                 await context.addInitScript(inject, legacy);
                 const page = await context.newPage();
                 await page.clock.install();
-                await page.goto(origin + (legacy ? '/SimpleGCS/' : '/SimpleGCS-preview/'));
+                await page.goto(origin + (legacy ? '/SimpleGCS/' : '/SimpleGCS/?simulate=1'));
                 await page.waitForFunction(legacy => legacy ? window.AppSettings && !document.getElementById('connectBtn').disabled : window.simplegcsPreview && fixture.map, legacy);
                 if (legacy) await page.evaluate(() => { fixture.map = MapManager.map; });
                 await page.locator('#connectBtn').click(); await page.locator('#component_id').fill('190'); await page.locator('#connection_button').click(); await page.clock.runFor(500);
@@ -194,10 +194,10 @@ async function main() {
         const gateway = await start('dev', '/Tools/WebTools/', true);
         try {
             await scenarios(browser, gateway.origin, '/Tools/WebTools/');
-            const response = await fetch(gateway.origin + '/Tools/WebTools/SimpleGCS/app.js');
+            const response = await fetch(gateway.origin + '/Tools/WebTools/SimpleGCS/cli_test.js');
             assert.equal(response.status, 200);
-            assert.deepEqual(Buffer.from(await response.arrayBuffer()), execFileSync('git', ['show', '8e1791a:SimpleGCS/app.js'], { cwd: root }));
-            console.log('PASS same-origin gateway with unchanged public SimpleGCS bytes');
+            assert.deepEqual(Buffer.from(await response.arrayBuffer()), execFileSync('git', ['show', '8e1791a:SimpleGCS/cli_test.js'], { cwd: root }));
+            console.log('PASS same-origin gateway with public React route and unchanged Node helper bytes');
         } finally { await stop(gateway.child); }
     } finally { await browser.close(); }
 }

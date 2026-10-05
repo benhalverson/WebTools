@@ -84,7 +84,7 @@ async function parityScenario(browser, origin, prefix, legacy, fixtures) {
         });
         await context.addInitScript({ content: `(${inject.toString()})(${legacy}); (${control.toString()})(${JSON.stringify(files())});` });
         const page = await context.newPage(), errors = []; page.on('pageerror', error => errors.push(error.message));
-        await page.goto(origin + prefix + (legacy ? 'SimpleGCS/' : 'SimpleGCS-preview/'));
+        await page.goto(origin + prefix + (legacy ? 'SimpleGCS/' : 'SimpleGCS/?simulate=1'));
         await page.waitForFunction(legacy => legacy ? !!window.MapManager?.map : !!window.fixture.map, legacy); await page.clock.install(); await connect(page, legacy);
         await page.locator('#armBtn').click(); await page.locator('#disarmBtn').click(); await page.clock.runFor(100);
         await page.evaluate(() => { fixture.commandReplies = [0, 2]; });
@@ -110,7 +110,7 @@ async function lifecycleScenario(browser, origin, prefix) {
         await context.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
         await context.addInitScript({ content: `(${inject.toString()})(false); (${control.toString()})(${JSON.stringify(files())});` });
         const page = await context.newPage(), errors = []; page.on('pageerror', error => errors.push(error.message));
-        await page.goto(origin + prefix + 'SimpleGCS-preview/'); await page.waitForFunction(() => !!window.fixture.map); await page.clock.install(); await connect(page, false);
+        await page.goto(origin + prefix + 'SimpleGCS/?simulate=1'); await page.waitForFunction(() => !!window.fixture.map); await page.clock.install(); await connect(page, false);
         await page.locator('#menuBtn').click();
         let accept = false; page.on('dialog', dialog => accept ? dialog.accept() : dialog.dismiss());
         await openMenu(page); await page.getByRole('button', { name: 'ForceArm', exact: true }).click(); assert.equal(await page.evaluate(() => fixture.sent.length), 0);
@@ -172,7 +172,7 @@ async function simulatorScenario(browser, origin, prefix) {
     try {
         await context.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
         const page = await context.newPage(), errors = []; page.on('pageerror', error => errors.push(error.message));
-        await page.goto(origin + prefix + 'SimpleGCS-preview/'); await page.locator('#connectBtn').click(); await page.locator('#signing_passphrase').fill('local-test-key'); await page.locator('#connection_button').click(); await page.waitForFunction(() => document.getElementById('link-status').textContent === 'Live');
+        await page.goto(origin + prefix + 'SimpleGCS/?simulate=1'); await page.locator('#connectBtn').click(); await page.locator('#signing_passphrase').fill('local-test-key'); await page.locator('#connection_button').click(); await page.waitForFunction(() => document.getElementById('link-status').textContent === 'Live');
         await page.locator('#disarmBtn').click(); await page.waitForFunction(() => document.getElementById('armed-pill').textContent === 'DISARM');
         await page.locator('#menuBtn').click(); await openMenu(page); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await page.waitForFunction(() => document.querySelectorAll('.mission-wp-label').length === 3);
         await openMenu(page); await page.getByRole('button', { name: 'Fetch Fence', exact: true }).click(); await page.waitForFunction(() => document.getElementById('operations-status').textContent === 'Loaded 1 fence items');

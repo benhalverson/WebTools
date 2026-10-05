@@ -17,7 +17,7 @@ export function runtimeAssetPlugin(): Plugin {
         /** Serve identical asset bytes in development before the Worker lookup. */
         configureServer(server) {
             server.middlewares.use((request, response, next) => {
-                const base = applicationBase('simplegcsPreview', process.env.WEBTOOLS_BASE_PATH ?? process.env.PORTAL_BASE_PATH)
+                const base = applicationBase('simplegcs', process.env.WEBTOOLS_BASE_PATH ?? process.env.PORTAL_BASE_PATH)
                 const path = request.url?.split('?')[0]?.slice(base.length)
                 if (!request.url?.startsWith(base) || !path || !runtimeAssets.includes(path)) { next(); return }
                 response.setHeader('content-type', path.endsWith('.js') ? 'text/javascript' : path.endsWith('.png') ? 'image/png' : 'text/plain')
