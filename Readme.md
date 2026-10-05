@@ -120,9 +120,9 @@ Here is [more information on debugging with VSCode](https://code.visualstudio.co
 <img src="images/VSCode%20debug.png" width="80%">
 </p>
 
-### RotationCheck React migration and local app routing
+### RotationCheck and local app routing
 
-RotationCheck now has its own React/TypeScript app and Worker in
+RotationCheck has its own React/TypeScript app and Worker in
 `apps/rotation-check`. Root `pnpm dev` and `pnpm preview` compose it with the
 portal on one origin at the existing `RotationCheck/` destination. Both apps
 also build and run independently with their own package scripts.
@@ -134,11 +134,80 @@ See [the routing API](packages/routing/README.md) for the explicit contract,
 
 `pnpm test:routing`, `pnpm test:rotation-check`, and
 `pnpm test:rotation-check:browser` cover URL contracts, legacy numerical parity,
-and real app controls in development and built Worker preview. The comparison
-revision is `753a397e818593ac0943854fd7cea3468f49f095` (issue #4 / draft PR #43,
-which includes issue #3 / PR #39). The retained `RotationCheck/` scripts remain
-unchanged test oracles and legacy downloads; the React page does not load them.
+and real app controls in development and built Worker preview. The retained
+`RotationCheck/` scripts provide unchanged test oracles and legacy downloads;
+the React page does not load them.
 
-The issue #5 branch also includes prerequisite browser/JSDoc follow-up
-`91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
-identical to the original comparison revision above.
+### SimpleGCS preview
+
+`apps/simplegcs` provides simulated connection, telemetry, parameter editing, video, commands, and mission/fence downloads.
+Open `SimpleGCS-preview/` through `pnpm dev`, or run
+`pnpm --filter simplegcs dev` independently. Its own `build` and `preview`
+commands use the same `WEBTOOLS_BASE_PATH`/`PORTAL_BASE_PATH` convention and
+an independent Worker. The public `SimpleGCS/` destination still serves the
+complete legacy app, including commands and video.
+
+The preview uses an in-memory MAVLink vehicle and simulated user location.
+Its offline Leaflet surface supports vehicle position/heading, retained pan
+and zoom, recentering and the metric grid. Tile-provider and auto-fetch choices
+retain their existing storage keys for the complete app; the preview makes no
+relay, vehicle, map-provider or device-location requests. Tests can inject
+`SIMPLEGCS_PREVIEW.socket`, `.location`, `.onMap`, `.parameters`, and
+`.onParameters` before the React entry
+loads. The socket factory receives the submitted URL and immutable settings;
+reconnects never read the in-progress editor draft.
+
+The parameter session factory supplies the shared `MAVParam` model, metadata
+loader, vehicle name, cancellation and disposal. Sessions are invalidated on
+transport disconnect; drafts and pending file/metadata callbacks cannot cross
+session boundaries. The editor provides defaults/reset, enum and signed bitmask
+controls, readonly validation, text-file import/export and upload/readback feedback.
+
+`pnpm test:simplegcs` compares telemetry, grid arithmetic, parameter formats and
+signed bytes with pinned legacy source.
+`pnpm test:simplegcs:browser` runs Chromium against the independent development
+and built Worker previews at root and prefix, plus the shared local gateway
+and the actual baseline legacy page. Its CDN replay accepts only pinned npm
+bytes matching the legacy HTML's SHA-384 integrity hashes; all other external
+browser requests are blocked. Fetch full Git history before running the
+comparison tests.
+
+`pnpm test:simplegcs:parameters:browser` covers the React parameter editor in
+desktop/mobile Chromium, exact legacy file and protocol bytes, root/prefix
+routing, rejected or cancelled writes, and asynchronous resource cleanup.
+
+`pnpm test:simplegcs:commands:browser` checks command acknowledgements, mission
+and fence transfers, map gestures and disposal with an in-memory vehicle.
+The command/mission/fence runtime owns one serialized FTP manager; completion-stage
+parameter integration must share that manager for operations on a real connection.
+
+### FilterReview
+
+`apps/filter-review` owns the React app and independent Worker at `FilterReview/`,
+under the common hosting prefix. Run `pnpm --filter filter-review dev`, or use
+`pnpm build && pnpm preview` for the shared gateway and built Workers.
+
+The app supports raw/batch gyro ingestion, FFT spectra, filter tracking and
+comparisons, tuning, exports and Open In. Computation runs in cancellable Workers;
+the DataFlash package retains its standalone ESM and adjacent vendor assets.
+`pnpm test:filter-review` checks numerical compatibility, and
+`pnpm test:filter-review:browser` exercises independent dev/built Workers and
+the gateway at root and nested prefixes, including resource cleanup.
+
+### AirspeedFit
+
+`apps/airspeed-fit` provides an independent React app and Worker at `AirspeedFit/`.
+Use `pnpm --filter airspeed-fit dev` or the shared gateway with `pnpm dev`;
+build and preview use the same hosting prefix as the other registered apps.
+`pnpm test:airspeed-fit` covers numerical compatibility, including recorded-log
+window/sensor selections, fitting, residuals and calibration exports.
+`pnpm test:airspeed-fit:browser` exercises dev and Worker controls at both prefixes,
+file replacement, exports, Open In and resource cleanup.
+
+### Geofence Generator
+
+`apps/geofence-generator` owns the React app and independent Worker at
+`GeofenceGenerator/`. Use its `dev`, `build` and `preview` package scripts or
+the shared gateway with the common hosting prefix. `pnpm test:geofence` and
+`pnpm test:geofence:browser` cover geometry/export compatibility and actual
+map controls, request cancellation and disposal using offline provider fixtures.

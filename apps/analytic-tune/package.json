@@ -1,0 +1,37 @@
+{
+  "name": "analytic-tune",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @webtools/react-workflows... --filter @webtools/numerics --filter @webtools/dataflash build && vite --host 127.0.0.1",
+    "typecheck": "pnpm --filter @webtools/react-workflows... --filter @webtools/numerics --filter @webtools/dataflash build && pnpm cf-typegen && tsc -b",
+    "build": "pnpm typecheck && vite build",
+    "lint": "oxlint --deny-warnings src worker tooling tests vite.config.ts vite.lifetime.config.ts",
+    "preview": "vite preview --host 127.0.0.1",
+    "deploy": "pnpm build && wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node --test tests/browser.cjs"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "@webtools/react-workflows": "workspace:*",
+    "@webtools/routing": "workspace:*",
+    "@webtools/numerics": "workspace:*",
+    "@webtools/dataflash": "workspace:*",
+    "@webtools/parameters": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.62.5",
+    "@types/node": "26.6.4",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@vitejs/plugin-react": "6.1.1",
+    "oxlint": "1.81.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.0",
+    "wrangler": "4.147.0"
+  }
+}

@@ -20,6 +20,22 @@ async function editNumber(input, value) {
     await input.pressSequentially(String(value))
     await input.press('Tab')
 }
+/**
+ * Measure after GridStack's 300 ms CSS transitions finish in the foreground tab.
+ * Form/iframe readiness does not imply settled layout; use animation state instead
+ * of a fixed delay, retaining the same legacy comparison and pixel tolerance.
+ * @param page Page containing the independently rendered layout.
+ * @param selector Widget content whose final border box is required.
+ */
+async function settledBox(page, selector) {
+    await page.bringToFront()
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    await page.waitForFunction(() => document.querySelector('#dashboard').getAnimations({ subtree: true })
+        .every(animation => !animation.pending && animation.playState !== 'running'))
+    const box = await page.locator(selector).first().boundingBox()
+    assert.ok(box, `visible geometry for ${selector}`)
+    return box
+}
 const layout = { header: { version: 1 }, grid: { columns: 6, rows: 6, color: 'rgb(255, 255, 255)' }, widgets: {
     0: { x: '0', y: '0', w: '3', h: '3', type: 'WidgetSandBox', options: { form: { components: [{ type: 'number', key: 'gain', id: 'gain-fixture', label: 'Gain', input: true, defaultValue: 1, validate: { max: 100 } }] }, form_content: { gain: 2 }, about: { name: 'Controlled fixture' }, sandbox: 'div.id="telemetry"; div.textContent="ready"; handle_msg=function(msg){div.textContent=String(msg.groundspeed * options.gain)}; handle_options=function(next){options=next}' } },
     1: { x: '3', y: '0', w: '3', h: '3', type: 'WidgetSubGrid', options: { form_content: { rows: 2, columns: 2, borderColor: '#c8c8c8', backgroundColor: '#ffffff' }, widgets: {
@@ -142,11 +158,11 @@ for (const prefix of ['/', '/Tools/WebTools/']) {
         await legacySandbox.waitForSelector('#telemetry')
         await page.evaluate(() => window.publishFixture())
         await legacySandbox.waitForFunction(() => document.querySelector('#telemetry').textContent === '25')
-        const actualBox = await page.locator('#dashboard iframe').first().boundingBox()
-        const legacyBox = await legacy.locator('#dashboard iframe').first().boundingBox()
-        assert.ok(Math.abs(actualBox.width - legacyBox.width) < 0.5 && Math.abs(actualBox.height - legacyBox.height) < 0.5, 'iframe viewport matches legacy within half a CSS pixel')
-        const nestedBox = await page.locator('#dashboard > .grid-stack-item > .grid-stack-item-content').boundingBox()
-        const legacyNestedBox = await legacy.locator('#dashboard > widget-subgrid > .grid-stack-item-content').boundingBox()
+        const actualBox = await settledBox(page, '#dashboard iframe')
+        const legacyBox = await settledBox(legacy, '#dashboard iframe')
+        assert.ok(Math.abs(actualBox.width - legacyBox.width) < 0.5 && Math.abs(actualBox.height - legacyBox.height) < 0.5, `iframe viewport matches legacy within half a CSS pixel: actual ${JSON.stringify(actualBox)}, legacy ${JSON.stringify(legacyBox)}`)
+        const nestedBox = await settledBox(page, '#dashboard > .grid-stack-item > .grid-stack-item-content')
+        const legacyNestedBox = await settledBox(legacy, '#dashboard > widget-subgrid > .grid-stack-item-content')
         assert.ok(Math.abs(nestedBox.width - legacyNestedBox.width) < 0.5 && Math.abs(nestedBox.height - legacyNestedBox.height) < 0.5, 'subgrid border box matches legacy')
         await page.evaluate(async () => { window.runtime.saved(); const host = window.runtime.getWidgets()[0]; await host.setFormDefinition(host.getFormDefinition()) })
         assert.equal(await page.evaluate(() => window.runtime.getChanged()), false, 'identical schema does not mark unsaved')
