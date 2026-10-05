@@ -19,6 +19,7 @@ export function useLoading(onError: (error: unknown) => void) {
         lifetime.current = current
         return () => {
             current.alive = false
+            lifetime.current.alive = false
             for (const frame of frames.current) cancelAnimationFrame(frame)
             frames.current.clear()
         }
@@ -42,7 +43,17 @@ export function useLoading(onError: (error: unknown) => void) {
             }, error => { if (current.alive) onError(error) })
         }))
     }, [onError])
-    return { visible, run }
+    /** Explicitly cancel queued work and dismiss the overlay. Already-started
+     * operations remain caller-owned; their stale completion cannot update it. */
+    const cancel = useCallback(() => {
+        if (!lifetime.current.alive) return
+        lifetime.current.alive = false
+        lifetime.current = { alive: true }
+        for (const frame of frames.current) cancelAnimationFrame(frame)
+        frames.current.clear()
+        setVisible(false)
+    }, [])
+    return { visible, run, cancel }
 }
 /** Render the legacy full-viewport loading layer, keeping it mounted while
  * hidden. Visibility is caller-owned; this component starts no asynchronous work. */
