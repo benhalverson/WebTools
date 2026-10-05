@@ -57,11 +57,26 @@ export declare class MAVLink20Processor {
     send(message: MessageBase): void;
     log(level: string | Message, message?: string): void;
 }
+/** Codec-emitted Node events mapped to their decoded payloads, including parse errors. */
+export type NodeEventMap = { [N in ParsedMessage['_name']]: Extract<ParsedMessage, { _name: N }> } & { message: ParsedMessage };
+/** The event argument determines the payload; a narrower callback cannot widen that event. */
+export type NodeListener<N extends keyof NodeEventMap> = (message: NodeEventMap[N]) => void;
 /** Events are a Node-only capability; the browser runtime does not emit them. */
 export interface NodeProcessor extends MAVLink20Processor {
-    on<N extends ParsedMessage['_name']>(event: N, listener: (message: Extract<ParsedMessage, { _name: N }>) => void): this;
-    on(event: 'message', listener: (message: ParsedMessage) => void): this;
-    removeListener(event: string, listener: (message: ParsedMessage) => void): this;
+    /** Subscribe with a callback that can later be removed by its original identity. */
+    on<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Alias of on; preserves the supplied callback identity. */
+    addListener<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Subscribe until the first matching event; removable using the original callback. */
+    once<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Subscribe before existing listeners for this event. */
+    prependListener<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Subscribe before existing listeners, for the first matching event only. */
+    prependOnceListener<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Remove the most recently added matching callback for this event. */
+    removeListener<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Alias of removeListener, accepting the same callback used to subscribe. */
+    off<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
 }
 
 export interface sensor_offsets extends MessageBase {
