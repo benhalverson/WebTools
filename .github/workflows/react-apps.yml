@@ -61,7 +61,8 @@ jobs:
             test:dfu-loader:browser \
             test:log-finder:browser \
             test:filter-tool:browser \
-            test:dashboard-playback:browser
+            test:dashboard-playback:browser \
+            test:simplegcs:browser
           do
             echo "::group::$suite"
             if pnpm "$suite"; then

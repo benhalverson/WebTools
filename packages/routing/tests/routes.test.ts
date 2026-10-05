@@ -8,7 +8,7 @@ const binding = { async fetch(request: Request) { return new Response(new URL(re
 
 test('mount and prefix contracts enforce path boundaries', () => {
     for (const prefix of ['/', '/Tools/WebTools/']) {
-        for (const app of ['rotationCheck', 'hardwareParameters', 'kinematicTools', 'scurveTool', 'pidReview', 'streamStats', 'dfuLoader', 'logFinder', 'filterTool', 'dashboardPlayback'] as const) {
+        for (const app of ['rotationCheck', 'hardwareParameters', 'kinematicTools', 'scurveTool', 'pidReview', 'streamStats', 'dfuLoader', 'logFinder', 'filterTool', 'dashboardPlayback', 'simplegcsPreview'] as const) {
             const base = applicationBase(app, prefix)
             assert.equal(applicationForPath(base, prefix), app)
             assert.equal(applicationForPath(base.slice(0, -1), prefix), app)
@@ -47,5 +47,15 @@ test('LogFinder owns only its public path boundary at each hosting prefix', () =
         assert.equal(applicationForPath(base.slice(0, -1), prefix), 'logFinder')
         assert.equal(applicationForPath(base.slice(0, -1) + 'Extra/', prefix), 'portal')
         assert.equal(applicationForPath(prefix + 'HardwareReport/', prefix), 'portal')
+    }
+})
+
+test('intermediate SimpleGCS preview never takes over the public complete tool', () => {
+    for (const prefix of ['/', '/Tools/WebTools/']) {
+        assert.equal(applicationBase('simplegcsPreview', prefix), prefix + 'SimpleGCS-preview/')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS-preview/', prefix), 'simplegcsPreview')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS-preview', prefix), 'simplegcsPreview')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS/', prefix), 'portal')
+        assert.equal(applicationForPath(prefix + 'SimpleGCS-previewExtra/', prefix), 'portal')
     }
 })
