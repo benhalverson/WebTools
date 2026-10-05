@@ -1,0 +1,79 @@
+/** Bytes accepted by the pinned codec; Buffer is a Uint8Array in Node. */
+export type Bytes = number[] | Uint8Array;
+/** jspack encodes low/high words, never a JS number or bigint. */
+export type Int64Input = [low: number, high: number];
+export type Int64 = [low: number, high: number, unsigned: boolean];
+export type StringInput = string | number[];
+/** Constructors allow empty/partial payloads; only decoded messages have complete fields. */
+export type Outgoing<M extends MessageBase, Fields> = Omit<M, keyof Fields | "_header" | "_payload" | "_msgbuf" | "crc"> & Partial<Fields> & Pick<MessageBase, "_header" | "_payload" | "_msgbuf" | "crc">;
+export interface Header {
+    msgId: number; mlen: number; seq: number; srcSystem: number; srcComponent: number;
+    incompat_flags: number; compat_flags: number;
+    pack(): number[];
+}
+export interface MessageBase {
+    _id: number; _name: string; _format: string;
+    fieldnames: string[]; order_map: number[]; len_map: number[]; array_len_map: number[];
+    crc_extra: number;
+    _instance_field: string | undefined; _instance_offset: number;
+    _header?: Header; _payload?: Bytes; _msgbuf?: Bytes;
+    _signed?: boolean; _link_id?: number | undefined; crc?: number;
+    pack(processor: MAVLink20Processor): number[];
+    sign_packet(processor: MAVLink20Processor): void;
+}
+export interface BadData {
+    _id: -1; _name: 'BAD_DATA'; _data: Bytes; _reason: string; _msgbuf: Bytes;
+}
+export interface Signing {
+    secret_key: Uint8Array; timestamp: number; link_id: number; sign_outgoing: boolean;
+    allow_unsigned_callback: ((processor: MAVLink20Processor, messageId: number) => boolean) | undefined;
+    stream_timestamps: Record<string, number>;
+    sig_count: number; badsig_count: number; goodsig_count: number; unsigned_count: number; reject_count: number;
+}
+/** Runtime logger receives a message on decode and (level, text) on parse errors. */
+export interface Logger { log(level: string | Message, message?: string): void; }
+export declare class MAVLink20Processor {
+    constructor(logger?: Logger | null, srcSystem?: number, srcComponent?: number);
+    logger: Logger | null | undefined;
+    seq: number; srcSystem: number; srcComponent: number;
+    buf: Uint8Array; bufInError: Uint8Array;
+    signing: Signing;
+    expected_length: number; protocol_marker: number; incompat_flags?: number;
+    have_prefix_error: boolean; little_endian: boolean; crc_extra: boolean; sort_fields: boolean;
+    startup_time: number; total_packets_sent: number; total_bytes_sent: number;
+    total_packets_received: number; total_bytes_received: number; total_receive_errors: number;
+    file?: { write(bytes: number[]): unknown };
+    decode(bytes: Bytes): Message;
+    parseChar(bytes: Bytes | number | null): ParsedMessage | null;
+    parseBuffer(bytes: Bytes): ParsedMessage[] | null;
+    parsePayload(): Message | null;
+    parsePrefix(): void;
+    parseLength(): void;
+    pushBuffer(bytes: Bytes | number): void;
+    concat_buffer(a: Bytes, b: Bytes): Uint8Array;
+    bytes_needed(): number;
+    check_signature(bytes: Bytes, srcSystem: number, srcComponent: number): boolean;
+    send(message: MessageBase): void;
+    log(level: string | Message, message?: string): void;
+}
+/** Codec-emitted Node events mapped to their decoded payloads, including parse errors. */
+export type NodeEventMap = { [N in ParsedMessage['_name']]: Extract<ParsedMessage, { _name: N }> } & { message: ParsedMessage };
+/** The event argument determines the payload; a narrower callback cannot widen that event. */
+export type NodeListener<N extends keyof NodeEventMap> = (message: NodeEventMap[N]) => void;
+/** Events are a Node-only capability; the browser runtime does not emit them. */
+export interface NodeProcessor extends MAVLink20Processor {
+    /** Subscribe with a callback that can later be removed by its original identity. */
+    on<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Alias of on; preserves the supplied callback identity. */
+    addListener<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Subscribe until the first matching event; removable using the original callback. */
+    once<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Subscribe before existing listeners for this event. */
+    prependListener<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Subscribe before existing listeners, for the first matching event only. */
+    prependOnceListener<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Remove the most recently added matching callback for this event. */
+    removeListener<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+    /** Alias of removeListener, accepting the same callback used to subscribe. */
+    off<N extends keyof NodeEventMap>(event: N, listener: NodeListener<NoInfer<N>>): this;
+}
