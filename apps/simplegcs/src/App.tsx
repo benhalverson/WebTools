@@ -1,0 +1,66 @@
+import { useCallback, useEffect, useState } from 'react'
+import { applicationBase } from '@webtools/routing'
+import { MapView, type MapViewProps } from './MapView.tsx'
+import { useConnection } from './useConnection.ts'
+import { readDisplay, saveDisplay, type StoragePair, type DisplaySettings, type DeploymentConfig } from './settings.ts'
+import type { SocketFactory } from './connection.ts'
+import type { LocationProvider } from './location.ts'
+import { speedText } from './telemetry.ts'
+import './style.css'
+import { VideoControls } from './VideoControls.tsx'
+import { ParameterEditor } from './parameters/ParameterEditor.tsx'
+import { useParameterSession } from './parameters/useParameterSession.ts'
+import { simulatedParameters } from './parameters/simulator.ts'
+import type { ParameterSession, ParameterSessionFactory } from './parameters/session.ts'
+export interface AppProps { parameters?: ParameterSessionFactory | undefined; onParameters?: ((session: ParameterSession | null) => void) | undefined; socket: SocketFactory; location: LocationProvider; storage: StoragePair; locks?: LockManager; onMap?: MapViewProps['onMap']; prefix: string; config: DeploymentConfig }
+const providers = [['osm', 'OpenStreetMap (default)'], ['opentopomap', 'OpenTopoMap'], ['carto-light', 'Carto Light'], ['carto-dark', 'Carto Dark'], ['esri-world-imagery', 'Esri World Imagery (Satellite)'], ['au-ga-topo', 'Australia — Geoscience Topographic'], ['uk-os-opendata', 'UK — Ordnance Survey OpenData'], ['google', 'Google Maps (Roadmap)'], ['google-terrain', 'Google Maps (Terrain)'], ['google-satellite', 'Google Maps (Satellite)'], ['google-hybrid', 'Google Maps (Hybrid)']]
+const options = [['showGrid', 'Show Grid'], ['showLocation', 'Show My Location'], ['showGPSNumSats', 'Show GPS NumSats'], ['autoFetchFence', 'Fetch fence on first heartbeat'], ['autoFetchMission', 'Fetch mission on first heartbeat']] as const
+/** Render the intermediate connection and parameter flows; all converted UI state is owned by React. */
+export default function App({ socket, location, storage, locks, onMap, prefix, config, parameters = simulatedParameters, onParameters }: AppProps) {
+    const { draft, link, busy, error, connect, disconnect, edit } = useConnection(socket, storage, locks, config)
+    const parameterSession = useParameterSession(parameters, link.telemetry.system > 0 ? link.mapIdentity : null)
+    useEffect(() => { onParameters?.(parameterSession); return () => onParameters?.(null) }, [parameterSession, onParameters])
+    const [parametersOpen, setParametersOpen] = useState(false)
+    const [display, setDisplay] = useState(() => readDisplay(storage.local, config)), [dialog, setDialog] = useState<'connection' | 'settings' | null>(null), [showPassphrase, setShowPassphrase] = useState(false), [recenter, setRecenter] = useState(0), [notice, setNotice] = useState<{ text: string } | null>(null)
+    useEffect(() => { if (error) setNotice({ text: error.message }) }, [error])
+    useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(null), 1500); return () => clearTimeout(timer) }, [notice])
+    const report = useCallback((text: string) => setNotice({ text }), [])
+    const legacy = applicationBase('portal', prefix) + 'SimpleGCS/'
+    /** Persist display edits immediately using the shared legacy storage contract. */
+    function changeDisplay<K extends keyof DisplaySettings>(key: K, value: DisplaySettings[K]): void {
+        const next = { ...display, [key]: value }; saveDisplay(storage.local, next); setDisplay(next)
+    }
+    /** Close the editor and mask its password while retaining every unsaved field. */
+    function closeDialog(): void { setDialog(null); setShowPassphrase(false) }
+    /** Apply the legacy no-key Google fallback when opening display settings. */
+    function openSettings(): void { if (!display.googleKey && display.tiles.startsWith('google')) changeDisplay('tiles', 'osm'); setDialog('settings'); setShowPassphrase(false) }
+    const t = link.telemetry
+    return <>
+        <div id="app"><aside id="toolbar">
+            <a className="btn primary" href={legacy}>ARM</a><a className="btn danger" href={legacy}>DISARM</a><a className="btn warn" href={legacy}>RTL</a><a className="btn warn" href={legacy}>Loiter</a>
+            <div id="telemetry" className={link.stale ? 'stale' : ''}>
+                <div id="link-status" role="status">{link.status}</div>
+                <div id="status-display"><span id="armed-pill" style={{ background: t.armed ? '#81c784' : '#9e9e9e' }}>{t.armed === null ? '—' : t.armed ? 'ARMED' : 'DISARM'}</span><div>MODE: <strong id="mode-value">{t.modeName}</strong></div></div>
+                <div id="battery-display"><div>BATTERY</div><strong id="battery-value" style={{ color: t.batteryPct === null || t.batteryPct < 0 ? '#fff' : t.batteryPct < 20 ? '#f44336' : t.batteryPct < 40 ? '#ff9800' : '#4caf50' }}>{t.batteryPct !== null && t.batteryPct >= 0 ? `${t.batteryPct}%` : '---'}</strong><div id="current-value">{t.currentA !== null && t.currentA >= 0 ? `${t.currentA.toFixed(1)} A` : '--- A'}</div></div>
+                <div id="speed-display"><div>SPEED</div><strong id="speed-value">{speedText(t.speed)}</strong></div>
+                <div id="gps-display" style={{ display: display.showGPSNumSats ? 'block' : 'none' }}><div>GPS</div><strong id="gps-sats-value" style={{ color: t.numSats !== null && t.numSats >= 20 ? '#4caf50' : '#fff' }}>{t.numSats === null ? '— sats' : `${t.numSats} sats`}</strong></div>
+                <div id="lte-display"><div>LTE</div><strong id="lte-carrier">{t.carrier}</strong><div id="lte-rsrp">{t.rsrp}</div></div>
+            </div><div style={{ flex: 1 }} /><button className="btn small" id="menuBtn" onClick={openSettings}>☰</button><button className="btn small" id="recenterBtn" onClick={() => setRecenter(value => value + 1)}>Recenter</button>
+            <button className="btn small" id="connectBtn" onClick={() => setDialog('connection')} style={{ background: link.phase === 'connected' ? '#00c853' : link.phase === 'connecting' ? '#f9a825' : link.phase === 'error' ? '#e53935' : undefined }}>Connect{link.lagSeconds ? ` (${link.lagSeconds}s)` : ''}</button>
+        </aside><MapView link={link} display={display} location={location} report={report} recenter={recenter} onMap={onMap} /></div>
+        <ParameterEditor session={parameterSession} open={parametersOpen} close={() => setParametersOpen(false)} />
+        <div className="preview"><button onClick={() => setParametersOpen(true)}>Parameters</button> Simulated telemetry preview · Offline map · <a href={legacy}>Complete SimpleGCS: commands, parameters, video</a></div>
+        <section className="editor" hidden={dialog !== 'connection'} aria-label="Connection Settings">
+            <h2>Connection Settings</h2><label htmlFor="target_url">Server address</label><input id="target_url" type="url" value={draft.url} onChange={event => edit('url', event.target.value)} />
+            <label>SysID <input id="system_id" type="number" min="1" max="255" value={draft.systemId} onChange={event => edit('systemId', event.target.value)} /></label><label>CompID <input id="component_id" type="number" min="1" max="255" value={draft.componentId} onChange={event => edit('componentId', event.target.value)} /></label>
+            <label><input id="send_heartbeat" type="checkbox" checked={draft.sendHeartbeat} onChange={event => edit('sendHeartbeat', event.target.checked)} />Send 1Hz Heartbeat</label>
+            <label htmlFor="signing_passphrase">Signing passphrase</label><input id="signing_passphrase" type={showPassphrase ? 'text' : 'password'} value={draft.passphrase} onChange={event => edit('passphrase', event.target.value)} /><button id="toggle_signing_passphrase" aria-controls="signing_passphrase" aria-label={`${showPassphrase ? 'Hide' : 'Show'} signing passphrase`} aria-pressed={showPassphrase} onClick={() => setShowPassphrase(value => !value)}>{showPassphrase ? 'Hide' : 'Show'}</button>
+            <p><button id="connection_button" disabled={busy} onClick={() => { void connect().then(connected => { if (connected) closeDialog() }) }}>Connect</button> <button id="disconnection_button" onClick={disconnect}>Disconnect</button> <button onClick={closeDialog}>Close</button></p>
+        </section>
+        <section className="editor" hidden={dialog !== 'settings'} aria-label="Display Settings"><h2>Settings</h2><a href={legacy}>Parameters and commands (complete app)</a><VideoControls storage={storage.local} /><label>Map Tiles <select value={display.tiles} onChange={event => changeDisplay('tiles', event.target.value)}>{providers.filter(([key]) => display.googleKey || !key!.startsWith('google')).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+            <label>Google Maps API Key <input id="gmaps-key-input" value={display.googleKey} onChange={event => changeDisplay('googleKey', event.target.value.trim())} /></label>
+            {options.map(([key, label]) => <label key={key}><input type="checkbox" checked={display[key]} onChange={event => changeDisplay(key, event.target.checked)} />{label}</label>)}<p>Auto-fetch choices are saved for the complete app.</p><button onClick={closeDialog}>Close</button>
+        </section>
+        {notice && <div className="toast" role="status">{notice.text}</div>}
+    </>
+}

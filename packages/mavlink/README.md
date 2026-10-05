@@ -1,8 +1,6 @@
 # @webtools/mavlink
 
-Typed boundary for the existing MAVLink codec. No generated protocol definitions, runtime fixes, jspack sources, or
-checked-in authoritative fixtures are changed. This package does not connect to
-vehicles, provide a transport, or change malformed-frame recovery.
+Typed boundary for the pinned MAVLink codec. The caller owns the transport and connection lifetime.
 
 ## Build and consume
 
@@ -103,5 +101,5 @@ and rerun all protocol tests. The handwritten runtime-boundary template is
   server are aborted.
 
 The original root Node and application browser suites remain intact. The VM
-browser check covers initialization and all 21 wire/CRC/fragmentation/64-bit/
+browser check covers initialization and wire/CRC/fragmentation/64-bit/
 signing/replay cases, but does not replace the real browser suite.

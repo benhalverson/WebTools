@@ -1,0 +1,10 @@
+{
+  "dfu.js": "DFULoader/dfu.js",
+  "dfuse.js": "DFULoader/dfuse.js",
+  "dfu-util.js": "DFULoader/dfu-util.js",
+  "README.md": "DFULoader/README.md",
+  "images/AP_favicon.png": "images/AP_favicon.png",
+  "images/ArduPilot.png": "images/ArduPilot.png",
+  "images/github-mark.png": "images/github-mark.png",
+  "images/GitHub_Logo.png": "images/GitHub_Logo.png"
+}

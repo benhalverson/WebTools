@@ -1,13 +1,13 @@
 # Typed parameters
 
 DOM-free extraction of `Libraries/Param_Helpers.js`, `DecodeDevID.js`, and the
-lookup/conversion portions of `ParameterMetadata.js`. Legacy files and existing authoritative protocol fixtures are unchanged.
+lookup/conversion portions of `ParameterMetadata.js`, plus packed vehicle parameter operations.
 
 Build with `pnpm --filter @webtools/parameters build`; consume only the explicit
 `@webtools/parameters` entry point. The emitted declarations enforce strict types.
 Run `pnpm test:parameters` for Node built-in tests against the compiled public
-entry point. Core helper tests run in Node. The operation browser suite below also exercises
-native cache behavior.
+entry point. Rendering and browser lifecycle helpers are provided by
+`@webtools/react-workflows`; parameter operations also have a Chromium parity suite.
 
 ## API
 

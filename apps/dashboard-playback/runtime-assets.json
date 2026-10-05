@@ -1,0 +1,7 @@
+{
+  "Default_Layout.json": "TelemetryDashboard/Default_Layout.json",
+  "runtime/Widgets/SandBox.html": "packages/widget-runtime/assets/SandBox.html",
+  "images/AP_Square.png": "images/AP_Square.png",
+  "images/github-mark.png": "images/github-mark.png",
+  "runtime/Widgets/CustomHTML.html": "packages/widget-runtime/assets/CustomHTML.html"
+}

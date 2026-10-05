@@ -1,7 +1,6 @@
 # Shared React workflows
 
-React integrations depend on `@webtools/parameters` and accept the existing pinned
-vendor APIs through explicit boundaries.
+React controls and lifecycle helpers backed by `@webtools/parameters` and the pinned browser libraries.
 
 ## Supported API
 
@@ -13,11 +12,16 @@ vendor APIs through explicit boundaries.
   Labels, units, values, optional range constraints, disabled controls, and
   signed bitmasks use the typed parameter package. `allowValues=false` retains
   a number input; `bitmaskSize` controls signed conversion and hidden bits.
+  Optional `step` and `placeholder` preserve native numeric input attributes.
   Unknown enumerated values remain unselected, matching the native legacy select.
 - `Plot`: inject the existing pinned `Plotly` bundle through `PlotlyApi`. Creates
   a plot, uses `Plotly.react` for changed data/layout/config, and owns only its
   relayout listener and vendor DOM node. Updates are serialized; pending work is
   isolated from a subsequent mount. Purge and listener disposal run on unmount.
+  `deferInitialData=true` initializes with undefined data before applying the first
+  snapshot with `react`, preserving the pinned vendor's initial Reset axes behavior
+  for consumers such as Thrust Expo. Disposal is checked between both operations;
+  the default initializes with the first data snapshot as before.
   `PlotFields` is an open vendor-options record with `unknown` field values, not
   a claim that the entire vendor library is statically described. Consumers
   narrow relayout payloads. `onError` exposes vendor failures without wrapping
@@ -88,7 +92,7 @@ ordering, labels, availability, payload/filename/bytes, and wildcard behavior.
 They also check external transport delay/cancellation, control markup contracts,
 and delegation of exact Blob identity to FileSaver. No Jest/Vitest is used.
 
-## Lifecycle regression harness
+## Regression test maintenance
 
 `tests/regressions.mjs` stores only WeakRefs and primitive delivery evidence;
 it never keeps sent payloads or remote object handles alive. The external
