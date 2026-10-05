@@ -33,10 +33,10 @@ export function get_ins_param_names(index: number) {
     let tcal = { enabled: tcal_prefix + "ENABLE",
                  t_min: tcal_prefix + "TMIN",
                  t_max: tcal_prefix + "TMAN",
-                 accel: [ get_param_name_vector3(tcal_prefix + "ACC1_"), 
+                 accel: [ get_param_name_vector3(tcal_prefix + "ACC1_"),
                           get_param_name_vector3(tcal_prefix + "ACC2_"),
                           get_param_name_vector3(tcal_prefix + "ACC3_")],
-                 gyro: [ get_param_name_vector3(tcal_prefix + "ACC1_"), 
+                 gyro: [ get_param_name_vector3(tcal_prefix + "ACC1_"),
                          get_param_name_vector3(tcal_prefix + "ACC2_"),
                          get_param_name_vector3(tcal_prefix + "ACC3_")],
                 }
@@ -52,9 +52,9 @@ export function get_baro_param_names(index: number) {
     const prefix = "BARO" + (index+1) + "_"
     const wind_cmp =  prefix + "WCF_"
 
-    return { id: prefix + "DEVID", 
+    return { id: prefix + "DEVID",
              gnd_press: prefix + "GND_PRESS",
-             wind_comp: { enabled: wind_cmp + "ENABLE", 
+             wind_comp: { enabled: wind_cmp + "ENABLE",
                           coefficients: [ wind_cmp + "FWD",
                                           wind_cmp + "BCK",
                                           wind_cmp + "RGT",
@@ -73,7 +73,7 @@ export function get_airspeed_param_names(index: number) {
     }
     const prefix = "ARSPD" + num + "_"
 
-    return { id: prefix + "DEVID", 
+    return { id: prefix + "DEVID",
              type: prefix + "TYPE",
              bus: prefix + "BUS",
              pin: prefix + "PIN",
@@ -86,4 +86,3 @@ export function get_airspeed_param_names(index: number) {
              auto_cal: prefix + "AUTOCAL"}
 
 }
-

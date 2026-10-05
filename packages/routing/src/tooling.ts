@@ -2,15 +2,17 @@ import { copyFile, lstat, mkdir, realpath, rm } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import type { Plugin } from 'vite'
+import { isStrictDescendant } from './path-containment.ts'
 
 /** Stage a reviewed runtime allowlist, failing before deletion if an input is absent
- * or a symlink. Source paths must remain inside the repository root.
+ * or a symlink. Source and destination paths must be strict descendants of their
+ * respective roots, using native filesystem path semantics on each platform.
  */
 export async function stageRuntimeAssets(root: string, destination: string, assets: Readonly<Record<string, string>>): Promise<void> {
     for (const sourcePath of Object.values(assets)) {
         const source = resolve(root, sourcePath)
         try {
-            if (!source.startsWith(resolve(root) + '/') || !(await lstat(source)).isFile() || await realpath(source) !== source) {
+            if (!isStrictDescendant(root, source) || !(await lstat(source)).isFile() || await realpath(source) !== source) {
                 throw new Error('Expected a regular file inside the repository without symlinks')
             }
         } catch (cause) {
@@ -18,7 +20,7 @@ export async function stageRuntimeAssets(root: string, destination: string, asse
         }
     }
     for (const path of Object.keys(assets)) {
-        if (!resolve(destination, path).startsWith(resolve(destination) + '/')) throw new Error(`Unsafe asset destination: ${path}`)
+        if (!isStrictDescendant(destination, resolve(destination, path))) throw new Error(`Unsafe asset destination: ${path}`)
     }
     await rm(destination, { recursive: true, force: true })
     for (const [path, source] of Object.entries(assets)) {
