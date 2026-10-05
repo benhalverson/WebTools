@@ -24,4 +24,4 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck && pnpm lint
       - run: pnpm test && pnpm test:routing && pnpm test:rotation-check && pnpm test:parameters && pnpm test:react-workflows && pnpm test:hardware-parameters
-      - run: pnpm test:portal && pnpm test:rotation-check:browser && pnpm test:react-workflows:browser && pnpm test:hardware-parameters:browser
+      - run: pnpm test:pid-review:browser && pnpm test:portal && pnpm test:rotation-check:browser && pnpm test:react-workflows:browser && pnpm test:hardware-parameters:browser
