@@ -17,7 +17,10 @@ Node 24 CommonJS:
 ```js
 const { mavlink20, MAVLink20Processor } = require('@webtools/mavlink');
 const codec = new MAVLink20Processor(null, 42, 1);
-codec.on('HEARTBEAT', message => console.log(message.custom_mode));
+const onHeartbeat = message => console.log(message.custom_mode);
+codec.on('HEARTBEAT', onHeartbeat);
+// Later, unsubscribe using the same function object.
+codec.removeListener('HEARTBEAT', onHeartbeat);
 const packet = new mavlink20.messages.heartbeat(11, 3, 137, 5, 4, 3).pack(codec);
 ```
 
@@ -26,6 +29,12 @@ callbacks from Node ESM. Root ESM imports expose the portable common API, so
 ordinary browser TypeScript configurations cannot promise Node-only events.
 CommonJS `require` and the explicit Node entry expose typed event callbacks;
 the browser entry deliberately does not promise Node EventEmitter behavior.
+The Node listener methods (`on`, `addListener`, `once`, `prependListener`,
+`prependOnceListener`, `removeListener`, and `off`) share an event-to-payload
+contract. Named events receive their decoded message (including `BAD_DATA`);
+`message` receives any parsed message. A handler for only one message cannot
+subscribe to an uncertain union of event names. Once listeners can also be
+removed before delivery using their original callback.
 
 Browser workspace consumers:
 
