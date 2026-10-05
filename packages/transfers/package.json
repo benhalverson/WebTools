@@ -18,7 +18,7 @@
   "scripts": {
     "build": "pnpm --filter @webtools/mavlink build && tsc -p tsconfig.build.json && node tooling/build.cjs",
     "typecheck": "pnpm build && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
-    "lint": "oxlint --deny-warnings src tooling tests",
+    "lint": "biome lint --error-on-warnings .",
     "test": "pnpm build && node --test tests/*.test.cjs",
     "test:browser": "pnpm build && node tests/browser.cjs"
   },
@@ -27,7 +27,6 @@
   },
   "devDependencies": {
     "typescript": "7.0.2",
-    "oxlint": "1.81.0",
     "vite": "8.3.0"
   }
 }
