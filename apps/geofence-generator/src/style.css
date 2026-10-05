@@ -1,0 +1,11 @@
+@import 'leaflet/dist/leaflet.css';
+html, body, #root { height: 100%; margin: 0; width: 100%; }
+#mapid { position: absolute; height: 100%; width: 100%; }
+#menu { position: absolute; z-index: 2000; width: 1200px; background-color: azure; margin: 5px; border-radius: 10px; padding: 10px; }
+#menu table { width: 1200px; }
+#menu h1 { margin: 0 0 5px; }
+#menu .description { width: 480px; vertical-align: top; }
+.leaflet-top { top: 130px; }
+.location-search { position: absolute; z-index: 1000; top: 215px; left: 10px; background: white; padding: 5px; border-radius: 4px; }
+#loading { z-index: 2001 !important; }
+.request-controls { position: absolute; z-index: 2002; top: 155px; left: 60px; background: azure; padding: 8px; }

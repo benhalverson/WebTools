@@ -1,0 +1,33 @@
+{
+  "name": "sysid",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @webtools/dataflash build && pnpm --filter @webtools/react-workflows... build && pnpm prepare:runtime && vite --host 127.0.0.1",
+    "typecheck": "pnpm --filter @webtools/react-workflows... build && pnpm cf-typegen && tsc -b",
+    "build": "pnpm --filter @webtools/dataflash build && pnpm prepare:runtime && pnpm typecheck && vite build",
+    "lint": "biome lint --error-on-warnings .",
+    "preview": "vite preview --host 127.0.0.1",
+    "deploy": "pnpm build && wrangler deploy",
+    "cf-typegen": "wrangler types",
+    "prepare:runtime": "node tooling/stage-python.ts"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "@webtools/react-workflows": "workspace:*",
+    "@webtools/routing": "workspace:*",
+    "@webtools/dataflash": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.62.5",
+    "@types/node": "26.6.4",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.0",
+    "wrangler": "4.147.0"
+  }
+}
