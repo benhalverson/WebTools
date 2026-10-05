@@ -8,6 +8,7 @@ import { extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { fixture } from './fixture.mjs'
+import { listeningOrigin } from '@webtools/routing/tooling'
 const root = fileURLToPath(new URL('../../../', import.meta.url))
 const plots = ['TimeInputs', 'TimeOutputs', 'FFTPlot', 'step_plot', 'Spectrogram']
 
@@ -28,7 +29,7 @@ async function server(mode, prefix, independent = false) {
         const origin = await new Promise((resolve, reject) => {
             const timer = setTimeout(() => reject(new Error('Startup timeout: ' + output)), 60000)
             /** Parse server readiness after complete output chunks. */
-            const read = chunk => { output += chunk; const match = output.match(/http:\/\/127\.0\.0\.1:\d+/); if (match) { clearTimeout(timer); resolve(match[0]) } }
+            const read = chunk => { output += chunk; const origin = listeningOrigin(output); if (origin) { clearTimeout(timer); resolve(origin) } }
             child.stdout.on('data', read); child.stderr.on('data', read)
             child.on('error', error => { clearTimeout(timer); reject(error) })
             child.on('exit', code => { clearTimeout(timer); reject(new Error(`Server exited ${code}: ${output}`)) })
