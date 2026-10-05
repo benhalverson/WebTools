@@ -114,7 +114,7 @@ function createExportGroups(): ExportGroup[] {
         /** Expand the exact legacy SR and MAV stream suffixes. */
         function get_stream_rates(prefix: string) {
             return [
-                prefix + "RAW_SENS", 
+                prefix + "RAW_SENS",
                 prefix + "EXT_STAT",
                 prefix + "RC_CHAN",
                 prefix + "RAW_CTRL",

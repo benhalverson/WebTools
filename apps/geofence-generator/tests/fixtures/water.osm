@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Offline Overpass out-geom regression fixture. Synthetic identifiers and geometry;
+     no provider is contacted to create or replay this response. -->
+<osm version="0.6" generator="Overpass API">
+ <way id="101">
+  <nd ref="1" lat="51.50" lon="-0.10"/><nd ref="2" lat="51.50" lon="-0.08"/>
+  <nd ref="3" lat="51.51" lon="-0.08"/><nd ref="4" lat="51.51" lon="-0.10"/><nd ref="1" lat="51.50" lon="-0.10"/>
+  <tag k="natural" v="water"/><tag k="water" v="lake"/><tag k="name" v="Test/Lake\North"/><tag k="name:en" v="Lake/English\Name"/>
+ </way>
+ <relation id="202"><tag k="type" v="multipolygon"/><tag k="water" v="reservoir"/><tag k="name" v="Reservoir"/>
+  <member type="way" ref="21" role="outer"><nd lat="51.513" lon="-0.10"/><nd lat="51.513" lon="-0.08"/><nd lat="51.52" lon="-0.08"/><nd lat="51.52" lon="-0.10"/><nd lat="51.513" lon="-0.10"/></member>
+  <member type="way" ref="22" role="inner"><nd lat="51.515" lon="-0.095"/><nd lat="51.518" lon="-0.095"/><nd lat="51.518" lon="-0.09"/><nd lat="51.515" lon="-0.09"/><nd lat="51.515" lon="-0.095"/></member>
+ </relation>
+</osm>

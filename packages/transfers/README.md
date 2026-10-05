@@ -48,13 +48,9 @@ narrow circle radius/coordinates and polygon vertex arrays.
 Browser builds use the existing `@webtools/mavlink/vite` asset plugin and an
 absolute Vite base. This keeps the generated runtime and jspack in their original
 classic-script environment. Serve JavaScript as UTF-8 (the runtime has Unicode
-identifiers). The production browser fixture verifies a `/tools/` base.
+identifiers). The new production browser fixture verifies a `/tools/` base.
 
 ## Comparison and compatibility
-
-Legacy `modules/MAVLink/mavftp.js`, `SimpleGCS/ftp_manager.js`, mission/fence UI
-consumers and the Node CLI continue using their existing script entry points.
-Typed consumers use the package exports described above.
 
 `tests/parity.test.cjs` reads both authoritative suites unchanged and runs every
 scenario against legacy and typed exports. It compares full outgoing packet

@@ -27,8 +27,8 @@ against the original DOM helper. It does not contact external services.
 FFT submodule: `f8be92e1369f684da3e121e4c5b7fbcc8d50f868` (4.0.4).
 `build-vendor.mjs` copies the pinned CommonJS `lib/fft.js` **byte for byte**, along
 with the upstream README containing its MIT license. It never installs a new FFT
-version or rebuilds the vendor. The legacy comparison uses the pinned browser
-`dist/fft.js` without modification. `src/vendor/fft.d.cts` describes only the
+version or rebuilds the vendor. The legacy comparison uses the same revision's
+browser `dist/fft.js`, also unchanged. `src/vendor/fft.d.cts` describes only the
 supported public numerical surface rather than adopting upstream's broad types.
 
 `tests/fixtures/legacy.json` records unchanged classic-script outputs, generated
