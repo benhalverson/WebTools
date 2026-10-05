@@ -8,6 +8,7 @@ import type { SocketFactory } from './connection.ts'
 import type { LocationProvider } from './location.ts'
 import { speedText } from './telemetry.ts'
 import './style.css'
+import { VideoControls } from './VideoControls.tsx'
 import { ParameterEditor } from './parameters/ParameterEditor.tsx'
 import { useParameterSession } from './parameters/useParameterSession.ts'
 import { simulatedParameters } from './parameters/simulator.ts'
@@ -60,7 +61,7 @@ export default function App({ socket, location, storage, locks, onMap, prefix, c
             <label htmlFor="signing_passphrase">Signing passphrase</label><input id="signing_passphrase" type={showPassphrase ? 'text' : 'password'} value={draft.passphrase} onChange={event => edit('passphrase', event.target.value)} /><button id="toggle_signing_passphrase" aria-controls="signing_passphrase" aria-label={`${showPassphrase ? 'Hide' : 'Show'} signing passphrase`} aria-pressed={showPassphrase} onClick={() => setShowPassphrase(value => !value)}>{showPassphrase ? 'Hide' : 'Show'}</button>
             <p><button id="connection_button" disabled={busy} onClick={() => { void connect().then(connected => { if (connected) closeDialog() }) }}>Connect</button> <button id="disconnection_button" onClick={disconnect}>Disconnect</button> <button onClick={closeDialog}>Close</button></p>
         </section>
-        <section className="editor" hidden={dialog !== 'settings'} aria-label="Display Settings"><h2>Settings</h2><a href={legacy}>Parameters, commands and video (complete app)</a><label>Map Tiles <select value={display.tiles} onChange={event => changeDisplay('tiles', event.target.value)}>{providers.filter(([key]) => display.googleKey || !key!.startsWith('google')).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+        <section className="editor" hidden={dialog !== 'settings'} aria-label="Display Settings"><h2>Settings</h2><VideoControls storage={storage.local} /><a href={legacy}>Parameters, commands and video (complete app)</a><label>Map Tiles <select value={display.tiles} onChange={event => changeDisplay('tiles', event.target.value)}>{providers.filter(([key]) => display.googleKey || !key!.startsWith('google')).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
             <label>Google Maps API Key <input id="gmaps-key-input" value={display.googleKey} onChange={event => changeDisplay('googleKey', event.target.value.trim())} /></label>
             {options.map(([key, label]) => <label key={key}><input type="checkbox" checked={display[key]} onChange={event => changeDisplay(key, event.target.checked)} />{label}</label>)}<div className="command-actions">
                 <button onClick={() => act(owner => owner.fetch('fence'))} disabled={operations.fencePending}>Fetch Fence</button><button onClick={() => act(owner => owner.fetch('mission'))} disabled={operations.missionPending}>Fetch Mission</button>
