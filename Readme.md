@@ -142,3 +142,12 @@ unchanged test oracles and legacy downloads; the React page does not load them.
 The issue #5 branch also includes prerequisite browser/JSDoc follow-up
 `91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
 identical to the original comparison revision above.
+
+### Linting and formatting
+
+Owned workspace code uses pinned Biome tooling. Run `pnpm lint` for the
+read-only lint gate, `pnpm format:check -- <path>` to inspect formatting, and
+`pnpm format -- <path>` to format a selected owned file. See
+[the tooling policy](tooling/biome-policy.md) for source boundaries and the
+explicit compatibility rules. Formatting is opt-in; existing files were not
+mass-reformatted.
