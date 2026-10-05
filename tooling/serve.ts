@@ -67,6 +67,7 @@ async function main(): Promise<void> {
         rotationCheck: await start('rotation-check', mode, prefix),
         filterReview: await start('filter-review', mode, prefix),
         hardwareParameters: await start('hardware-report', mode, prefix),
+        kinematicTools: await start('kinematic-tools', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {
         const parsed = requestPath(incoming.url)
