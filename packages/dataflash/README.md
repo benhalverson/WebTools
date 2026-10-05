@@ -1,8 +1,6 @@
 # Typed Dataflash boundary
 
-Comparison revision: WebTools `ac32dd6` (the merged workspace foundation).
 The upstream parser remains pinned at `220e354ba3cd479e4378ee4bc9989364b9098227`.
-No legacy consumer, parser source, MAVLink fixture or parameter fixture changes.
 
 `@webtools/dataflash` exposes only its root entry. `loadDataflashParser()` lazily
 imports the exact upstream ES module, copied byte-for-byte with its license at
@@ -18,6 +16,11 @@ Use a fresh parser for each input. `processData(bytes, [])` discovers types with
 loading default messages. `get` and `get_instance` expose numeric Float64Arrays,
 string arrays and arrays of numeric vectors, without normalization, timestamp
 conversion or precision changes. Missing fields/messages return undefined.
+
+For embedded files, call `parseAtOffset('FILE')` then `processFiles()` and read
+`files`. These expose the pinned parser's existing chunk order and binary-byte
+semantics. Copy bytes before clearing `messages.FILE` and `files` to release
+the parser's extraction buffers; no offsets or contents are repaired here.
 
 Instance discovery is `log.messageTypes[name]?.instances`. For instance-bearing
 messages use `get_instance(name, instance, field)`; calling `get(name)` for such a
