@@ -8,8 +8,11 @@ the unchanged `Libraries/*.js` and `HardwareReport` at foundation commit
 
 ## Supported API
 
-- `ParameterControl`: controlled raw string state, parameter name, raw metadata
-  document; narrows `find_parameter_metadata` through `is_parameter_metadata`.
+- `ParameterControl`: controlled raw string state, parameter name, optional raw
+  metadata document. Omitted, null, or undefined metadata renders the numeric
+  fallback while loading. Later metadata changes preserve the parent-owned value
+  and never emit `onChange`; malformed nested prefix nodes still follow the
+  legacy lookup contract. Narrows `find_parameter_metadata` through `is_parameter_metadata`.
   Labels, units, values, optional range constraints, disabled controls, and
   signed bitmasks use the typed parameter package. `allowValues=false` retains
   a number input; `bitmaskSize` controls signed conversion and hidden bits.
@@ -34,8 +37,14 @@ the unchanged `Libraries/*.js` and `HardwareReport` at foundation commit
   stale state changes; it cannot cancel arbitrary caller-owned operations.
 - `OpenIn`: React renders the same destination input buttons and enable rules.
   Relative same-origin paths retain common hosting prefixes. `transferFile`
-  returns a disposer for the legacy load listener or FileReader/delay timer.
-  Popup blocking returns a no-op disposer rather than dereferencing null.
+  returns an idempotent disposer for the legacy load listener or FileReader/delay
+  timer. Its optional fourth `onSettled` callback must not throw and runs once
+  on completion, cancellation, failure, or popup blocking; it can run before
+  `transferFile` returns. External completion clears payload/reader/recipient
+  ownership and unregisters the component disposer while still mounted. Each
+  pending transfer survives prop changes independently. Same-origin listeners
+  deliberately keep sending the original File on every load until disposal.
+  Popup blocking settles cleanly rather than dereferencing null.
   `useOpenInReceiver` awaits optional readiness and delivers File/ArrayBuffer to
   owned state, removing its message listener on unmount. Its structural wire
   narrowing is not origin authentication.
@@ -83,7 +92,7 @@ They also check external transport delay/cancellation, control markup contracts,
 and delegation of exact Blob identity to FileSaver. No Jest/Vitest is used.
 
 Validation: strict workspace typecheck/lint, production builds, 116 retained
-Node tests, 10 parameter tests and 5 workflow Node tests passed. Real Chromium
+Node tests, 10 parameter tests and 9 workflow Node tests passed. Real Chromium
 151.0.7922.173 passed the built workflow suite at `/` and `/Tools/WebTools/`,
 including HardwareReport filename/bytes, unknown enum preservation, pending
 Plotly operations, rejection/retry, readiness-delayed receiver cleanup, and
@@ -91,3 +100,45 @@ repeated mounts. The fixture server normalizes its repository root before
 checking path containment. The intentional failure overlay is unmounted with
 a programmatic host-control click because it intercepts pointer input.
 No live provider, hardware or deployment was used.
+
+## PR43 regression evidence
+
+Reproduced against `91109a1f793d9bedb35b066ad27a988f83ff33ca` using
+Chromium 151.0.7922.173, Node 24.19.0, and pnpm 10.23.0 at `/` and
+`/Tools/WebTools/`. Both initial null and undefined documents threw
+`Cannot convert undefined or null to object`. Native FileReader and real 2000ms
+external timers demonstrated this lifetime after delivery and forced Chromium
+GC, while React remained mounted:
+
+| Sender | Reader alive | 4 MiB ArrayBuffer alive | Recipient stand-in alive |
+| --- | --- | --- | --- |
+| Unchanged legacy | no | no | no |
+| Original PR43 | yes | yes | no |
+| Corrected React | no | no | no |
+
+`tests/regressions.mjs` stores only WeakRefs and primitive delivery evidence;
+it never keeps sent payloads or remote object handles alive. The external
+recipient is a local stand-in that discards messages; no external provider is
+contacted. Forced GC uses a separate CDP task before dereferencing WeakRefs.
+The test also keeps pending buffers/recipients live, repeats concurrent sends,
+changes file props, cancels multiple recipients on unmount, and deliberately
+retains a completed public disposer to check its cleared references. The
+unchanged HardwareReport browser test still checks an actual recipient window,
+original filename and exact bytes. Deterministic Node tests cover read
+cancellation/error/abort, blocked windows, throwing open/read/postMessage calls,
+settlement counts and same-origin repeat loads. Metadata browser regressions
+cover null/undefined through enum/bitmask/range loading and back, unknown enum
+rerenders, preserved controlled values, and no change callbacks during loading.
+
+The `WORKFLOWS_BASELINE=1` browser-runner mode is only for applying this regression
+harness to the original implementation; it asserts the two pre-fix failures.
+The normal command asserts corrected behavior and legacy parity.
+
+Correction validation also passed the six portal checks (development and built
+preview at root/prefix) and the video browser suite. The retained SimpleGCS
+browser gate was attempted, but this environment cannot load its pinned public
+CDN assets: unpkg requests fail with `ERR_TUNNEL_CONNECTION_FAILED`, and the
+jsDelivr HLS request fails certificate validation. Missing Leaflet then raises
+`L is not defined`, preventing its connection-dialog assertion. Those files and
+tests are unchanged; this gate is not reported as passed. No TLS bypass or
+production/vendor changes were used to conceal that environment limitation.
