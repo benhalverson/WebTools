@@ -8,7 +8,7 @@ const binding = { async fetch(request: Request) { return new Response(new URL(re
 
 test('mount and prefix contracts enforce path boundaries', () => {
     for (const prefix of ['/', '/Tools/WebTools/']) {
-        for (const app of ['rotationCheck', 'hardwareParameters', 'kinematicTools'] as const) {
+        for (const app of ['rotationCheck', 'hardwareParameters', 'kinematicTools', 'analyticTune'] as const) {
             const base = applicationBase(app, prefix)
             assert.equal(applicationForPath(base, prefix), app)
             assert.equal(applicationForPath(base.slice(0, -1), prefix), app)

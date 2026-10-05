@@ -1,0 +1,16 @@
+body { font-family: "Times New Roman", serif; margin: 8px; }
+h1 a { color: black; text-decoration: none; }
+.brand { width: 1200px; }
+fieldset { max-width: 1200px; margin: 8px 0; }
+.setup { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.setup fieldset { min-width: 150px; }
+input[type=number] { width: 100px; }
+.sid { border-collapse: collapse; }
+.sid td, .sid th { border: 1px solid black; padding: 8px; text-align: center; }
+.flight-title { width: 1200px; text-align: center; }
+#sid_sets { width: 600px; min-height: 300px; }
+#params { width: 1220px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#params fieldset:nth-child(1), #params fieldset:nth-child(4), #params fieldset:nth-child(7) { grid-column: span 2; }
+#params p { margin: 8px 0; }
+.plotly-notifier { visibility: hidden; }
+[role=alert] { color: #a00; }

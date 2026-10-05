@@ -41,6 +41,8 @@ jobs:
             script: test:react-workflows:browser
           - suite: hardware-parameters
             script: test:hardware-parameters:browser
+          - suite: analytic-tune
+            script: test:analytic-tune:browser
           - suite: kinematic-tools
             script: test:kinematic-tools:browser
     steps:
