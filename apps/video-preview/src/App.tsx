@@ -108,7 +108,7 @@ export function App() {
         const owner = new WidgetRuntime(grid.current, {
             createGrid: (options, element) => window.GridStack.init(options, element), forms: window.Formio,
             sandboxUrl: `${import.meta.env.BASE_URL}Widgets/SandBox.html`, defaultHtml, defaultSandboxScript: defaultScript,
-            playback: { getLogData: () => log.current?.buffer, getTime: () => logTime(synchronization.current.time, Number.parseFloat(synchronization.current.offset)) },
+            playback: { getLogData: () => log.current?.buffer ?? undefined, getTime: () => logTime(synchronization.current.time, Number.parseFloat(synchronization.current.offset)) },
             onEdit: widget => { setSelected(widget); setSourceEditing(false) },
             onWidgetDisposed: widget => { setSelected(value => value === widget ? undefined : value) },
             onError: cause => { if (current) failure(cause) },

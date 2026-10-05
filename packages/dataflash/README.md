@@ -54,3 +54,8 @@ Consumers that map local log timestamps to video frames can inspect the retained
 `buffer`, `FMT` indexes (`Format`, `Columns`, byte offsets and instance offsets),
 and reader `offset`. `parse_type('Q')` advances the upstream reader and preserves
 its numeric precision. These APIs coexist with the FILE extraction methods.
+
+Before `processData`, `buffer` is `null` and the initial FMT entry has no
+`FormatOffset` or `OffsetArray`. Instance indexing removes `OffsetArray` and
+provides `InstancesOffsetArray` instead. Consumers must narrow these optional
+indexes before reading offsets; the upstream runtime is unchanged.

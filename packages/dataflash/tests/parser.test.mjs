@@ -112,3 +112,24 @@ test('empty field names return whole messages, including instance reads', async 
     }
   }
 })
+
+
+test('raw reader state preserves absent constructor and instanced record indexes', async () => {
+  const bytes = await readFile(new URL('../fixtures/plane-4.6.2-prefix.BIN', import.meta.url))
+  for (const Constructor of [Parser, Legacy]) {
+    const log = new Constructor()
+    assert.equal(log.buffer, null)
+    assert.equal(log.FMT[128].FormatOffset, undefined)
+    assert.equal(log.FMT[128].OffsetArray, undefined)
+    const input = buffer(bytes)
+    log.processData(input, [])
+    assert.equal(log.buffer, input)
+    const battery = log.FMT.find(format => format?.Name === 'BAT')
+    assert.ok(battery)
+    assert.ok(Array.isArray(battery.FormatOffset))
+    assert.equal(Object.hasOwn(battery, 'OffsetArray'), false)
+    assert.deepEqual(Object.keys(battery.InstancesOffsetArray), ['0', '3'])
+    assert.ok(battery.InstancesOffsetArray['0'].length > 0)
+    assert.ok(battery.InstancesOffsetArray['3'].length > 0)
+  }
+})

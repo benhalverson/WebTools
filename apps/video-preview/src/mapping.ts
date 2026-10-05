@@ -8,9 +8,9 @@ export function timestampBounds(log: DataflashLog): { first: number | undefined;
         if (!message) continue
         const index = message.Columns.indexOf('TimeUS')
         if (index === -1 || message.Format.charAt(index) !== 'Q') continue
-        const valueOffset = message.FormatOffset[index]
+        const valueOffset = message.FormatOffset?.[index]
         if (valueOffset === undefined) continue
-        for (const offsets of message.InstancesOffsetArray ? Object.values(message.InstancesOffsetArray) : [message.OffsetArray]) {
+        for (const offsets of message.InstancesOffsetArray ? Object.values(message.InstancesOffsetArray) : [message.OffsetArray ?? []]) {
             const start = offsets[0], end = offsets.at(-1)
             if (start === undefined || end === undefined) continue
             const startOffset = start + valueOffset, endOffset = end + valueOffset
