@@ -1,19 +1,22 @@
 /* oxlint-disable unicorn/no-new-array -- Sparse arrays and RangeError behavior are legacy contracts. */
 import { array_abs, array_mean, array_mul, array_log10, array_scale } from './array.js';
-import type { ComplexArray, ComplexInput, ComplexStorage } from './array.js';
+import type { ComplexArray, ComplexInput, ComplexStorage, NumericInput, NumericStorage } from './array.js';
+/** Synchronous real transform boundary used after windowing allocates ordinary arrays. */
 export interface RealFFT {
     /** Allocate a writable interleaved complex buffer for this FFT instance. */
     createComplexArray(): number[];
     /** Write the real-input transform into out synchronously; implementation
      * errors propagate to run_fft without translation. */
-    realTransform(out: number[], data: readonly number[]): void;
+    realTransform(out: number[], data: NumericInput): void;
 }
+/** Linear and energy corrections for the original window samples. */
 export interface WindowCorrection { linear: number; energy: number }
+/** Spectrum converters preserve input storage on identity paths, otherwise allocate arrays. */
 export interface AmplitudeScale {
     /** Convert amplitudes to power for PSD, otherwise return the same array. */
-    fun(x: number[]): number[];
+    fun<T extends NumericInput>(x: T): T | number[];
     /** Apply the selected decibel conversion, or return linear values unchanged. */
-    scale(x: number[]): number[];
+    scale<T extends NumericInput>(x: T): T | number[];
     label: string;
     /** Format the named Plotly coordinate with the selected display units. */
     hover(axis: string): string;
@@ -24,14 +27,16 @@ export interface AmplitudeScale {
     /** Convert the selected window correction to its reciprocal amplitude factor. */
     quantization_correction(window_correction: number): number;
 }
+/** Frequency display conversion with identity storage in hertz mode. */
 export interface FrequencyScale {
     /** Convert hertz to RPM in a new array, or preserve the hertz array identity. */
-    fun(x: number[]): number[];
+    fun<T extends NumericInput>(x: T): T | number[];
     label: string;
     /** Format the named Plotly coordinate with the selected display units. */
     hover(axis: string): string;
     type: 'log' | 'linear';
 }
+/** Flat legacy result; missing channels leave sparse windows and maxima are optional. */
 export type FFTResult<K extends string> = { center: number[] } &
     Record<K, ComplexArray[]> & Partial<Record<`${K}Max`, number[]>>;
 // Helper functions for FFTs
@@ -52,7 +57,7 @@ export function hanning(len: number): number[] {
 /** Compute reciprocal mean and reciprocal RMS corrections for a window.
  * Empty windows produce NaN corrections; all-zero windows produce Infinity.
  * Inputs are neither normalized nor modified. */
-export function window_correction_factors(w: readonly number[]): WindowCorrection {
+export function window_correction_factors(w: NumericInput): WindowCorrection {
     return {
         linear: 1/array_mean(w),
         energy: 1/Math.sqrt(array_mean(array_mul(w,w)))
@@ -91,7 +96,7 @@ export function rfft_freq(len: number, d: number): number[] {
  * with interior bins doubled and DC/final bins left undoubled.
  * @throws When the first channel is absent or an allocation length is invalid.
  * Invalid sizes and spacing are not clamped or otherwise validated. */
-export function run_fft<K extends string>(data: Partial<Record<K, readonly number[]>>, keys: readonly K[], window_size: number, window_spacing: number, windowing_function: readonly number[], fft: RealFFT, take_max?: boolean): FFTResult<K> {
+export function run_fft<K extends string>(data: Partial<Record<K, NumericInput>>, keys: readonly K[], window_size: number, window_spacing: number, windowing_function: NumericInput, fft: RealFFT, take_max?: boolean): FFTResult<K> {
     const num_points = data[keys[0]!]!.length
     const real_len = real_length(window_size)
     const num_windows = Math.floor((num_points-window_size)/window_spacing) + 1
@@ -194,8 +199,9 @@ export function to_double_sided(X: ComplexInput): ComplexStorage {
 /** Copy split complex components into the supplied interleaved FFT buffer.
  * The real-component length controls writes; missing imaginary components
  * become explicit undefined. The target grows as needed and trailing entries
- * beyond the copied region remain unchanged. */
-export function to_fft_format(target: (number | undefined)[], source: readonly [readonly (number | undefined)[], readonly (number | undefined)[]]): void {
+ * beyond the copied region remain unchanged. Typed targets keep their fixed length
+ * and convert missing components to NaN. */
+export function to_fft_format(target: NumericStorage, source: ComplexInput): void {
     const len = source[0].length
     for (let i=0;i<len;i++) {
         const index = i*2
