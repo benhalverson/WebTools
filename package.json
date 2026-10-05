@@ -20,7 +20,8 @@
     "test:rotation-check:browser": "node --test apps/rotation-check/tests/browser.cjs",
     "test:mavlink:browser": "pnpm --filter @webtools/mavlink test:browser",
     "test:simplegcs": "pnpm --filter @webtools/mavlink build && pnpm --filter simplegcs test",
-    "test:simplegcs:browser": "node apps/simplegcs/tests/browser.cjs"
+    "test:simplegcs:browser": "node apps/simplegcs/tests/browser.cjs",
+    "test:simplegcs:video": "node apps/simplegcs/tests/video-browser.cjs"
   },
   "engines": {
     "node": ">=24 <25"

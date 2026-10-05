@@ -24,4 +24,4 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck && pnpm lint
       - run: pnpm test && pnpm test:simplegcs && pnpm test:routing && pnpm test:rotation-check && pnpm test:parameters && pnpm test:react-workflows
-      - run: pnpm test:simplegcs:browser && pnpm test:portal && pnpm test:rotation-check:browser && pnpm test:react-workflows:browser
+      - run: pnpm test:simplegcs:browser && pnpm test:simplegcs:video && pnpm test:portal && pnpm test:rotation-check:browser && pnpm test:react-workflows:browser
