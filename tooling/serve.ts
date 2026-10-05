@@ -76,6 +76,7 @@ async function main(): Promise<void> {
         dashboardPlayback: await start('dashboard-playback', mode, prefix),
         simplegcsPreview: await start('simplegcs', mode, prefix),
         thrustExpo: await start('thrust-expo', mode, prefix),
+        magFit: await start('mag-fit', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {
         const parsed = requestPath(incoming.url)
