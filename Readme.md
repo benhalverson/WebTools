@@ -120,9 +120,9 @@ Here is [more information on debugging with VSCode](https://code.visualstudio.co
 <img src="images/VSCode%20debug.png" width="80%">
 </p>
 
-### RotationCheck React migration and local app routing
+### RotationCheck and local app routing
 
-RotationCheck now has its own React/TypeScript app and Worker in
+RotationCheck has its own React/TypeScript app and Worker in
 `apps/rotation-check`. Root `pnpm dev` and `pnpm preview` compose it with the
 portal on one origin at the existing `RotationCheck/` destination. Both apps
 also build and run independently with their own package scripts.
@@ -134,39 +134,44 @@ See [the routing API](packages/routing/README.md) for the explicit contract,
 
 `pnpm test:routing`, `pnpm test:rotation-check`, and
 `pnpm test:rotation-check:browser` cover URL contracts, legacy numerical parity,
-and real app controls in development and built Worker preview. The comparison
-revision is `753a397e818593ac0943854fd7cea3468f49f095` (issue #4 / draft PR #43,
-which includes issue #3 / PR #39). The retained `RotationCheck/` scripts remain
-unchanged test oracles and legacy downloads; the React page does not load them.
+and real app controls in development and built Worker preview. The retained
+`RotationCheck/` scripts provide unchanged test oracles and legacy downloads;
+the React page does not load them.
 
-The issue #5 branch also includes prerequisite browser/JSDoc follow-up
-`91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
-identical to the original comparison revision above.
+### SimpleGCS preview
 
-### SimpleGCS telemetry preview
-
-`apps/simplegcs` is the intermediate connection and read-only telemetry slice.
+`apps/simplegcs` provides simulated connection, telemetry and parameter editing.
 Open `SimpleGCS-preview/` through `pnpm dev`, or run
 `pnpm --filter simplegcs dev` independently. Its own `build` and `preview`
 commands use the same `WEBTOOLS_BASE_PATH`/`PORTAL_BASE_PATH` convention and
 an independent Worker. The public `SimpleGCS/` destination still serves the
-complete unchanged legacy app; commands, parameters and video remain there
-until the later completion stage.
+complete legacy app, including commands and video.
 
 The preview uses an in-memory MAVLink vehicle and simulated user location.
 Its offline Leaflet surface supports vehicle position/heading, retained pan
 and zoom, recentering and the metric grid. Tile-provider and auto-fetch choices
 retain their existing storage keys for the complete app; the preview makes no
 relay, vehicle, map-provider or device-location requests. Tests can inject
-`SIMPLEGCS_PREVIEW.socket`, `.location`, and `.onMap` before the React entry
+`SIMPLEGCS_PREVIEW.socket`, `.location`, `.onMap`, `.parameters`, and
+`.onParameters` before the React entry
 loads. The socket factory receives the submitted URL and immutable settings;
 reconnects never read the in-progress editor draft.
 
-`pnpm test:simplegcs` compares telemetry, grid arithmetic and signed bytes with
-the unchanged integrated baseline `8e1791a` (routing PR #45 and MAVLink PR #41).
+The parameter session factory supplies the shared `MAVParam` model, metadata
+loader, vehicle name, cancellation and disposal. Sessions are invalidated on
+transport disconnect; drafts and pending file/metadata callbacks cannot cross
+session boundaries. The editor provides defaults/reset, enum and signed bitmask
+controls, readonly validation, text-file import/export and upload/readback feedback.
+
+`pnpm test:simplegcs` compares telemetry, grid arithmetic, parameter formats and
+signed bytes with pinned legacy source.
 `pnpm test:simplegcs:browser` runs Chromium against the independent development
 and built Worker previews at root and prefix, plus the shared local gateway
 and the actual baseline legacy page. Its CDN replay accepts only pinned npm
 bytes matching the legacy HTML's SHA-384 integrity hashes; all other external
 browser requests are blocked. Fetch full Git history before running the
 comparison tests.
+
+`pnpm test:simplegcs:parameters:browser` covers the React parameter editor in
+desktop/mobile Chromium, exact legacy file and protocol bytes, root/prefix
+routing, rejected or cancelled writes, and asynchronous resource cleanup.
