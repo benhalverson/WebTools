@@ -27,6 +27,17 @@ const layout = { header: { version: 1 }, grid: { columns: 6, rows: 6, color: 'rg
     } } },
 } }
 
+/** Wait for actual replacement after asynchronous file reads; the outgoing runtime can still be ready. */
+async function replaceLayout(page, name, json) {
+    const previous = await page.locator('#dashboard > .grid-stack-item').first().elementHandle()
+    assert.ok(previous, 'replacement scenario requires an outgoing widget')
+    try {
+        await page.getByLabel('Load layout', { exact: true }).setInputFiles({ name, mimeType: 'application/json', buffer: Buffer.from(json) })
+        await page.waitForFunction(element => !element.isConnected, previous)
+        await page.locator('#dashboard[data-ready=true]').waitFor()
+    } finally { await previous.dispose() }
+}
+
 /** Stop all owned Vite and Worker descendants, including failure paths. */
 async function stop(child) {
     if (child.exitCode !== null || child.signalCode !== null) return
@@ -249,15 +260,14 @@ try {
                 // Repeated file reads, invalid input, and replacing an initializing runtime.
                 await page.getByRole('button', { name: 'Saved layout', exact: true }).click()
                 for (let index = 0; index < 3; index++) {
-                    await page.getByLabel('Load layout', { exact: true }).setInputFiles({ name: 'fixture.json', mimeType: 'application/json', buffer: Buffer.from(bytes) })
-                    await page.locator('#dashboard[data-ready=true]').waitFor(); await readyFrames(page)
+                    await replaceLayout(page, 'fixture.json', bytes)
+                    await readyFrames(page)
                 }
                 await page.getByLabel('Load layout', { exact: true }).setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{}') })
                 await page.getByRole('alert').waitFor()
                 assert.equal(await page.locator('#dashboard iframe').count(), 2)
                 const empty = { ...layout, widgets: {} }
-                await page.getByLabel('Load layout', { exact: true }).setInputFiles({ name: 'empty.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(empty)) })
-                await page.locator('#dashboard[data-ready=true]').waitFor()
+                await replaceLayout(page, 'empty.json', JSON.stringify(empty))
                 assert.equal(await page.locator('#dashboard iframe').count(), 0)
                 assert.equal(await page.evaluate(() => window.activeChannels.size), 0, 'replacement disposes outgoing runtime channel')
                 // A failed early file read must not suppress pending initial restoration.
@@ -283,8 +293,7 @@ try {
                 })
                 await edge.getByRole('button', { name: 'Get dashboard link', exact: true }).click()
                 await edge.waitForFunction(() => typeof window.finishCompression === 'function')
-                await edge.getByLabel('Load layout', { exact: true }).setInputFiles({ name: 'empty.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(empty)) })
-                await edge.locator('#dashboard[data-ready=true]').waitFor()
+                await replaceLayout(edge, 'empty.json', JSON.stringify(empty))
                 await edge.evaluate(() => window.finishCompression())
                 await edge.waitForTimeout(50)
                 assert.equal(await edge.getByLabel('Dashboard link', { exact: true }).count(), 0, 'obsolete compression cannot restore a stale link')
@@ -298,8 +307,7 @@ try {
                 })
                 await edge.getByLabel('Load layout', { exact: true }).setInputFiles({ name: 'fixture.json', mimeType: 'application/json', buffer: Buffer.from(bytes) })
                 await edge.waitForFunction(() => window.releaseForms.length > 0)
-                await edge.getByLabel('Load layout', { exact: true }).setInputFiles({ name: 'empty.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(empty)) })
-                await edge.locator('#dashboard[data-ready=true]').waitFor()
+                await replaceLayout(edge, 'empty.json', JSON.stringify(empty))
                 await edge.evaluate(() => Promise.all(window.releaseForms.map(release => release())))
                 assert.equal(await edge.locator('#dashboard iframe').count(), 0, 'late initialization cannot reattach disposed frames')
                 assert.equal(await edge.evaluate(() => window.activeChannels.size), 0)
