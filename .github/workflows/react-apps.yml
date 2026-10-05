@@ -52,13 +52,15 @@ jobs:
             test:portal \
             test:rotation-check:browser \
             test:react-workflows:browser \
+            test:dataflash:browser \
             test:hardware-parameters:browser \
             test:kinematic-tools:browser \
             test:scurve-tool:browser \
             test:pid-review:browser \
             test:stream-stats:browser \
             test:dfu-loader:browser \
-            test:log-finder:browser
+            test:log-finder:browser \
+            test:filter-tool:browser
           do
             echo "::group::$suite"
             if pnpm "$suite"; then
