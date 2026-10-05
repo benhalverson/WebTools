@@ -3,6 +3,7 @@ const { spawn, execFileSync } = require('node:child_process');
 const { once } = require('node:events');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { listeningOrigin } = require('@webtools/routing/tooling');
 const root = path.resolve(__dirname, '../../..');
 /** Stop the complete Vite/Worker group even when a browser assertion fails. */
 async function stop(child) {
@@ -19,7 +20,7 @@ async function start(mode, prefix, gateway = false) {
         const origin = await new Promise((resolve, reject) => {
             const timer = setTimeout(() => reject(Error(output)), 60000);
             /** Resolve the reported listening address, independent of console chunking. */
-            function read(chunk) { output += chunk; const match = output.match(/http:\/\/127\.0\.0\.1:\d+/); if (match) { clearTimeout(timer); resolve(match[0]); } }
+            function read(chunk) { output += chunk; const origin = listeningOrigin(output); if (origin) { clearTimeout(timer); resolve(origin); } }
             child.stdout.on('data', read); child.stderr.on('data', read); child.on('error', reject); child.on('exit', code => { clearTimeout(timer); reject(Error(`${code}: ${output}`)); });
         });
         return { origin, child };
