@@ -240,7 +240,8 @@ export class WidgetHost {
         this.readinessError = undefined
         this.sendInitialization()
         this.loadLog()
-        void this.setTime(this.owner.dependencies.playback?.getTime() ?? 0).catch(error => this.owner.dependencies.onError?.(error))
+        const playback = this.owner.dependencies.playback
+        if (playback) void this.setTime(playback.getTime()).catch(error => this.owner.dependencies.onError?.(error))
     }
 
     /** Await top-level module imports without modifying stored or exported custom source. */

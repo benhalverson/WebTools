@@ -65,7 +65,34 @@ export async function runLifecycleChecks(): Promise<void> {
             element.remove()
         }
     }
+    await runTelemetryReadinessChecks()
     await runPlaybackChecks()
+}
+
+/** Keep telemetry-only consumers free of unsolicited video acknowledgement requests. */
+async function runTelemetryReadinessChecks(): Promise<void> {
+    const element = document.createElement('div')
+    element.style.cssText = 'width:500px;height:500px'
+    document.body.append(element)
+    const runtime = new WidgetRuntime(element, {
+        createGrid: (options, host) => window.GridStack.init(options, host), forms: window.Formio,
+        sandboxUrl: `${import.meta.env.BASE_URL}runtime/Widgets/SandBox.html`, defaultHtml: '',
+    }, { header: { version: 1 }, grid: { rows: 1, columns: 1, color: '' }, widgets: {
+        0: { x: 0, y: 0, w: 1, h: 1, type: 'WidgetCustomHTML', options: {
+            custom_HTML: '<html><body><output></output><script>addEventListener("message",event=>{document.querySelector("output").textContent+=Object.keys(event.data).join(",")+";"})</script></body></html>',
+        } },
+    } })
+    try {
+        const frame = element.querySelector('iframe')
+        check(frame !== null, 'telemetry fixture frame exists')
+        if (!frame) return
+        const loaded = new Promise<void>(resolve => frame.addEventListener('load', () => resolve(), { once: true }))
+        await Promise.all([runtime.ready, loaded])
+        await new Promise(resolve => window.setTimeout(resolve, 50))
+        const received = frame.contentDocument?.querySelector('output')?.textContent ?? ''
+        check(received.includes('options'), 'telemetry frame still receives its initialization')
+        check(!received.includes('time'), 'telemetry-only initialization never sends a playback request')
+    } finally { runtime.destroy(); element.remove() }
 }
 
 /** Verify late handler readiness, slow replies and terminal timeouts in real iframes. */

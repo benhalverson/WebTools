@@ -16,8 +16,6 @@ export type FieldResult<Field extends string> = Field extends ''
   : '' extends Field ? Message | FieldValues : FieldValues
 /** Before initialization FMT has undefined count and NaN sizes, as upstream. */
 export interface LogStatistics { count: number | undefined; msg_size: number; size: number }
-/** Narrow, consumed surface of the pinned upstream implementation. Missing
- * messages/fields return undefined. Corrupt input can throw; errors are not hidden. */
 /** Retained raw index needed by consumers that inspect timestamp byte positions. */
 export interface FormatIndex {
   Columns: string[]
@@ -26,6 +24,8 @@ export interface FormatIndex {
   OffsetArray: number[]
   InstancesOffsetArray?: Record<string, number[]>
 }
+/** Narrow, consumed surface of the pinned upstream implementation. Missing
+ * messages/fields return undefined. Corrupt input can throw; errors are not hidden. */
 export interface DataflashLog {
   buffer: ArrayBuffer
   FMT: (FormatIndex | undefined)[]
