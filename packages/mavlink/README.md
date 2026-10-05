@@ -1,7 +1,6 @@
 # @webtools/mavlink
 
-Typed boundary for the existing MAVLink codec, compared with fork `main` at
-`ac32dd6`. No generated protocol definitions, runtime fixes, jspack sources, or
+Typed boundary for the existing MAVLink codec. No generated protocol definitions, runtime fixes, jspack sources, or
 checked-in authoritative fixtures are changed. This package does not connect to
 vehicles, provide a transport, or change malformed-frame recovery.
 
