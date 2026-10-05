@@ -140,7 +140,7 @@ the React page does not load them.
 
 ### SimpleGCS preview
 
-`apps/simplegcs` provides simulated connection, telemetry and parameter editing.
+`apps/simplegcs` provides simulated connection, telemetry, parameter editing, video, commands, and mission/fence downloads.
 Open `SimpleGCS-preview/` through `pnpm dev`, or run
 `pnpm --filter simplegcs dev` independently. Its own `build` and `preview`
 commands use the same `WEBTOOLS_BASE_PATH`/`PORTAL_BASE_PATH` convention and
@@ -175,6 +175,45 @@ comparison tests.
 `pnpm test:simplegcs:parameters:browser` covers the React parameter editor in
 desktop/mobile Chromium, exact legacy file and protocol bytes, root/prefix
 routing, rejected or cancelled writes, and asynchronous resource cleanup.
+
+`pnpm test:simplegcs:commands:browser` checks command acknowledgements, mission
+and fence transfers, map gestures and disposal with an in-memory vehicle.
+The command/mission/fence runtime owns one serialized FTP manager; completion-stage
+parameter integration must share that manager for operations on a real connection.
+
+### FilterReview spectrum preview
+
+The independent React preview is at `/FilterReviewPreview/` (under
+`WEBTOOLS_BASE_PATH` or the compatible `PORTAL_BASE_PATH` prefix).
+Run `pnpm --filter filter-review dev`, or `pnpm build && pnpm preview`
+for the same-origin gateway and built Workers. The complete public
+`/FilterReview/` route remains legacy until issue #16.
+
+The preview owns local raw/batch gyro ingestion, IMU/source controls, FFT jobs,
+time selection, spectra and Open In. Each calculation uses a fresh, cancellable
+Worker; the DataFlash package is served as standalone ESM with adjacent vendor
+assets. Filter tracking and tuning remain in the complete tool.
+`pnpm test:filter-review` runs numerical compatibility tests.
+`pnpm test:filter-review:browser` exercises Chromium,
+independent dev/built Workers and the gateway at root and nested prefixes.
+
+### AirspeedFit
+
+`apps/airspeed-fit` provides an independent React app and Worker at `AirspeedFit/`.
+Use `pnpm --filter airspeed-fit dev` or the shared gateway with `pnpm dev`;
+build and preview use the same hosting prefix as the other registered apps.
+`pnpm test:airspeed-fit` covers numerical compatibility, including recorded-log
+window/sensor selections, fitting, residuals and calibration exports.
+`pnpm test:airspeed-fit:browser` exercises dev and Worker controls at both prefixes,
+file replacement, exports, Open In and resource cleanup.
+
+### Geofence Generator
+
+`apps/geofence-generator` owns the React app and independent Worker at
+`GeofenceGenerator/`. Use its `dev`, `build` and `preview` package scripts or
+the shared gateway with the common hosting prefix. `pnpm test:geofence` and
+`pnpm test:geofence:browser` cover geometry/export compatibility and actual
+map controls, request cancellation and disposal using offline provider fixtures.
 
 ### Linting and formatting
 

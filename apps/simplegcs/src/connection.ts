@@ -1,4 +1,4 @@
-import { MAVLink20Processor, mavlink20 } from '@webtools/mavlink'
+import { MAVLink20Processor, mavlink20, type Message } from '@webtools/mavlink'
 import { emptyTelemetry, receiveTelemetry, lteDisplay, type Telemetry } from './telemetry.ts'
 import { validateUrl, type ConnectionSettings } from './settings.ts'
 export interface Socket {
@@ -7,10 +7,20 @@ export interface Socket {
     onmessage: ((event: { data: ArrayBuffer }) => void) | null
     send(bytes: Uint8Array): void; close(code?: number, reason?: string): void
 }
+export type ConnectionEvent = { type: 'message'; message: Message } | { type: 'disconnect' }
 export type SocketFactory = (url: string, settings: Readonly<ConnectionSettings>) => Socket
 export interface LinkState { telemetry: Telemetry; status: string; stale: boolean; phase: 'disconnected' | 'connecting' | 'connected' | 'error'; lagSeconds: number; error: string; mapIdentity: string | null }
 /** Own the parser, replay windows, socket and every link timer for one React mount. */
 export class Connection {
+    private generation = 0
+    private readonly subscribers = new Set<(event: ConnectionEvent) => void>()
+    /** Observe selected-vehicle packets and synchronous disconnects; unsubscribe before disposal. */
+    subscribe(listener: (event: ConnectionEvent) => void): () => void { this.subscribers.add(listener); return () => { this.subscribers.delete(listener) } }
+    /** Borrow the active codec/transport; consumers must relinquish them on disconnect. */
+    vehicleLink() {
+        const telemetry = this.state.telemetry
+        return this.socket?.readyState === 1 && telemetry.system > 0 ? { generation: this.generation, processor: this.processor, transport: this.socket, telemetry } : null
+    }
     private readonly processor = new MAVLink20Processor()
     private readonly streams = new Map<string, Record<string, number>>()
     private readonly factory: SocketFactory
@@ -90,6 +100,7 @@ export class Connection {
             if (!telemetry) continue
             this.lastRx = Date.now(); this.attempts = 0
             this.update({ telemetry, status: 'Live', stale: false, phase: 'connected', lagSeconds: 0, mapIdentity: telemetry.identity })
+            for (const listener of this.subscribers) listener({ type: 'message', message })
         }
     }
     /** Mark data stale after three seconds and detach stalled peers after fifteen. */
@@ -110,12 +121,14 @@ export class Connection {
     disconnect(intentional = true, code = 1000, reason = ''): void {
         clearTimeout(this.retry); clearInterval(this.heartbeat); clearInterval(this.health); clearInterval(this.lte)
         this.retry = this.heartbeat = this.health = this.lte = undefined
+        this.generation++
         const socket = this.socket; this.socket = null
+        for (const listener of this.subscribers) listener({ type: 'disconnect' })
         if (socket) { socket.onopen = socket.onclose = socket.onerror = socket.onmessage = null; try { socket.close(code, reason) } catch { /* A closed transport already relinquished its resources. */ } }
         this.named.clear()
         if (intentional) { this.last = null; this.attempts = 0 }
         this.update({ telemetry: emptyTelemetry(), status: 'Disconnected', stale: true, lagSeconds: 0, phase: 'disconnected', mapIdentity: intentional ? null : this.state.mapIdentity })
     }
     /** End this mount permanently, including pending reconnects and replay-window ownership. */
-    dispose(): void { this.disposed = true; this.disconnect(); this.streams.clear() }
+    dispose(): void { this.disposed = true; this.disconnect(); this.streams.clear(); this.subscribers.clear() }
 }

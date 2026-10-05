@@ -5,6 +5,7 @@ import { readDraft, submitDraft, saveConnection, type StoragePair, type Connecti
 import { emptyTelemetry } from './telemetry.ts'
 /** Bind controller/lease lifetime to React; drafts stay independent from submitted reconnect settings. */
 export function useConnection(factory: SocketFactory, storage: StoragePair, locks: LockManager | undefined, config: DeploymentConfig) {
+    const [connection, setConnection] = useState<Connection | null>(null)
     const [draft, setDraft] = useState(() => readDraft(storage, config))
     const [link, setLink] = useState<LinkState>({ telemetry: emptyTelemetry(), status: 'Disconnected', stale: true, phase: 'disconnected', lagSeconds: 0, error: '', mapIdentity: null })
     const [busy, setBusy] = useState(false), [error, setError] = useState<{ message: string } | null>(null)
@@ -14,6 +15,7 @@ export function useConnection(factory: SocketFactory, storage: StoragePair, lock
     useEffect(() => {
         const current = { connection: new Connection(factory, state => { setLink(state); if (state.error) reportError(state.error) }), identity: new ComponentIdentity(locks), active: true, attempt: 0 }
         owner.current = current
+        setConnection(current.connection)
         const initial = readDraft(storage, config)
         void current.identity.claim(Number(initial.componentId)).then(componentId => {
             if (!current.active || componentId === null || current.attempt !== 0) return
@@ -41,5 +43,5 @@ export function useConnection(factory: SocketFactory, storage: StoragePair, lock
     const disconnect = useCallback(() => { const current = owner.current; if (!current) return; current.attempt++; current.identity.cancel(); current.connection.disconnect(); setBusy(false) }, [])
     /** Edit one field without recreating the connection controller or replacing focused nodes. */
     const edit = useCallback(<K extends keyof ConnectionDraft>(key: K, value: ConnectionDraft[K]) => { setDraft(previous => ({ ...previous, [key]: value })) }, [])
-    return { draft, link, busy, error, connect, disconnect, edit }
+    return { connection, draft, link, busy, error, connect, disconnect, edit }
 }

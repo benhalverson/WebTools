@@ -36,5 +36,12 @@ the migrated page. Apps import only shared packages, never another app's source.
 
 Build outputs remain separate deployable Workers. A future hosting deployment
 must apply the same prefix and ownership table to dispatch requests to these
-Workers. This change provides local composition only and does not publish,
-change domains, or configure production bindings.
+Workers. The local gateway does not publish applications, change domains, or
+configure production bindings.
+
+For a focused local gateway, pass explicit registry keys, for example
+`node tooling/serve.ts preview --apps portal,rotationCheck,dfuLoader --port 0`.
+Omitting `--apps` starts every registered app as before. Build the selected apps
+and their workspace dependencies at the same hosting prefix first. Unknown, empty,
+or duplicate keys are rejected before startup; routes and HMR upgrades owned by
+unstarted apps return 503 rather than falling back to the portal.
