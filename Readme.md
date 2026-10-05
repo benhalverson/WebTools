@@ -8,12 +8,11 @@ For general review see [UAVLogViewer](https://github.com/ArduPilot/UAVLogViewer)
 
 ### React portal and pnpm workspace
 
-The workspace contains `apps/portal`, a React/TypeScript portal for the existing
-landing page and `/Dev/` listing, and `packages/dataflash`, a typed, lazy-loaded
-boundary for the unchanged upstream Dataflash parser and owned log helpers.
-See [the package guide](packages/dataflash/README.md) for its browser asset
-contract, recorded fixtures, and validation commands. Existing tools and their
-shared browser libraries still run their original JavaScript. The portal was scaffolded with
+The workspace contains independent React/TypeScript portal, RotationCheck, and
+AirspeedFit apps, with shared typed numerical, protocol, parameter, Dataflash,
+routing, and React workflow packages. Other tools retain their legacy pages.
+See [the Dataflash package guide](packages/dataflash/README.md) for its browser
+asset contract and validation commands. The portal uses
 [Cloudflare's React/Vite template](https://developers.cloudflare.com/workers/framework-guides/web-apps/react/)
 using C3 2.73.2, with TypeScript, deployment disabled, and no nested Git repository.
 
@@ -38,10 +37,10 @@ Run these commands from the repository root:
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm dev` | Serve the portal and unchanged tools together, normally at http://127.0.0.1:5173/ |
+| `pnpm dev` | Serve the React apps and legacy tools together, normally at http://127.0.0.1:5173/ |
 | `pnpm typecheck` | Generate Worker types and check strict browser, Node, and Worker TypeScript |
-| `pnpm lint` | Lint only the new portal, tooling, and portal tests |
-| `pnpm test` | Run the existing protocol tests and recorded Dataflash differential tests |
+| `pnpm lint` | Lint all workspace packages, apps, tooling, and their tests |
+| `pnpm test` | Run protocol, numerical, parameter, and recorded Dataflash differential tests |
 | `pnpm test:browser` | Run the existing SimpleGCS Playwright suite with a simulated vehicle |
 | `pnpm test:video` | Run the existing video suite; leave `SIMPLEGCS_WHEP_TEST_URL` unset to skip live MediaMTX |
 | `pnpm test:portal` | Build and test development and production preview at both root and a hosting prefix |
@@ -120,25 +119,21 @@ Here is [more information on debugging with VSCode](https://code.visualstudio.co
 <img src="images/VSCode%20debug.png" width="80%">
 </p>
 
-### RotationCheck React migration and local app routing
+### Independent React apps and local routing
 
-RotationCheck now has its own React/TypeScript app and Worker in
-`apps/rotation-check`. Root `pnpm dev` and `pnpm preview` compose it with the
-portal on one origin at the existing `RotationCheck/` destination. Both apps
-also build and run independently with their own package scripts.
+`apps/rotation-check` and `apps/airspeed-fit` each own a React/TypeScript app and
+Worker. Root `pnpm dev` and `pnpm preview` compose them with the portal on one
+origin at `RotationCheck/` and `AirspeedFit/`. Each app also builds and runs
+independently using its package scripts.
 
 Use `WEBTOOLS_BASE_PATH` as the common prefix (`PORTAL_BASE_PATH` remains an
-alias) for **all** build, development and preview commands. The default is `/`.
-See [the routing API](packages/routing/README.md) for the explicit contract,
-404 behavior, app ownership and future deployment integration boundary.
+alias) for all build, development and preview commands. The default is `/`.
+See [the routing API](packages/routing/README.md) for URL ownership and 404 behavior.
 
-`pnpm test:routing`, `pnpm test:rotation-check`, and
-`pnpm test:rotation-check:browser` cover URL contracts, legacy numerical parity,
-and real app controls in development and built Worker preview. The comparison
-revision is `753a397e818593ac0943854fd7cea3468f49f095` (issue #4 / draft PR #43,
-which includes issue #3 / PR #39). The retained `RotationCheck/` scripts remain
-unchanged test oracles and legacy downloads; the React page does not load them.
-
-The issue #5 branch also includes prerequisite browser/JSDoc follow-up
-`91109a1f793d9bedb35b066ad27a988f83ff33ca`; legacy comparison files remain
-identical to the original comparison revision above.
+Run `pnpm test:routing`, `pnpm test:rotation-check`, and `pnpm test:airspeed-fit`
+for routing and legacy numerical parity. Their `:browser` app counterparts test
+actual controls in development and built Worker preview at both prefixes.
+AirspeedFit tests include recorded-log window/sensor selections, fitting,
+residuals, calibration exports, file replacement, and resource cleanup.
+Retained legacy scripts serve as comparison oracles and downloadable assets;
+the React pages do not execute those owned scripts.

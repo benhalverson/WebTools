@@ -25,3 +25,4 @@ jobs:
       - run: pnpm typecheck && pnpm lint
       - run: pnpm test && pnpm test:routing && pnpm test:rotation-check && pnpm test:parameters && pnpm test:react-workflows && pnpm test:airspeed-fit
       - run: pnpm test:portal && pnpm test:rotation-check:browser && pnpm test:react-workflows:browser && pnpm test:airspeed-fit:browser
+      - run: pnpm test:numerics:browser && pnpm test:mavlink:browser && pnpm test:dataflash:browser && pnpm test:transfers:browser && pnpm test:parameters:browser
