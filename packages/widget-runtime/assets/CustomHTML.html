@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Custom HTML Example</title>
+</head>
+<body>
+    <div style="position:absolute; top:0; bottom:0; left:0; right:0; margin:10px; border:5px solid; border-radius:10px; border-color:#c8c8c8; background-color:#ffffff; padding;5px;">
+        HTML Example
+    </div>
+</body>
+<script type="module">
+
+    let options
+
+    function handle_MAVLink(msg) {
+        // Message handling here
+    }
+
+    window.addEventListener('message', function (e) {
+        const data = e.data
+
+        // User has changed options
+        if ("options" in data) {
+            // Call init once we have some options
+            options = data.options
+        }
+
+    })
+
+    // Incoming MAVLink messages
+    const broadcast = new BroadcastChannel("MAVLinkMSG")
+    broadcast.onmessage = (e) => {
+        if (e?.data?.MAVLink) {
+            handle_MAVLink(e.data.MAVLink)
+        }
+    }
+</script>
+</html>

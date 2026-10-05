@@ -1,0 +1,785 @@
+[
+  {
+    "name": "default",
+    "params": {},
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "harmonic-0",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "1"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "harmonic-1",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "2"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "harmonic-2",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "harmonic-3",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "8"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "harmonic-4",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "16"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "harmonic-5",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "32"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "harmonic-6",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "64"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "harmonic-7",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "128"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "options-0",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3",
+      "INS_HNTCH_OPTS": "0",
+      "NUM_MOTORS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "options-1",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3",
+      "INS_HNTCH_OPTS": "1",
+      "NUM_MOTORS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "options-2",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3",
+      "INS_HNTCH_OPTS": "2",
+      "NUM_MOTORS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "options-3",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3",
+      "INS_HNTCH_OPTS": "3",
+      "NUM_MOTORS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "options-4",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3",
+      "INS_HNTCH_OPTS": "4",
+      "NUM_MOTORS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "options-8",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3",
+      "INS_HNTCH_OPTS": "8",
+      "NUM_MOTORS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "options-16",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3",
+      "INS_HNTCH_OPTS": "16",
+      "NUM_MOTORS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "options-17",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3",
+      "INS_HNTCH_OPTS": "17",
+      "NUM_MOTORS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "options-18",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3",
+      "INS_HNTCH_OPTS": "18",
+      "NUM_MOTORS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "options-31",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3",
+      "INS_HNTCH_OPTS": "31",
+      "NUM_MOTORS": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "mode-0",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "0"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "mode-1",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "1"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "mode-2",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "2"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "mode-3",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "3"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "mode-4",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "4"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "mode-5",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_MODE": "5"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "sample-rate-400",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "GyroSampleRate": "400"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "sample-rate-1000",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "GyroSampleRate": "1000"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "sample-rate-2000",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "GyroSampleRate": "2000"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "sample-rate-8000",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "GyroSampleRate": "8000"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "disabled",
+    "params": {
+      "INS_GYRO_FILTER": "0"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "zero-frequency-bandwidth",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_HMNCS": "255"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "clamped-wide-notch",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "5",
+      "INS_HNTCH_BW": "300",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTCH_OPTS": "17"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "second-notch",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "INS_HNTC2_ENABLE": "1",
+      "INS_HNTC2_FREQ": "120",
+      "INS_HNTC2_BW": "40",
+      "INS_HNTC2_ATT": "40",
+      "INS_HNTC2_REF": "0.3",
+      "INS_HNTC2_FM_RAT": "0.5",
+      "INS_HNTC2_HMNCS": "255"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "pid-RLL-True-True",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "pid-RLL-True-False",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": false,
+    "post": true
+  },
+  {
+    "name": "pid-RLL-False-True",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "RLL",
+    "db": false,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "pid-RLL-False-False",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "RLL",
+    "db": false,
+    "unwrap": false,
+    "post": true
+  },
+  {
+    "name": "pid-PIT-True-True",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "PIT",
+    "db": true,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "pid-PIT-True-False",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "PIT",
+    "db": true,
+    "unwrap": false,
+    "post": true
+  },
+  {
+    "name": "pid-PIT-False-True",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "PIT",
+    "db": false,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "pid-PIT-False-False",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "PIT",
+    "db": false,
+    "unwrap": false,
+    "post": true
+  },
+  {
+    "name": "pid-YAW-True-True",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "YAW",
+    "db": true,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "pid-YAW-True-False",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "YAW",
+    "db": true,
+    "unwrap": false,
+    "post": true
+  },
+  {
+    "name": "pid-YAW-False-True",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "YAW",
+    "db": false,
+    "unwrap": true,
+    "post": true
+  },
+  {
+    "name": "pid-YAW-False-False",
+    "params": {
+      "INS_HNTCH_ENABLE": "1",
+      "INS_HNTCH_FREQ": "83",
+      "INS_HNTCH_BW": "40",
+      "INS_HNTCH_ATT": "40",
+      "INS_HNTCH_REF": "0.3",
+      "INS_HNTCH_FM_RAT": "0.5",
+      "INS_HNTCH_HMNCS": "255",
+      "SCHED_LOOP_RATE": "333"
+    },
+    "axis": "YAW",
+    "db": false,
+    "unwrap": false,
+    "post": true
+  },
+  {
+    "name": "pid-zero",
+    "params": {
+      "ATC_RAT_RLL_P": "0",
+      "ATC_RAT_RLL_I": "0",
+      "ATC_RAT_RLL_D": "0"
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  },
+  {
+    "name": "empty-gyro-cutoff",
+    "params": {
+      "INS_GYRO_FILTER": ""
+    },
+    "axis": "RLL",
+    "db": true,
+    "unwrap": true,
+    "post": false
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "vendor/plotly.min.js": "modules/plotly.js/dist/plotly.min.js",
+  "images/AP_favicon.png": "images/AP_favicon.png",
+  "images/ArduPilot.png": "images/ArduPilot.png",
+  "images/github-mark.png": "images/github-mark.png",
+  "images/GitHub_Logo.png": "images/GitHub_Logo.png",
+  "KinematicTool.js": "KinematicTool/KinematicTool.js",
+  "Readme.md": "KinematicTool/Readme.md",
+  "params.json": "KinematicTool/params.json",
+  "Ruckig/LICENSE": "KinematicTool/Ruckig/LICENSE",
+  "Ruckig/ruckig.js": "KinematicTool/Ruckig/ruckig.js",
+  "Ruckig/ruckig.wasm": "KinematicTool/Ruckig/ruckig.wasm",
+  "ardupilot/control.js": "KinematicTool/ardupilot/control.js",
+  "ardupilot/control.wasm": "KinematicTool/ardupilot/control.wasm",
+  "plane/KinematicTool.js": "KinematicTool/plane/KinematicTool.js",
+  "plane/params.json": "KinematicTool/plane/params.json",
+  "images/question-circle.svg": "images/question-circle.svg"
+}

@@ -16,7 +16,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "oxlint --deny-warnings src tests",
-    "test": "pnpm build && tsc -p tsconfig.tests.json && node --test tests/*.test.mjs",
+    "test": "pnpm --filter @webtools/transfers build && pnpm build && tsc -p tsconfig.tests.json && node --test tests/*.test.mjs",
     "test:browser": "pnpm build && node tests/browser.mjs"
   },
   "devDependencies": {
