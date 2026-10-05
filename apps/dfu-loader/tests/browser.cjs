@@ -9,6 +9,13 @@ const { listeningOrigin } = require('@webtools/routing/tooling');
 const { installDfuMock } = require('./mock-usb.cjs');
 const root = path.resolve(__dirname, '../../..');
 const baseRevision = '0f4607db3dccbc7d06e5847c02465dab38d1eb80';
+const diagnosticStart = performance.now();
+/** Emit immediately so the last phase survives the outer test deadline. */
+function phase(label) {
+    const started = performance.now();
+    console.log('DFU phase start', { label, elapsedMs: Math.round(started - diagnosticStart) });
+    return () => console.log('DFU phase end', { label, elapsedMs: Math.round(performance.now() - diagnosticStart), durationMs: Math.round(performance.now() - started) });
+}
 
 /** Terminate the whole owned Vite/Worker process group, including failed starts. */
 async function stop(child) {
@@ -20,30 +27,34 @@ async function stop(child) {
 }
 /** Run an independent app build at the requested prefix and retain failure output. */
 async function build(prefix, all = false) {
-    const child = spawn('pnpm', all ? ['build'] : ['--filter', 'dfu-loader', 'build'], { cwd: root, detached: true,
+    const finished = phase(`build ${all ? 'gateway dependency closure' : 'dfu-loader'} ${prefix}`);
+    const child = spawn('pnpm', all ? ['-r', '--workspace-concurrency=1', '--filter', 'portal...', '--filter', 'rotation-check...', '--filter', 'dfu-loader...', '--if-present', 'build'] : ['--filter', 'dfu-loader', 'build'], { cwd: root, detached: true,
         env: { ...process.env, WEBTOOLS_BASE_PATH: prefix }, stdio: ['ignore', 'pipe', 'pipe'] });
     let output = '';
-    child.stdout.on('data', data => { output += data; }); child.stderr.on('data', data => { output += data; });
+    child.stdout.on('data', data => { output = (output + data).slice(-65536); }); child.stderr.on('data', data => { output = (output + data).slice(-65536); });
     const timer = setTimeout(() => { void stop(child); }, 120000);
     try { const [code] = await once(child, 'exit'); assert.equal(code, 0, output); }
-    finally { clearTimeout(timer); await stop(child); }
+    catch (error) { console.error('DFU build failure', { prefix, all, output }); throw error; }
+    finally { clearTimeout(timer); await stop(child); finished(); }
 }
 /** Start the actual independent Cloudflare Vite app, never a static HTML substitute. */
 async function start(mode, prefix, gateway = false) {
-    const child = spawn(process.execPath, gateway ? ['tooling/serve.ts', mode, '--port', '0'] : ['node_modules/vite/bin/vite.js', ...(mode === 'preview' ? ['preview'] : []), '--host', '127.0.0.1', '--port', '0'], {
+    const finished = phase(`start ${gateway ? 'gateway' : 'independent'} ${mode} ${prefix}`);
+    const child = spawn(process.execPath, gateway ? ['tooling/serve.ts', mode, '--port', '0', '--apps', 'portal,rotationCheck,dfuLoader'] : ['node_modules/vite/bin/vite.js', ...(mode === 'preview' ? ['preview'] : []), '--host', '127.0.0.1', '--port', '0'], {
         cwd: gateway ? root : path.join(root, 'apps/dfu-loader'), detached: true, env: { ...process.env, WEBTOOLS_BASE_PATH: prefix, BROWSER: 'none' }, stdio: ['ignore', 'pipe', 'pipe'] });
     let output = '';
     try {
         const origin = await new Promise((resolve, reject) => {
             const timer = setTimeout(() => reject(new Error(output)), 60000);
             /** Capture the server's actual ephemeral listening address. */
-            const read = chunk => { output += chunk; const origin = listeningOrigin(output); if (origin) { clearTimeout(timer); resolve(origin); } };
+            const read = chunk => { output = (output + chunk).slice(-65536); const origin = listeningOrigin(output); if (origin) { clearTimeout(timer); resolve(origin); } };
             child.stdout.on('data', read); child.stderr.on('data', read);
             child.on('error', error => { clearTimeout(timer); reject(error); });
             child.on('exit', code => { clearTimeout(timer); reject(new Error(`Server exited ${code}: ${output}`)); });
         });
-        return { origin, child };
-    } catch (error) { await stop(child); throw error; }
+        return { origin, child, output: () => output };
+    } catch (error) { console.error('DFU server startup failure', { mode, prefix, gateway, output }); await stop(child); throw error; }
+    finally { finished(); }
 }
 /** Supply the exact branch-base page and assets, blocking every external request. */
 async function context(browser, origin, options = {}) {
@@ -79,23 +90,28 @@ async function transfer(page, url, filename = 'firmware.bin') {
 }
 
 test('real Chromium: independent dev and built Worker, both prefixes, exact legacy transfer parity and lifecycle', { timeout: 360000 }, async () => {
+    const launched = phase('Chromium launch');
     const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH, args: ['--no-sandbox'] });
+    launched();
     try {
         for (const prefix of ['/', '/Tools/WebTools/']) {
             await build(prefix);
             for (const mode of ['dev', 'preview']) {
                 const server = await start(mode, prefix);
                 const mount = server.origin + prefix + 'DFULoader/';
+                const finished = phase(`independent scenarios ${mode} ${prefix}`);
                 try {
                     for (const options of [{}, { dfuse: true }, { errorState: true }]) {
+                        const compared = phase(`transfer parity ${mode} ${prefix} ${JSON.stringify(options)}`);
                         const legacy = await context(browser, server.origin, options);
                         const migrated = await context(browser, server.origin, options);
                         try {
                             const expected = await transfer(await legacy.newPage(), server.origin + '/legacy/', options.dfuse ? 'firmware.hex' : 'firmware.bin');
                             const actual = await transfer(await migrated.newPage(), mount, options.dfuse ? 'firmware.hex' : 'firmware.bin');
                             assert.deepEqual(actual, expected, `${mode} ${prefix} ${JSON.stringify(options)}`);
-                        } finally { await legacy.close(); await migrated.close(); }
+                        } finally { await legacy.close(); await migrated.close(); compared(); }
                     }
+                    const unreadable = phase(`unreadable memory ${mode} ${prefix}`);
                     for (const legacy of [true, false]) {
                         const ctx = await context(browser, server.origin, { dfuse: true, unreadable: true });
                         try {
@@ -106,6 +122,8 @@ test('real Chromium: independent dev and built Worker, both prefixes, exact lega
                             { value: '0', max: '0', valid: false });
                         } finally { await ctx.close(); }
                     }
+                    unreadable();
+                    const serial = phase(`serial selection ${mode} ${prefix}`);
                     for (const query of ['?serial=SERIAL/', '?serial=']) {
                         const ctx = await context(browser, server.origin);
                         try {
@@ -114,6 +132,8 @@ test('real Chromium: independent dev and built Worker, both prefixes, exact lega
                             assert.equal(await page.evaluate(() => mockDfu.trace.some(item => item[0] === 'request')), false);
                         } finally { await ctx.close(); }
                     }
+                    serial();
+                    const recovery = phase(`recovery and asset routing ${mode} ${prefix}`);
                     const ctx = await context(browser, server.origin, { cancel: true, fail: true });
                     try {
                         const page = await ctx.newPage();
@@ -139,6 +159,8 @@ test('real Chromium: independent dev and built Worker, both prefixes, exact lega
                         assert.equal(new URL(redirect.headers().location).pathname, prefix + 'DFULoader/');
                         assert.equal(new URL(redirect.headers().location).search, '?serial=SERIAL/');
                     } finally { await ctx.close(); }
+                    recovery();
+                    const interruption = phase(`interrupted transfer ${mode} ${prefix}`);
                     const interrupted = await context(browser, server.origin, { hold: true });
                     try {
                         const page = await interrupted.newPage();
@@ -151,6 +173,8 @@ test('real Chromium: independent dev and built Worker, both prefixes, exact lega
                         assert.ok(!(await page.textContent('#downloadLog')).includes('Done!'));
                         await page.click('#connect'); await page.waitForFunction(() => !document.querySelector('#firmwareFile').disabled);
                     } finally { await interrupted.close(); }
+                    interruption();
+                    const lifecycleDone = phase(`page lifecycle ${mode} ${prefix}`);
                     // Exercise the real production entry's page lifecycle, including BFCache restoration.
                     const lifecycle = await context(browser, server.origin, { holdClose: true });
                     try {
@@ -171,11 +195,14 @@ test('real Chromium: independent dev and built Worker, both prefixes, exact lega
                         }
                     } finally { await lifecycle.close(); }
 
-                } finally { await stop(server.child); }
+                    lifecycleDone();
+                } catch (error) { console.error('DFU independent failure', { mode, prefix, output: server.output() }); throw error; }
+                finally { const stopped = phase(`stop independent ${mode} ${prefix}`); await stop(server.child); stopped(); finished(); }
             }
             await build(prefix, true);
             for (const mode of ['dev', 'preview']) {
                 const gateway = await start(mode, prefix, true);
+                const finished = phase(`gateway transfer and routes ${mode} ${prefix}`);
                 const ctx = await context(browser, gateway.origin);
                 try {
                     const page = await ctx.newPage();
@@ -184,8 +211,9 @@ test('real Chromium: independent dev and built Worker, both prefixes, exact lega
                         assert.equal((await ctx.request.get(gateway.origin + prefix + destination)).status(), 200);
                     }
                     assert.equal((await ctx.request.get(gateway.origin + prefix + 'DFULoader/not-found')).status(), 404);
-                } finally { await ctx.close(); await stop(gateway.child); }
+                } catch (error) { console.error('DFU gateway failure', { mode, prefix, output: gateway.output() }); throw error; }
+                finally { await ctx.close(); const stopped = phase(`stop gateway ${mode} ${prefix}`); await stop(gateway.child); stopped(); finished(); }
             }
         }
-    } finally { await browser.close(); }
+    } finally { const closed = phase('Chromium cleanup'); await browser.close(); closed(); }
 });
