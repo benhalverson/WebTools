@@ -52,14 +52,6 @@ identifiers). The new production browser fixture verifies a `/tools/` base.
 
 ## Comparison and compatibility
 
-The comparison revision is `809fece6f7495733f46473dd0d9bc800a735844d` (prerequisite
-[PR #41](https://github.com/benhalverson/WebTools/pull/41)), based on merged workspace
-foundation `ac32dd6`. The prerequisite remains a separate commit. The legacy
-`modules/MAVLink/mavftp.js`, `SimpleGCS/ftp_manager.js`, mission/fence UI consumers,
-Node CLI and authoritative fixtures remain intact. This is an additive migration
-entry point for typed consumers, not a switch of the existing GCS scripts.
-No unrelated protocol bugs or generated runtime code are changed.
-
 `tests/parity.test.cjs` reads both authoritative suites unchanged and runs every
 scenario against legacy and typed exports. It compares full outgoing packet
 bytes (including headers/CRC), send times, completion/file bytes, decoded mission

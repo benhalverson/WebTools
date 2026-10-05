@@ -71,4 +71,3 @@ inferred or use `NumericInput`/`ComplexInput`, rather than forcing them back to
 `run_fft` retains missing-channel sparse windows and the first-channel requirement.
 Channel names should not overlap `center` or another channel's `Max` property,
 as in the original flat result object; no collision handling is introduced.
-No previously reviewed bug fixes are included.
