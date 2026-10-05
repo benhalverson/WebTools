@@ -220,9 +220,25 @@ async function lifetimes(context, page, origin, base) {
         assert.equal(new URL(popup.url()).pathname, base + 'HardwareReport/');
         assert.deepEqual(await popup.evaluate(() => window.openInMessages[0]), { name: 'open-in.bin', size: bytes.length });
         await popup.reload();
-        await popup.waitForFunction(() => window.openInMessages?.length === 1);
-        assert.equal(await popup.evaluate(() => window.openInMessages[0].name), 'open-in.bin', 'repeated loads retain transport until owner disposal');
+        assert.deepEqual(await popup.evaluate(() => window.openInMessages), [], 'a new target document drops the native load listener');
     } finally { await popup.close(); }
+    // Verify the same native reload limitation against the unchanged helper,
+    // instead of repairing a shared transport contract in an app migration.
+    await page.addScriptTag({ content: await fs.readFile(path.join(root, 'Libraries/OpenIn.js'), 'utf8') });
+    await page.evaluate(bytes => {
+        const legacy = get_open_in(() => new File([new Uint8Array(bytes)], 'open-in.bin'));
+        legacy.tippy_div.id = 'legacy-open-in';
+        document.body.appendChild(legacy.tippy_div);
+    }, bytes);
+    const legacyEvent = page.waitForEvent('popup');
+    await page.locator('#legacy-open-in input[value="Hardware Report"]').click();
+    const legacyPopup = await legacyEvent;
+    try {
+        await legacyPopup.waitForFunction(() => window.openInMessages?.length === 1);
+        assert.deepEqual(await legacyPopup.evaluate(() => window.openInMessages[0]), { name: 'open-in.bin', size: bytes.length });
+        await legacyPopup.reload();
+        assert.deepEqual(await legacyPopup.evaluate(() => window.openInMessages), []);
+    } finally { await legacyPopup.close(); await page.locator('#legacy-open-in').evaluate(node => node.remove()); }
 }
 
 test('AnalyticTune Chromium dev and built Worker workflows through root and prefix gateways', { timeout: 600000 }, async t => {
