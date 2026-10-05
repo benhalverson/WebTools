@@ -34,7 +34,7 @@ export class MAVParam {
     emit(): void { for (const cb of this.listeners) cb(this); }
     /** Invalidate pending results and clear vehicle values; the owner cancels the transfer. */
     disconnect(): void { this.connected=false; this.generation++; this.params.clear(); this.emit(); }
-    /** Invalidate the pending transaction while retaining the connected model and last verified values. */
+    /** Invalidate the pending transaction; clear cached values when a write may have reached the vehicle. */
     cancelPending(): void { this.generation++; if (this.writing) { this.params.clear(); this.emit(); } }
     /** Serialize operations and restore busy state after success or rejection. */
     async transaction<T>(fn: (check: () => void) => Promise<T>): Promise<T> {
