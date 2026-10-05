@@ -79,5 +79,5 @@ export const exampleRows: readonly ThrustRow[] = [
         { pwm: 1977, thrust: 2.195, voltage: 21.53, current: 13.078 },
         { pwm: 1989, thrust: 2.233, voltage: 21.52, current: 13.511 },
         { pwm: 2000, thrust: 2.254, voltage: 21.52, current: 13.854 },
-    
+
 ]
