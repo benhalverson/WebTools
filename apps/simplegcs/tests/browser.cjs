@@ -28,7 +28,17 @@ async function start(mode, prefix, gateway = false) {
 }
 /** Inject a deterministic MAVLink peer plus controllable geolocation; no external socket is constructed. */
 function inject(legacy) {
-    const state = window.fixture = { sockets: [], sent: [], hold: false, reject: false, watches: new Map(), nextWatch: 0, maps: new Set(), passphrase: '', vehicle: 42 };
+    const state = window.fixture = { sockets: [], sent: [], hold: false, reject: false, watches: new Map(), nextWatch: 0, maps: new Set(), passphrase: '', vehicle: 42, lockRequests: new Set() };
+    if (!legacy) {
+        const request = navigator.locks.request.bind(navigator.locks);
+        /** Observe native request completion, including grants still in transit during unmount. */
+        navigator.locks.request = (...args) => {
+            const pending = request(...args);
+            state.lockRequests.add(pending);
+            pending.then(() => state.lockRequests.delete(pending), () => state.lockRequests.delete(pending));
+            return pending;
+        };
+    }
     class Peer {
         static CONNECTING = 0; static OPEN = 1; static CLOSING = 2; static CLOSED = 3;
         /** Open after React has installed handlers, retaining every timer for close. */
@@ -109,9 +119,10 @@ async function scenarios(browser, origin, prefix) {
         await sibling.waitForFunction(id => document.getElementById('component_id') && document.getElementById('component_id').value !== id, id); assert.notEqual(await sibling.locator('#component_id').inputValue(), id); await sibling.close();
         for (let i = 0; i < 3; i++) {
             await page.evaluate(() => simplegcsPreview.unmount()); await page.clock.runFor(100);
-            // Web Locks settle in the browser's task queue, independently of the virtual clock.
-            // Keep a real bounded wait so pending or retained leases still fail the cleanup check.
+            // An in-flight native request can be absent from both query lists. Its promise
+            // settles only after release, so observe completion before checking the lock table.
             await page.waitForFunction(async () => {
+                if (fixture.lockRequests.size !== 0) return false;
                 const { held, pending } = await navigator.locks.query();
                 return ![...held, ...pending].some(lock => lock.name.startsWith('simplegcs.component.'));
             }, undefined, { timeout: 5000 });
