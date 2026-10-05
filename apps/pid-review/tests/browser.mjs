@@ -115,8 +115,8 @@ async function workflow(context, origin, prefix, legacy) {
     await page.locator('#OpenIn').click(); await page.getByRole('button', { name: 'Hardware Report', exact: true }).click()
     const delivery = await page.evaluate(() => window.delivery); assert.equal(delivery[0], '../HardwareReport'); assert.deepEqual(delivery[1], { type: 'file', name: 'fixture.bin', size: fixture().length })
     for (const target of [legacy, page]) {
-        await target.locator('#TimeStart').fill('4'); await target.locator('#TimeStart').blur()
-        await target.locator('#TimeEnd').fill('12'); await target.locator('#TimeEnd').blur()
+        await target.locator('#TimeStart').fill('3'); await target.locator('#TimeStart').blur()
+        await target.locator('#TimeEnd').fill('13'); await target.locator('#TimeEnd').blur()
         await target.locator('#calculate').click()
     }
     await compare(page, legacy)
