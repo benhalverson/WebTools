@@ -170,3 +170,12 @@ and the actual baseline legacy page. Its CDN replay accepts only pinned npm
 bytes matching the legacy HTML's SHA-384 integrity hashes; all other external
 browser requests are blocked. Fetch full Git history before running the
 comparison tests.
+
+### Linting and formatting
+
+Owned workspace code uses pinned Biome tooling. Run `pnpm lint` for the
+read-only lint gate, `pnpm format:check -- <path>` to inspect formatting, and
+`pnpm format -- <path>` to format a selected owned file. See
+[the tooling policy](tooling/biome-policy.md) for source boundaries and the
+explicit compatibility rules. Formatting is opt-in; existing files were not
+mass-reformatted.
