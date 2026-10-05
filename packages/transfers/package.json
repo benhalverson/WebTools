@@ -1,0 +1,33 @@
+{
+  "name": "@webtools/transfers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "pnpm --filter @webtools/mavlink build && tsc -p tsconfig.build.json && node tooling/build.cjs",
+    "typecheck": "pnpm build && tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "lint": "oxlint --deny-warnings src tooling tests",
+    "test": "pnpm build && node --test tests/*.test.cjs",
+    "test:browser": "pnpm build && node tests/browser.cjs"
+  },
+  "dependencies": {
+    "@webtools/mavlink": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "oxlint": "1.81.0",
+    "vite": "8.3.0"
+  }
+}

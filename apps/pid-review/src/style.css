@@ -1,0 +1,18 @@
+body { margin: 8px; font-family: "Times New Roman", serif; color: #000; background: #fff; }
+header { width: 1200px; display: flex; justify-content: space-between; align-items: center; }
+h1, h2 { width: 1200px; text-align: center; }
+h1 a { color: #000; text-decoration: none; }
+.intro { width: 1150px; text-align: justify; margin-left: 30px; }
+.setup { width: 1100px; margin-left: 30px; display: flex; align-items: center; gap: 12px; }
+.setup fieldset { height: 80px; }
+input[type=number] { width: 50px; }
+.axes { display: grid; grid-auto-flow: column; grid-template-rows: repeat(3, auto); }
+.analysis-controls { width: 1145px; display: flex; margin-left: 30px; }
+.analysis-controls fieldset { min-width: 215px; }
+#test_sets { flex: 1; overflow: auto; }
+#test_sets table { border-collapse: collapse; }
+#test_sets th, #test_sets td { border: 1px solid #000; padding: 8px; }
+.scales { display: flex; gap: 12px; margin-left: 250px; }
+.component { width: 500px; margin-left: 375px; }
+.plotly-notifier { visibility: hidden; }
+.error { color: #a00; }

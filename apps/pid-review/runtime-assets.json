@@ -1,0 +1,14 @@
+{
+  "vendor/plotly.min.js": "modules/plotly.js/dist/plotly.min.js",
+  "images/AP_favicon.png": "images/AP_favicon.png",
+  "images/ArduPilot.png": "images/ArduPilot.png",
+  "images/github-mark.png": "images/github-mark.png",
+  "images/GitHub_Logo.png": "images/GitHub_Logo.png",
+  "Readme.md": "PIDReview/Readme.md",
+  "PIDReview.js": "PIDReview/PIDReview.js",
+  "ArduCopter_angle_rate_control_loop.drawio.png": "PIDReview/ArduCopter_angle_rate_control_loop.drawio.png",
+  "dataflash/index.js": "packages/dataflash/dist/index.js",
+  "dataflash/log-helpers.js": "packages/dataflash/dist/log-helpers.js",
+  "dataflash/vendor/parser.js": "packages/dataflash/dist/vendor/parser.js",
+  "dataflash/vendor/LICENSE": "packages/dataflash/dist/vendor/LICENSE"
+}
