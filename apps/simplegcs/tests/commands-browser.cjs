@@ -27,7 +27,7 @@ function files() {
 /** Add controlled command/FTP responses to the existing in-memory socket fixture. */
 function control(files) {
     const state = window.fixture;
-    state.files = files; state.sessions = new Map(); state.commandReplies = []; state.requests = []; state.responseTimers = new Set();
+    state.files = files; state.sessions = new Map(); state.commandReplies = []; state.requests = []; state.requestTimeline = []; state.responseTimers = new Set();
     /** Deliver a complete vehicle packet, preserving the source codec sequence. */
     state.receive = (peer, message) => {
         const bytes = Uint8Array.from(message.pack(peer.rx)); peer.rx.seq = (peer.rx.seq + 1) % 256; peer.onmessage?.({ data: bytes.buffer });
@@ -52,6 +52,7 @@ function control(files) {
     };
     state.onSend = (peer, bytes) => {
         const request = new window.MAVLink20Processor().decode(Array.from(bytes)); state.requests.push(request);
+        if (state.requestTimeline.length < 200) state.requestTimeline.push({ time: Date.now(), type: request._name, command: request.command, ftpOpcode: request._name === 'FILE_TRANSFER_PROTOCOL' ? request.payload.charCodeAt(3) : undefined });
         if (request._name === 'COMMAND_INT' && !state.noACK) state.reply(peer, new window.mavlink20.messages.command_ack(request.command, state.commandReplies.shift() ?? 0, 0, 0, request._header.srcSystem, request._header.srcComponent));
         if (request._name === 'FILE_TRANSFER_PROTOCOL' && !state.holdFTP) state.answer(peer, request);
     };
@@ -103,6 +104,16 @@ async function parityScenario(browser, origin, prefix, legacy, fixtures) {
         return { commands, rendered, packets };
     } finally { await context.close(); }
 }
+/** Collect failure evidence without waiting indefinitely on a stalled or closed renderer. */
+async function retryDiagnostics(page) {
+    let timer;
+    try {
+        return await Promise.race([
+            page.evaluate(() => ({ time: Date.now(), packets: fixture.requestTimeline })).catch(error => ({ unavailable: error.message })),
+            new Promise(resolve => { timer = setTimeout(() => resolve({ unavailable: 'packet diagnostics exceeded 500ms' }), 500); }),
+        ]);
+    } finally { clearTimeout(timer); }
+}
 /** Exercise interruptions, retry/error/confirmation and pointer cleanup in the converted UI. */
 async function lifecycleScenario(browser, origin, prefix) {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -120,10 +131,18 @@ async function lifecycleScenario(browser, origin, prefix) {
         await page.evaluate(() => fixture.receive(fixture.sockets.at(-1), new mavlink20.messages.command_ack(400, 5, 50, 0, 255, 190))); await page.clock.runFor(4000); assert.match(await page.locator('#operations-status').textContent(), /IN_PROGRESS/);
         await page.clock.runFor(1000); assert.match(await page.locator('#operations-status').textContent(), /no acknowledgement/);
         await page.evaluate(() => { fixture.failSend = true; }); await page.locator('#armBtn').click(); assert.match(await page.locator('.toast').textContent(), /not sent/); await page.evaluate(() => { fixture.failSend = false; fixture.noACK = false; });
-        await openSettings(page); await page.getByLabel('Fetch mission on first heartbeat', { exact: true }).check(); await page.evaluate(() => { fixture.failFTP = true; }); await openMenu(page); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await page.clock.runFor(100);
-        assert.match(await page.locator('#operations-status').textContent(), /Failed to fetch mission/); const beforeRetry = await page.evaluate(() => fixture.requests.length);
-        await page.clock.runFor(4900); assert.equal(await page.evaluate(() => fixture.requests.length), beforeRetry);
-        await page.evaluate(() => { fixture.failFTP = false; }); await page.clock.runFor(200); assert.equal(await page.locator('.mission-wp-label').count(), 3);
+        await openSettings(page); await page.getByLabel('Fetch mission on first heartbeat', { exact: true }).check(); await page.evaluate(() => { fixture.failFTP = true; }); await openMenu(page);
+        // install() leaves time running: freeze before scheduling the retry so browser round trips cannot consume its boundary.
+        await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
+        try {
+            await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await page.clock.runFor(100);
+            assert.match(await page.locator('#operations-status').textContent(), /Failed to fetch mission/); const beforeRetry = await page.evaluate(() => fixture.requests.length);
+            await page.clock.runFor(4900); assert.equal(await page.evaluate(() => fixture.requests.length), beforeRetry);
+            await page.evaluate(() => { fixture.failFTP = false; }); await page.clock.runFor(200); assert.equal(await page.locator('.mission-wp-label').count(), 3);
+        } catch (error) {
+            console.error('Mission retry clock/packets', await retryDiagnostics(page));
+            throw error;
+        } finally { await page.clock.resume(); }
         await page.evaluate(() => { fixture.holdFTP = true; }); await openMenu(page); await page.getByRole('button', { name: 'Fetch Mission', exact: true }).click(); await openMenu(page); assert.equal(await page.getByRole('button', { name: 'Fetch Mission', exact: true }).isDisabled(), true);
         await openSettings(page); await page.getByLabel('Fetch mission on first heartbeat', { exact: true }).uncheck(); await page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true }).click();
         await page.evaluate(() => { fixture.staleHandler = fixture.sockets.at(-1).onmessage; });
