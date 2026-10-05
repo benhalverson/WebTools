@@ -68,6 +68,8 @@ async function main(): Promise<void> {
         dashboardPlayback: await start('dashboard-playback', mode, prefix),
         hardwareParameters: await start('hardware-report', mode, prefix),
         kinematicTools: await start('kinematic-tools', mode, prefix),
+        scurveTool: await start('scurve-tool', mode, prefix),
+        pidReview: await start('pid-review', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {
         const parsed = requestPath(incoming.url)

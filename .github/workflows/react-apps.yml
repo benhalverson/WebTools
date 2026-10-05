@@ -33,6 +33,10 @@ jobs:
       max-parallel: 4
       matrix:
         include:
+          - suite: pid-review
+            script: test:pid-review:browser
+          - suite: scurve-tool
+            script: test:scurve-tool:browser
           - suite: portal
             script: test:portal
           - suite: rotation-check
