@@ -8,9 +8,12 @@ For general review see [UAVLogViewer](https://github.com/ArduPilot/UAVLogViewer)
 
 ### React portal and pnpm workspace
 
-The workspace currently contains only `apps/portal`: a React/TypeScript portal
-for the existing landing page and `/Dev/` listing. All tools and shared browser
-libraries still run their original JavaScript. The portal was scaffolded with
+The workspace contains `apps/portal`, a React/TypeScript portal for the existing
+landing page and `/Dev/` listing, and `packages/dataflash`, a typed, lazy-loaded
+boundary for the unchanged upstream Dataflash parser and owned log helpers.
+See [the package guide](packages/dataflash/README.md) for its browser asset
+contract, recorded fixtures, and validation commands. Existing tools and their
+shared browser libraries still run their original JavaScript. The portal was scaffolded with
 [Cloudflare's React/Vite template](https://developers.cloudflare.com/workers/framework-guides/web-apps/react/)
 using C3 2.73.2, with TypeScript, deployment disabled, and no nested Git repository.
 
@@ -38,7 +41,7 @@ Run these commands from the repository root:
 | `pnpm dev` | Serve the portal and unchanged tools together, normally at http://127.0.0.1:5173/ |
 | `pnpm typecheck` | Generate Worker types and check strict browser, Node, and Worker TypeScript |
 | `pnpm lint` | Lint only the new portal, tooling, and portal tests |
-| `pnpm test` | Run the existing 116 Node unit tests |
+| `pnpm test` | Run the existing protocol tests and recorded Dataflash differential tests |
 | `pnpm test:browser` | Run the existing SimpleGCS Playwright suite with a simulated vehicle |
 | `pnpm test:video` | Run the existing video suite; leave `SIMPLEGCS_WHEP_TEST_URL` unset to skip live MediaMTX |
 | `pnpm test:portal` | Build and test development and production preview at both root and a hosting prefix |

@@ -6,7 +6,7 @@
     "dev": "pnpm --filter @webtools/mavlink build && pnpm --filter @webtools/react-workflows... build && node tooling/serve.ts dev",
     "typecheck": "pnpm -r --if-present typecheck && pnpm --filter portal exec tsc -p ../../tooling/tsconfig.json",
     "lint": "pnpm -r --if-present lint && apps/portal/node_modules/.bin/oxlint --deny-warnings tooling",
-    "test": "node --test tests/*.test.cjs && pnpm --filter @webtools/mavlink test",
+    "test": "node --test tests/*.test.cjs && pnpm --filter @webtools/mavlink test && pnpm test:parameters && pnpm test:dataflash",
     "test:browser": "node tests/browser.cjs",
     "test:video": "node tests/video-browser.cjs",
     "test:portal": "node --test apps/portal/tests/*.test.cjs",
@@ -21,7 +21,9 @@
     "test:mavlink:browser": "pnpm --filter @webtools/mavlink test:browser",
     "test:simplegcs": "pnpm --filter @webtools/mavlink build && pnpm --filter simplegcs test",
     "test:simplegcs:browser": "node apps/simplegcs/tests/browser.cjs",
-    "test:simplegcs:video": "node apps/simplegcs/tests/video-browser.cjs"
+    "test:simplegcs:video": "node apps/simplegcs/tests/video-browser.cjs",
+    "test:dataflash": "pnpm --filter @webtools/dataflash test",
+    "test:dataflash:browser": "pnpm --filter @webtools/dataflash test:browser"
   },
   "engines": {
     "node": ">=24 <25"
