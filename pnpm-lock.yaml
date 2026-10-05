@@ -520,6 +520,9 @@ importers:
       '@webtools/mavlink':
         specifier: workspace:*
         version: link:../../packages/mavlink
+      '@webtools/parameters':
+        specifier: workspace:*
+        version: link:../../packages/parameters
       '@webtools/react-workflows':
         specifier: workspace:*
         version: link:../../packages/react-workflows
