@@ -20,6 +20,7 @@
     "@webtools/routing": "workspace:*",
     "@webtools/mavlink": "workspace:*",
     "leaflet": "1.9.4",
+    "@webtools/parameters": "workspace:*",
     "@webtools/transfers": "workspace:*"
   },
   "devDependencies": {
