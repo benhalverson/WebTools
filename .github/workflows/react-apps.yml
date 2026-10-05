@@ -55,7 +55,8 @@ jobs:
             test:hardware-parameters:browser \
             test:kinematic-tools:browser \
             test:scurve-tool:browser \
-            test:pid-review:browser
+            test:pid-review:browser \
+            test:stream-stats:browser
           do
             echo "::group::$suite"
             if pnpm "$suite"; then
