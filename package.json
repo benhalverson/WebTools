@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter @webtools/react-workflows... --filter @webtools/widget-runtime... --filter @webtools/transfers... --filter @webtools/numerics --filter @webtools/dataflash build && node tooling/serve.ts dev",
     "typecheck": "pnpm -r --workspace-concurrency=1 --if-present typecheck && pnpm --filter portal exec tsc -p ../../tooling/tsconfig.json",
-    "lint": "pnpm -r --if-present lint && apps/portal/node_modules/.bin/oxlint --deny-warnings tooling",
+    "lint": "biome lint --error-on-warnings",
     "test": "node --test tests/*.test.cjs && pnpm test:parameters && pnpm test:dataflash && pnpm --filter @webtools/mavlink test && pnpm --filter @webtools/numerics test && pnpm test:react-workflows && pnpm --filter @webtools/transfers test && pnpm test:routing && pnpm test:rotation-check && pnpm test:widgets && pnpm test:hardware-report && pnpm test:kinematic-tools && pnpm test:scurve-tool && pnpm test:pid-review && pnpm test:stream-stats && pnpm test:dfu-loader && pnpm test:log-finder && pnpm test:filter-tool && pnpm test:dashboard-playback && pnpm test:simplegcs && pnpm test:thrust-expo && pnpm test:mag-fit && pnpm test:filter-review && pnpm test:airspeed-fit && pnpm test:geofence && pnpm test:sysid && pnpm test:ai-log-analyzer && pnpm test:analytic-tune",
     "test:browser": "node tests/browser.cjs",
     "test:video": "node tests/video-browser.cjs",
@@ -66,7 +66,9 @@
     "test:ai-log-analyzer": "node --test apps/ai-log-analyzer/tests/*.test.*",
     "test:ai-log-analyzer:browser": "node --test apps/ai-log-analyzer/tests/browser.cjs && node --test apps/ai-log-analyzer/tests/lifecycle.cjs",
     "test:analytic-tune": "pnpm --filter analytic-tune test",
-    "test:analytic-tune:browser": "pnpm --filter analytic-tune test:browser"
+    "test:analytic-tune:browser": "pnpm --filter analytic-tune test:browser",
+    "format": "biome format --write",
+    "format:check": "biome format"
   },
   "engines": {
     "node": ">=24 <25"
@@ -75,6 +77,7 @@
     "playwright": "1.63.0",
     "ws": "8.18.3",
     "@types/node": "26.6.4",
-    "@webtools/routing": "workspace:*"
+    "@webtools/routing": "workspace:*",
+    "@biomejs/biome": "2.5.15"
   }
 }

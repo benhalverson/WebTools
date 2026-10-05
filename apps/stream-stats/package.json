@@ -7,7 +7,7 @@
     "dev": "pnpm --filter stream-stats^... build && vite --host 127.0.0.1",
     "typecheck": "pnpm --filter stream-stats^... build && pnpm cf-typegen && tsc -b",
     "build": "pnpm typecheck && vite build",
-    "lint": "oxlint --deny-warnings src worker tooling tests vite.config.ts",
+    "lint": "biome lint --error-on-warnings .",
     "preview": "vite preview --host 127.0.0.1",
     "cf-typegen": "wrangler types",
     "test": "node --test tests/parity.test.mjs"
@@ -26,7 +26,6 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
     "@vitejs/plugin-react": "6.1.1",
-    "oxlint": "1.81.0",
     "typescript": "7.0.2",
     "vite": "8.3.0",
     "wrangler": "4.147.0"
