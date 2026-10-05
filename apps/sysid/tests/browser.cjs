@@ -22,17 +22,51 @@ async function start(mode, prefix) {
     const origin = await new Promise((resolve,reject) => {
         const timer = setTimeout(() => reject(new Error(output)),60000);
         /** Vite's listening origin signals real server readiness. */
-        const read = bytes => { output += bytes; const match = stripVTControlCharacters(output).match(/http:\/\/127\.0\.0\.1:\d+(?=\/)/); if (match) { clearTimeout(timer); resolve(match[0]); } };
+        const read = bytes => { output = (output + bytes).slice(-65536); const match = stripVTControlCharacters(output).match(/http:\/\/127\.0\.0\.1:\d+(?=\/)/); if (match) { clearTimeout(timer); resolve(match[0]); } };
         child.stdout.on('data',read);child.stderr.on('data',read);child.on('error',reject);child.on('exit',code=>{clearTimeout(timer);reject(new Error(`${code}: ${output}`));});
     });
     console.log('Started SysID',mode,prefix,origin);
-    return { origin, async stop() { if (child.exitCode === null) { const timer=setTimeout(()=>{try{process.kill(-child.pid,'SIGKILL');}catch{}},3000);process.kill(-child.pid,'SIGTERM');await once(child,'exit');clearTimeout(timer); } } };
+    return { origin, output: () => output, async stop() { if (child.exitCode === null) { const timer=setTimeout(()=>{try{process.kill(-child.pid,'SIGKILL');}catch{}},3000);process.kill(-child.pid,'SIGTERM');await once(child,'exit');clearTimeout(timer); } } };
+}
+/** Verify the wheel implicated by the prior timeout before observing its browser transfer. */
+async function verifyMatplotlibWheel() {
+    const name = 'matplotlib-3.5.2-cp312-cp312-pyodide_2024_0_wasm32.whl';
+    for (const file of [path.join(cache,name),path.join(root,'apps/sysid/.legacy-assets/python',name)]) {
+        const bytes = await fs.readFile(file);
+        assert.equal(createHash('sha256').update(bytes).digest('hex'),pythonAssets[name].sha256,`pinned wheel bytes: ${file}`);
+        console.log('Verified local matplotlib wheel', { file, bytes: bytes.length, sha256: pythonAssets[name].sha256 });
+    }
+}
+/** Preserve Python phase output without letting a stalled renderer delay failure cleanup. */
+async function boundedStdout(page) {
+    let timer;
+    try {
+        return await Promise.race([
+            page.locator('#output').inputValue({timeout:500}).then(value=>value.slice(-65536),error=>`Unavailable: ${error.message}`),
+            new Promise(resolve=>{timer=setTimeout(()=>resolve('Unavailable: stdout diagnostic exceeded 500ms'),500);}),
+        ]);
+    } finally { clearTimeout(timer); }
 }
 /** Instrument the actual loader only to seed random optimizers and inspect Python resources; calculations stay real. */
 function instrumentLoader(bytes, localBase) { return bytes.toString() + '\nconst originalLoader=loadPyodide;loadPyodide=async(...args)=>{const runtime=await originalLoader({indexURL:'+JSON.stringify(localBase)+',...args[0]});window.testRuntime=runtime;return runtime};'; }
 /** Replay unchanged legacy assets at a separate URL and pinned release resources locally. Block all other external requests. */
 async function resources(page, origin, base, legacy = false) {
     const requests = [], external = [];
+    const started = performance.now(), timeline = [];
+    /** Bound diagnostics and collect them on the Node side, without waiting on a stalled renderer. */
+    function record(event, url, details = {}) {
+        if (timeline.length < 500) timeline.push({ milliseconds: Math.round(performance.now()-started), event, url, ...details });
+    }
+    page.on('request', request => record('request',request.url()));
+    page.on('response', response => record('response',response.url(),{status:response.status(),contentLength:response.headers()['content-length'] ?? null}));
+    page.on('requestfailed', request => record('requestfailed',request.url(),{failure:request.failure()?.errorText}));
+    page.on('requestfinished', request => {
+        record('requestfinished',request.url());
+        // Size retrieval is best-effort: never delay readiness or timeout reporting for it.
+        void request.sizes().then(sizes=>record('receivedSizes',request.url(),sizes),error=>record('sizesUnavailable',request.url(),{error:String(error)}));
+    });
+    page.on('pageerror', error => record('pageerror',page.url(),{error:error.message}));
+    page.on('console', message => { if(message.type()==='error')record('console',page.url(),{error:message.text()}); });
     await page.route('**/*',async route => {
         const url = new URL(route.request().url()); requests.push(url.href);
         const name = url.pathname.split('/').at(-1);
@@ -57,7 +91,7 @@ async function resources(page, origin, base, legacy = false) {
         }
         return route.continue();
     });
-    return { requests,external };
+    return { requests,external,timeline };
 }
 /** Wait for the baseline's real wheel installation and stdout bridge to finish. */
 async function ready(page, legacy) {
@@ -128,10 +162,11 @@ test('actual local Python identification, legacy parity and lifecycle at root/pr
             if(serverMode==='preview')execFileSync('pnpm',['--filter','sysid','build'],{cwd:root,env:{...process.env,SYSID_TEST_HARNESS:'1',WEBTOOLS_BASE_PATH:prefix},stdio:'pipe'});
             const server=await start(serverMode,prefix),base=prefix+'SysID/';
             try {
+                await verifyMatplotlibWheel();
                 for(const mode of ['tf','ss']) {
                     if(!oracle[mode]) {
                         const old=await browser.newPage();old.on('pageerror',error=>console.log('Legacy error:',error.message));old.on('console',message=>{if(message.type()==='error')console.log('Legacy console:',message.text());});const observed=await resources(old,server.origin,base,true);
-                        console.log('Loading legacy',mode);await old.goto(server.origin+'/legacy/SysID/');console.log('Legacy document loaded');await ready(old,true).catch(async error=>{console.log(await old.locator('#output').inputValue(),observed.requests,observed.external);throw error;});console.log('Legacy ready',mode);await configure(old,mode);oracle[mode]=await identify(old,mode,true);assert.deepEqual(observed.external,[]);await old.close();
+                        console.log('Loading legacy',mode);await old.goto(server.origin+'/legacy/SysID/');console.log('Legacy document loaded');await ready(old,true).catch(async error=>{const stdout=await boundedStdout(old);console.error('Legacy initialization failed before server cleanup',JSON.stringify({mode,prefix,serverMode,url:old.url(),stdout,requests:observed.requests,external:observed.external,timeline:observed.timeline,serverOutput:server.output()}));throw error;});console.log('Legacy ready',mode);await configure(old,mode);oracle[mode]=await identify(old,mode,true);assert.deepEqual(observed.external,[]);await old.close();
                     }
                     const page=await browser.newPage();const observed=await resources(page,server.origin,base);const errors=[];page.on('pageerror',error=>errors.push(error.message));
                     await page.goto(server.origin+base);await ready(page,false);
