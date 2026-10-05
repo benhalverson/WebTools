@@ -1,0 +1,34 @@
+{
+  "name": "stream-stats",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter stream-stats^... build && vite --host 127.0.0.1",
+    "typecheck": "pnpm --filter stream-stats^... build && pnpm cf-typegen && tsc -b",
+    "build": "pnpm typecheck && vite build",
+    "lint": "oxlint --deny-warnings src worker tooling tests vite.config.ts",
+    "preview": "vite preview --host 127.0.0.1",
+    "cf-typegen": "wrangler types",
+    "test": "node --test tests/parity.test.mjs"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "@webtools/react-workflows": "workspace:*",
+    "@webtools/routing": "workspace:*",
+    "@webtools/dataflash": "workspace:*",
+    "@webtools/numerics": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.62.5",
+    "@types/node": "26.6.4",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@vitejs/plugin-react": "6.1.1",
+    "oxlint": "1.81.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.0",
+    "wrangler": "4.147.0"
+  }
+}
