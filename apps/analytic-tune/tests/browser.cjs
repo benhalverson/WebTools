@@ -275,7 +275,7 @@ async function harnessProcess(command, base) {
         /** Capture diagnostics and resolve only after preview reports its address. */
         const read = chunk => {
             output += chunk.toString();
-            const match = output.match(/http:\/\/127\.0\.0\.1:\d+/);
+            const match = require('node:util').stripVTControlCharacters(output).match(/http:\/\/127\.0\.0\.1:\d+/);
             if (command === 'preview' && match) { clearTimeout(timer); resolve({ origin: match[0], stop: () => stopProcess(child) }); }
         };
         child.stdout.on('data', read); child.stderr.on('data', read);
