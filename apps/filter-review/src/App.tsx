@@ -9,8 +9,7 @@ import { displayed, type Scale } from './spectrum.ts'
 import { useReview } from './use-review.ts'
 import './style.css'
 
-/** React-owned intermediate log/spectrum workflow; the public complete tool is
- * intentionally still legacy. Vendor plot nodes belong to the shared Plot hook. */
+/** React-owned log, spectrum and filter workflows; shared Plot hooks own vendor nodes. */
 export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
     const review = useReview()
     const filterControls = useRef<FilterControls | null>(null)
@@ -25,7 +24,7 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
     const [inputKey, setInputKey] = useState(0)
     const initializedRange = useRef(false)
     const result = review.result
-    const prefix = import.meta.env.BASE_URL.slice(0, -'FilterReviewPreview/'.length)
+    const prefix = import.meta.env.BASE_URL.slice(0, -'FilterReview/'.length)
     const legacy = applicationBase('portal', prefix) + 'FilterReview/'
     /** Start a replacement file lifetime, including clearing pending Open In work. */
     function load(next: File) { filterControls.current = null; review.reset(); initializedRange.current = false; setInputKey(value => value + 1); setFile(next); setInstance(0); void review.run(next, source, -1, { size, perBatch }) }
@@ -70,7 +69,7 @@ export default function App({ plotly }: { plotly: PlotlyApi | undefined }) {
     }, [result, range, scale, rpm, logFrequency, aliasState])
     return <main>
         <h1>Filter Review</h1>
-        <p>Spectrum preview — log ingestion and sensor spectra. <a href={legacy}>Open the complete Filter Review tool</a></p>
+
         <div className="controls">
             <fieldset><legend>Log</legend>
                 <input key={inputKey} aria-label="Load log" type="file" accept=".bin,.BIN,.log" onChange={event => { const next = event.target.files?.[0]; if (next) load(next) }} />

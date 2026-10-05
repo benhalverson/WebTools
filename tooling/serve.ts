@@ -65,7 +65,7 @@ async function main(): Promise<void> {
     const origins: Record<Application, string> = {
         portal: await start('portal', mode, prefix),
         rotationCheck: await start('rotation-check', mode, prefix),
-        filterReviewPreview: await start('filter-review', mode, prefix),
+        filterReview: await start('filter-review', mode, prefix),
         hardwareParameters: await start('hardware-report', mode, prefix),
     }
     server = createServer((incoming, outgoing) => {

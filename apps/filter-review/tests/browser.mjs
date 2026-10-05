@@ -174,7 +174,7 @@ for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'prev
                 postMessage(message) { window.metrics.sent.push({ path, name: message.data.name, size: message.data.size }) },
             })
         })
-        const base = service.origin + prefix + 'FilterReviewPreview/'
+        const base = service.origin + prefix + 'FilterReview/'
         assert.equal((await page.goto(base)).status(), 200)
         assert.equal((await context.request.get(base + 'missing')).status(), 404)
         assert.equal((await context.request.get(base + 'dataflash/vendor/parser.js')).status(), 200)
@@ -288,11 +288,10 @@ for (const prefix of ['/', '/Tools/WebTools/']) for (const mode of ['dev', 'prev
         assert.equal(metrics.created, metrics.terminated)
         assert.ok(metrics.purges >= 10)
         assert.deepEqual(errors, [])
-        assert.equal(await page.getByRole('link', { name: 'Open the complete Filter Review tool' }).getAttribute('href'), prefix + 'FilterReview/')
     } finally { await browser.close(); legacy.server.closeAllConnections(); await new Promise(resolvePromise => legacy.server.close(resolvePromise)); await stop(service.child) }
 })
 
-for (const prefix of ['/Tools/WebTools/', '/']) test('gateway preserves public legacy route ' + prefix, { timeout: 180000 }, async () => {
+for (const prefix of ['/Tools/WebTools/', '/']) test('gateway serves migrated public route ' + prefix, { timeout: 180000 }, async () => {
     execFileSync('pnpm', ['build'], { cwd: root, env: { ...process.env, CLOUDFLARE_CF_FETCH_ENABLED: 'false', WEBTOOLS_BASE_PATH: prefix }, stdio: 'pipe' })
     const browser = await chromium.launch({ ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}), args: ['--no-sandbox'] })
     try {
@@ -305,15 +304,14 @@ for (const prefix of ['/Tools/WebTools/', '/']) test('gateway preserves public l
                 const base = service.origin + prefix
                 assert.equal((await context.request.get(base + 'FilterReview/')).status(), 200)
                 assert.deepEqual(await (await context.request.get(base + 'FilterReview/FilterReview.js')).body(), execFileSync('git', ['show', comparisonRevision + ':FilterReview/FilterReview.js'], { cwd: root }))
-                assert.equal((await context.request.get(base + 'FilterReviewPreview/missing')).status(), 404)
-                assert.deepEqual(await (await context.request.get(base + 'FilterReviewPreview/dataflash/vendor/parser.js')).body(), await readFile(resolve(root, 'packages/dataflash/dist/vendor/parser.js')))
-                await page.goto(base + 'FilterReviewPreview/')
+                assert.equal((await context.request.get(base + 'FilterReview/missing')).status(), 404)
+                assert.deepEqual(await (await context.request.get(base + 'FilterReview/dataflash/vendor/parser.js')).body(), await readFile(resolve(root, 'packages/dataflash/dist/vendor/parser.js')))
+                await page.goto(base + 'FilterReview/')
                 await page.getByLabel('Load log').setInputFiles({ name: 'batch.bin', mimeType: 'application/octet-stream', buffer: fixture('batch') })
                 await ready(page)
-                await page.getByRole('link', { name: 'Open the complete Filter Review tool' }).click()
                 assert.equal(new URL(page.url()).pathname, prefix + 'FilterReview/')
                 assert.equal(await page.title(), 'ArduPilot Filter Review')
-                if (prefix !== '/') assert.equal((await context.request.get(service.origin + '/FilterReviewPreview/')).status(), 404)
+                if (prefix !== '/') assert.equal((await context.request.get(service.origin + '/FilterReview/')).status(), 404)
             } finally { await context.close(); await stop(service.child) }
         }
     } finally { await browser.close() }
@@ -329,7 +327,7 @@ test('built app missing assets fail visibly and reset remains usable', { timeout
             try {
                 await context.route('**/*', route => new URL(route.request().url()).hostname !== '127.0.0.1' || route.request().url().includes(asset) ? route.abort() : route.continue())
                 const page = await context.newPage()
-                await page.goto(service.origin + '/FilterReviewPreview/')
+                await page.goto(service.origin + '/FilterReview/')
                 if (!asset.includes('plotly')) await page.getByLabel('Load log').setInputFiles({ name: 'batch.bin', mimeType: 'application/octet-stream', buffer: fixture('batch') })
                 if (asset.includes('FileSaver')) { await ready(page); await page.getByRole('button', { name: 'Save parameters', exact: true }).click() }
                 await page.getByRole('alert').first().waitFor()

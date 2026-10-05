@@ -6,5 +6,14 @@
   "dataflash/vendor/parser.js": "packages/dataflash/dist/vendor/parser.js",
   "dataflash/vendor/LICENSE": "packages/dataflash/dist/vendor/LICENSE",
   "params.json": "FilterReview/params.json",
-  "vendor/FileSaver.js": "Libraries/FileSaver.js"
+  "vendor/FileSaver.js": "Libraries/FileSaver.js",
+  "FilterReview.js": "FilterReview/FilterReview.js",
+  "tracking/Atmosphere_model.js": "FilterReview/tracking/Atmosphere_model.js",
+  "tracking/BaseClass.js": "FilterReview/tracking/BaseClass.js",
+  "tracking/ESC.js": "FilterReview/tracking/ESC.js",
+  "tracking/FFT.js": "FilterReview/tracking/FFT.js",
+  "tracking/Logged.js": "FilterReview/tracking/Logged.js",
+  "tracking/RPM.js": "FilterReview/tracking/RPM.js",
+  "tracking/Static.js": "FilterReview/tracking/Static.js",
+  "tracking/Throttle.js": "FilterReview/tracking/Throttle.js"
 }
