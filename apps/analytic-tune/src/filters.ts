@@ -699,4 +699,3 @@ export function evaluate_transfer_functions(filter_groups: TransferFilter[][], f
     // Return attenuation and phase
     return { attenuation: attenuation, phase: phase, freq: freq, H_total: H_total}
 }
-

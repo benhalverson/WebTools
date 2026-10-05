@@ -209,4 +209,3 @@ export function calculate_freq_resp_from_FFT(input_fft: ComplexArray[], output_f
 
     return [H, coh]
 }
-
