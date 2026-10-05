@@ -9,6 +9,17 @@ const root = resolve(fileURLToPath(new URL('../../../', import.meta.url)))
 const packageRoot = resolve(root, 'packages/widget-runtime')
 const value = JSON.parse(await readFile(resolve(root, 'TelemetryDashboard/SandBoxWidgets/Value.json'), 'utf8')).widget
 const templates = (await readFile(resolve(root, 'TelemetryDashboard/index.html'), 'utf8')).match(/<template[\s\S]*?<\/template>/g).join('\n')
+/**
+ * Edit a numeric control through native click/keyboard events and commit on blur.
+ * @param input Playwright locator that must receive an ordinary, unforced click.
+ * @param value Replacement numeric value; Formio processes the resulting input events.
+ */
+async function editNumber(input, value) {
+    await input.click({ timeout: 5000 })
+    await input.press('ControlOrMeta+A')
+    await input.pressSequentially(String(value))
+    await input.press('Tab')
+}
 const layout = { header: { version: 1 }, grid: { columns: 6, rows: 6, color: 'rgb(255, 255, 255)' }, widgets: {
     0: { x: '0', y: '0', w: '3', h: '3', type: 'WidgetSandBox', options: { form: { components: [{ type: 'number', key: 'gain', id: 'gain-fixture', label: 'Gain', input: true, defaultValue: 1, validate: { max: 100 } }] }, form_content: { gain: 2 }, about: { name: 'Controlled fixture' }, sandbox: 'div.id="telemetry"; div.textContent="ready"; handle_msg=function(msg){div.textContent=String(msg.groundspeed * options.gain)}; handle_options=function(next){options=next}' } },
     1: { x: '3', y: '0', w: '3', h: '3', type: 'WidgetSubGrid', options: { form_content: { rows: 2, columns: 2, borderColor: '#c8c8c8', backgroundColor: '#ffffff' }, widgets: {
@@ -145,6 +156,23 @@ for (const prefix of ['/', '/Tools/WebTools/']) {
         await legacy.evaluate(() => grid.getGridItems()[0].form.setSubmission({ data: { gain: 101 } }))
         assert.equal(await page.evaluate(() => window.runtime.getWidgets()[0].snapshot().options.form_content.gain), await legacy.evaluate(() => get_layout().widgets[0].options.form_content.gain), 'invalid submission serialization remains live')
         await legacy.close()
+        // Settings must receive physical clicks above the nested grid and its children.
+        await page.evaluate(() => window.runtime.setEditing(true))
+        const subgrid = page.locator('#dashboard > .grid-stack-item').nth(1)
+        const subgridBox = await subgrid.locator(':scope > .grid-stack-item-content').boundingBox()
+        // Use the border, outside the nested child; locator positions start at padding.
+        await page.mouse.dblclick(subgridBox.x + 2, subgridBox.y + 30)
+        assert.equal(await page.evaluate(() => window.runtime.getWidgets()[1].formElement.hidden), false)
+        await editNumber(subgrid.locator('input[name="data[rows]"]').first(), 3)
+        await editNumber(subgrid.locator('input[name="data[columns]"]').first(), 3)
+        await page.waitForFunction(() => {
+            const host = window.runtime.getWidgets()[1]
+            return host.snapshot().options.form_content.rows === 3 && host.snapshot().options.form_content.columns === 3
+                && host.getNestedRuntime().grid.opts.maxRow === 3 && host.getNestedRuntime().grid.opts.column === 3
+        })
+        assert.equal(await page.evaluate(() => window.runtime.getWidgets()[1].getNestedRuntime().getWidgets().length), 1, 'settings rebuild retains nested child')
+        await page.evaluate(() => window.runtime.setEditing(false))
+        assert.equal(await page.evaluate(() => window.runtime.getWidgets()[1].formElement.hidden), true)
         // Serialize/reload round trip with live Formio and GridStack normalization.
         await page.evaluate(serialized => window.mountLayout(JSON.parse(serialized)), actual)
         await page.waitForTimeout(150)
@@ -164,6 +192,39 @@ for (const prefix of ['/', '/Tools/WebTools/']) {
         await valueFrame.waitForSelector('svg text')
         await page.evaluate(() => window.publishFixture())
         await valueFrame.waitForFunction(() => document.querySelector('svg text').textContent === '25.0')
+        // A saved Value widget must remain editable at the minimum 1x1 grid size.
+        await page.evaluate(() => {
+            const host = window.runtime.getWidgets()[0]
+            window.runtime.grid.update(host.element, { w: 1, h: 1 })
+            window.runtime.setEditing(true)
+        })
+        await page.locator('#dashboard .widget-frame-content').dblclick({ position: { x: 10, y: 10 } })
+        const settings = page.locator('#dashboard .widget-frame-content > div').first()
+        const settingsBox = await settings.boundingBox()
+        assert.ok(settingsBox && settingsBox.height > 0, 'small widget settings has a visible scrollport')
+        await page.mouse.move(settingsBox.x + settingsBox.width / 2, settingsBox.y + settingsBox.height / 2)
+        await page.mouse.wheel(0, 1500)
+        await page.waitForFunction(() => {
+            const form = window.runtime.getWidgets()[0].formElement
+            const input = form.querySelector('input[name="data[scaleFactor]"]')
+            const bounds = form.getBoundingClientRect(), field = input.getBoundingClientRect()
+            return form.scrollTop > 0 && field.top >= bounds.top && field.bottom <= bounds.bottom
+        })
+        await page.evaluate(() => window.runtime.saved())
+        await valueFrame.evaluate(() => {
+            window.addEventListener('message', event => {
+                if (event.data?.options) window.receivedScaleFactor = event.data.options.scaleFactor
+            })
+        })
+        await editNumber(settings.locator('input[name="data[scaleFactor]"]'), 5)
+        await page.waitForFunction(() => window.runtime.getChanged() && window.runtime.getWidgets()[0].snapshot().options.form_content.scaleFactor === 5)
+        await valueFrame.waitForFunction(() => window.receivedScaleFactor === 5)
+        await page.evaluate(() => { window.runtime.setEditing(false); window.publishFixture() })
+        assert.equal(await settings.isVisible(), false, 'leaving edit mode hides the settings overlay')
+        await valueFrame.waitForFunction(() => document.querySelector('svg text').textContent === '62.5')
+        await valueFrame.evaluate(() => { window.widgetClickCount = 0; document.addEventListener('click', () => { window.widgetClickCount++ }, { once: true }) })
+        await valueFrame.locator('svg').click()
+        assert.equal(await valueFrame.evaluate(() => window.widgetClickCount), 1, 'widget interaction resumes after settings close')
         // GridStack's completed-drop callback transfers resource ownership by recreation.
         await page.evaluate(next => window.mountLayout(next), layout)
         await page.waitForTimeout(150)

@@ -12,3 +12,8 @@ for (const message of result ?? []) {
 }
 // @ts-expect-error Browser codec does not expose Node event subscriptions.
 processor.on('message', () => {});
+
+for (const method of ['addListener', 'once', 'prependListener', 'prependOnceListener', 'removeListener', 'off'] as const) {
+    // @ts-expect-error Portable processors do not promise Node listener APIs.
+    processor[method]('message', () => {});
+}
