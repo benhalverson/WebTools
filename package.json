@@ -3,18 +3,26 @@
   "private": true,
   "packageManager": "pnpm@10.23.0",
   "scripts": {
-    "dev": "pnpm --filter portal dev",
-    "typecheck": "pnpm -r --if-present typecheck",
-    "lint": "pnpm -r --if-present lint",
-    "test": "node --test tests/*.test.cjs && pnpm --filter @webtools/mavlink test && pnpm --filter @webtools/transfers test && pnpm --filter @webtools/parameters test",
+    "dev": "pnpm --filter @webtools/react-workflows... build && node tooling/serve.ts dev",
+    "typecheck": "pnpm -r --if-present typecheck && pnpm --filter portal exec tsc -p ../../tooling/tsconfig.json",
+    "lint": "pnpm -r --if-present lint && apps/portal/node_modules/.bin/oxlint --deny-warnings tooling",
+    "test": "node --test tests/*.test.cjs && pnpm test:parameters && pnpm test:dataflash && pnpm --filter @webtools/mavlink test && pnpm --filter @webtools/numerics test && pnpm test:react-workflows && pnpm --filter @webtools/transfers test && pnpm test:routing && pnpm test:rotation-check",
     "test:browser": "node tests/browser.cjs",
     "test:video": "node tests/video-browser.cjs",
     "test:portal": "node --test apps/portal/tests/*.test.cjs",
     "build": "pnpm -r --if-present build",
-    "preview": "pnpm --filter portal preview",
-    "test:mavlink:browser": "pnpm --filter @webtools/mavlink test:browser",
-    "test:transfers:browser": "pnpm --filter @webtools/transfers test:browser",
+    "preview": "node tooling/serve.ts preview",
     "test:parameters": "pnpm --filter @webtools/parameters test",
+    "test:dataflash": "pnpm --filter @webtools/dataflash test",
+    "test:dataflash:browser": "pnpm --filter @webtools/dataflash test:browser",
+    "test:mavlink:browser": "pnpm --filter @webtools/mavlink test:browser",
+    "test:numerics:browser": "pnpm --filter @webtools/numerics test:browser",
+    "test:react-workflows": "pnpm --filter @webtools/parameters build && pnpm --filter @webtools/react-workflows test",
+    "test:react-workflows:browser": "pnpm --filter @webtools/parameters build && pnpm --filter @webtools/react-workflows test:browser",
+    "test:transfers:browser": "pnpm --filter @webtools/transfers test:browser",
+    "test:routing": "node --test packages/routing/tests/*.test.ts tooling/*.test.ts",
+    "test:rotation-check": "node --test apps/rotation-check/tests/*.test.*",
+    "test:rotation-check:browser": "node --test apps/rotation-check/tests/browser.cjs",
     "test:parameters:browser": "pnpm --filter @webtools/parameters test:browser"
   },
   "engines": {
@@ -22,6 +30,8 @@
   },
   "devDependencies": {
     "playwright": "1.63.0",
-    "ws": "8.18.3"
+    "ws": "8.18.3",
+    "@types/node": "26.6.4",
+    "@webtools/routing": "workspace:*"
   }
 }
