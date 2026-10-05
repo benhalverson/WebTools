@@ -26,3 +26,4 @@ jobs:
       - run: pnpm test && pnpm test:routing && pnpm test:rotation-check && pnpm test:parameters && pnpm test:react-workflows
       - run: pnpm test:portal && pnpm test:rotation-check:browser && pnpm test:react-workflows:browser
       - run: pnpm test:numerics && pnpm test:geofence && pnpm test:geofence:browser
+      - run: pnpm test:numerics:browser && pnpm test:mavlink:browser && pnpm test:transfers:browser && pnpm test:parameters:browser

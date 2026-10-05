@@ -1,10 +1,6 @@
 # Shared React workflows (migration stage 2)
 
-Dependency: issue #3 / draft PR #39, exact commit
-`066ca70a2c28bd9c2d789743dfa7291c9da0b42c`. This branch targets the fork's
-`main`, so its PR includes the dependency until #39 merges. Behavior comparison:
-the unchanged `Libraries/*.js` and `HardwareReport` at foundation commit
-`ac32dd6` (also unchanged at the dependency commit). No public tool is switched.
+Shared React controls and resource-owning hooks for the WebTools apps. The package depends on `@webtools/parameters` and accepts the existing pinned vendor libraries through explicit interfaces.
 
 ## Supported API
 
@@ -35,6 +31,8 @@ the unchanged `Libraries/*.js` and `HardwareReport` at foundation commit
   overlay visible. Rejection is reported through `onError`; this does not repair
   or conceal the failure overlay. Unmount cancels queued frames and prevents
   stale state changes; it cannot cancel arbitrary caller-owned operations.
+  Explicit `cancel()` also discards queued frames and stale completions, dismisses
+  the overlay, and permits fresh work. Callers must separately abort their requests.
 - `OpenIn`: React renders the same destination input buttons and enable rules.
   Relative same-origin paths retain common hosting prefixes. `transferFile`
   returns an idempotent disposer for the legacy load listener or FileReader/delay
@@ -91,62 +89,22 @@ ordering, labels, availability, payload/filename/bytes, and wildcard behavior.
 They also check external transport delay/cancellation, control markup contracts,
 and delegation of exact Blob identity to FileSaver. No Jest/Vitest is used.
 
-Validation: strict workspace typecheck/lint, production builds, 116 retained
-Node tests, 10 parameter tests and 9 workflow Node tests passed. Real Chromium
-151.0.7922.173 passed the built workflow suite at `/` and `/Tools/WebTools/`,
-including HardwareReport filename/bytes, unknown enum preservation, pending
-Plotly operations, rejection/retry, readiness-delayed receiver cleanup, and
-repeated mounts. The fixture server normalizes its repository root before
-checking path containment. The intentional failure overlay is unmounted with
-a programmatic host-control click because it intercepts pointer input.
-No live provider, hardware or deployment was used.
+## Regression maintenance
 
-## PR43 regression evidence
+`tests/regressions.mjs` checks nullish metadata loading and external transfer
+ownership while React remains mounted. It stores only WeakRefs and primitive
+delivery observations; retaining payloads or remote object handles in the test
+would invalidate its garbage-collection checks. The external recipient is a
+local stand-in that discards messages. Forced GC runs in a separate CDP task
+before dereferencing WeakRefs.
 
-Reproduced against `91109a1f793d9bedb35b066ad27a988f83ff33ca` using
-Chromium 151.0.7922.173, Node 24.19.0, and pnpm 10.23.0 at `/` and
-`/Tools/WebTools/`. Both initial null and undefined documents threw
-`Cannot convert undefined or null to object`. Native FileReader and real 2000ms
-external timers demonstrated this lifetime after delivery and forced Chromium
-GC, while React remained mounted:
+The suite also checks concurrent pending sends, file-prop changes, unmount
+cancellation, a retained completed disposer, and metadata transitions through
+numeric, enum, and bitmask controls. The unchanged HardwareReport browser test
+checks an actual recipient window and original filename/bytes. Node tests cover
+read cancellation/error/abort, blocked windows, throwing browser operations,
+settlement callbacks, and same-origin repeat loads.
 
-| Sender | Reader alive | 4 MiB ArrayBuffer alive | Recipient stand-in alive |
-| --- | --- | --- | --- |
-| Unchanged legacy | no | no | no |
-| Original PR43 | yes | yes | no |
-| Corrected React | no | no | no |
-
-`tests/regressions.mjs` stores only WeakRefs and primitive delivery evidence;
-it never keeps sent payloads or remote object handles alive. The external
-recipient is a local stand-in that discards messages; no external provider is
-contacted. Forced GC uses a separate CDP task before dereferencing WeakRefs.
-The test also keeps pending buffers/recipients live, repeats concurrent sends,
-changes file props, cancels multiple recipients on unmount, and deliberately
-retains a completed public disposer to check its cleared references. The
-unchanged HardwareReport browser test still checks an actual recipient window,
-original filename and exact bytes. Deterministic Node tests cover read
-cancellation/error/abort, blocked windows, throwing open/read/postMessage calls,
-settlement counts and same-origin repeat loads. Metadata browser regressions
-cover null/undefined through enum/bitmask/range loading and back, unknown enum
-rerenders, preserved controlled values, and no change callbacks during loading.
-
-The `WORKFLOWS_BASELINE=1` browser-runner mode is only for applying this regression
-harness to the original implementation; it asserts the two pre-fix failures.
-The normal command asserts corrected behavior and legacy parity.
-
-Correction validation also passed the six portal checks (development and built
-preview at root/prefix), the video browser suite, and the complete unchanged
-SimpleGCS browser suite. The environment's direct public-CDN requests fail
-(unpkg tunnel failures and jsDelivr certificate validation), so SimpleGCS was
-rerun with a temporary Playwright preload. It supplied only Leaflet 1.9.4 CSS/JS,
-Leaflet.GoogleMutant 0.16.0, and hls.js 1.7.3 from the official npm tarballs.
-Each asset's SHA-384 matched the unchanged HTML integrity attribute before
-replay; every other external request was blocked. All seven SimpleGCS browser
-acceptance groups passed, including signing/discovery, parameter metadata and
-FTP, reconnect/draft/identity lifetimes, telemetry replay rejection, recovery,
-and desktop/mobile controls. Authoritative tests, vendor assets, and HTML were
-unchanged; the preload and downloaded assets remained outside the repository.
-This is local validation, not a CI result. This foundation branch has no
-workflow/status checks. PR39 was fetched on current main at
-`94eda2519185159e3616ee82faa75f70f6282083`; main integration is a separate merge
-queue operation and was not performed as part of this regression correction.
+`WORKFLOWS_BASELINE=1` is only for applying this regression harness to the
+original implementation; it asserts the pre-fix failures. The normal command
+asserts the supported behavior and legacy parity.
