@@ -151,6 +151,8 @@ per connection; cancellation is scoped to the owning operation.
 `pnpm test:simplegcs:browser:all` runs retained legacy acceptance plus telemetry,
 commands, parameter editing, video and native-WebSocket integration suites.
 Tests use controlled transports, media and provider fixtures.
+`pnpm test:simplegcs:commands:browser` checks command acknowledgements, mission
+and fence transfers, map gestures and disposal with an in-memory vehicle.
 
 ### FilterReview
 
