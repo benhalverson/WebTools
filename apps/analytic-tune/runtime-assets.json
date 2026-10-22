@@ -1,0 +1,15 @@
+{
+  "vendor/plotly.min.js": "modules/plotly.js/dist/plotly.min.js",
+  "images/AP_favicon.png": "images/AP_favicon.png",
+  "images/ArduPilot.png": "images/ArduPilot.png",
+  "images/github-mark.png": "images/github-mark.png",
+  "images/GitHub_Logo.png": "images/GitHub_Logo.png",
+  "Readme.md": "AnalyticTune/Readme.md",
+  "params.json": "AnalyticTune/params.json",
+  "vendor/dataflash/index.js": "packages/dataflash/dist/index.js",
+  "vendor/dataflash/log-helpers.js": "packages/dataflash/dist/log-helpers.js",
+  "vendor/dataflash/vendor/parser.js": "packages/dataflash/dist/vendor/parser.js",
+  "vendor/dataflash/vendor/LICENSE": "packages/dataflash/dist/vendor/LICENSE",
+  "AnalyticTune.js": "AnalyticTune/AnalyticTune.js",
+  "vendor/FileSaver.js": "Libraries/FileSaver.js"
+}

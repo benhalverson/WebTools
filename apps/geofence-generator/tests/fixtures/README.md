@@ -1,0 +1,3 @@
+`water.osm` is a synthetic Overpass `out geom` response covering a named polygon and a reservoir relation with a hole. Its coordinates and identifiers are deliberate test data, not a provider recording.
+
+`osm-recording.osm` is copied verbatim from the “interesting objects: relation members” XML recording in osmtogeojson 3.0.0-beta.5's published `test/osm.test.js` (original OpenStreetMap server timestamps 2013-05-14, linked upstream case https://github.com/openstreetmap/openstreetmap-website/pull/283). It retains the source attribution and ODbL license URL. It exercises real recorded mixed, nonpolygon OSM objects and the legacy crop error, complementing the synthetic water fixture. Tests never contact OpenStreetMap, Overpass, Nominatim, or tile servers.

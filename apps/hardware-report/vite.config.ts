@@ -8,8 +8,8 @@ import assets from './runtime-assets.json' with { type: 'json' }
 
 /** Build this app independently with the common hosting prefix baked into assets. */
 export default defineConfig(async ({ isPreview }): Promise<UserConfig> => {
-    const base = applicationBase('hardwareParameters', process.env.WEBTOOLS_BASE_PATH ?? process.env.PORTAL_BASE_PATH)
+    const base = applicationBase('hardwareReport', process.env.WEBTOOLS_BASE_PATH ?? process.env.PORTAL_BASE_PATH)
     const publicDir = fileURLToPath(new URL('./.legacy-assets/', import.meta.url))
     if (!isPreview) await stageRuntimeAssets(fileURLToPath(new URL('../../', import.meta.url)), publicDir, assets)
-    return { base, optimizeDeps: { include: ['@webtools/react-workflows', '@webtools/parameters'] }, appType: 'mpa', publicDir, plugins: [react(), prefixedHtml(), cloudflare()] }
+    return { base, optimizeDeps: { include: ['@webtools/react-workflows', '@webtools/parameters', '@webtools/dataflash'] }, appType: 'mpa', publicDir, plugins: [react(), prefixedHtml(), cloudflare()] }
 })

@@ -119,8 +119,14 @@ export function createFTPManager(createClient: (processor: TransferProcessor, tr
         },
         /** Queue an upload behind prior work; its callback receives a byte count only after close ACK, otherwise null. */
         putFile(path: string, data: Uint8Array, cb: (size: number | null) => void, opts: QueueOptions = {}) {
-            queue.push({ kind: 'upload', path, data, cb, timeoutMs: opts.timeoutMs });
+            queue.push({ kind: 'upload', path, data, cb, tag: opts.tag, timeoutMs: opts.timeoutMs });
             pump();
+        },
+        /** Cancel this owner's queued and active jobs without interrupting other owners. */
+        cancelByTag(tag: string) {
+            const active = current?.tag === tag ? current : null;
+            dropQueued(job => job.tag === tag);
+            if (active && current === active && !active.completed) ftp?.cancel();
         },
         /** Cancel queued jobs carrying this tag, notifying each with null; active work continues. */
         cancelQueuedByTag(tag: string) { dropQueued(job => job.tag === tag); },

@@ -1,0 +1,6 @@
+{
+  "source": "https://github.com/Astik-2002/pyAircraftIden/blob/34c6b091a86939009cb7904c7f5a99b41282ef94/data/sweep_data_2017_12_10_19_38.dat",
+  "sha256": "9ba23c4358346610964c1b12a9f82c88328fb0c52a03f036ce77aecef94c131c",
+  "kind": "Upstream recorded sweep time series; unchanged bytes. This is not a DataFlash recording. The q column is used for numerical differential tests.",
+  "license": "GPL-3.0; existing pinned pyAircraftIden submodule"
+}

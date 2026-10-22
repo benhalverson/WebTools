@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
+import { attachTiles } from './tiles.ts'
 import 'leaflet/dist/leaflet.css'
 import { vehicleIcon } from './icon.ts'
 import { attachReposition } from './gestures.ts'
@@ -9,9 +10,9 @@ import { attachGrid } from './grid.ts'
 import { watchLocation, type LocationProvider } from './location.ts'
 import type { LinkState } from './connection.ts'
 import type { DisplaySettings } from './settings.ts'
-export interface MapViewProps { operations: OperationsState; beginReposition: () => (lat: number, lng: number) => void; link: LinkState; display: DisplaySettings; location: LocationProvider; report: (text: string) => void; recenter: number; onMap?: ((map: L.Map | null) => void) | undefined }
+export interface MapViewProps { offline?: boolean; operations: OperationsState; beginReposition: () => (lat: number, lng: number) => void; link: LinkState; display: DisplaySettings; location: LocationProvider; report: (text: string) => void; recenter: number; onMap?: ((map: L.Map | null) => void) | undefined }
 /** Own one Leaflet instance per mount; telemetry/settings updates retain its viewport. */
-export function MapView({ operations, beginReposition, link, display, location, report, recenter, onMap }: MapViewProps) {
+export function MapView({ offline, operations, beginReposition, link, display, location, report, recenter, onMap }: MapViewProps) {
     const element = useRef<HTMLDivElement>(null), map = useRef<L.Map | null>(null), marker = useRef<L.Marker | null>(null), centeredIdentity = useRef<string | null>(null)
     const observer = useRef(onMap)
     useEffect(() => {
@@ -39,7 +40,6 @@ export function MapView({ operations, beginReposition, link, display, location, 
     useEffect(() => attachOperationLayers(map.current!, operations), [operations.mission, operations.fence, operations.fenceEnabled])
     useEffect(() => attachTarget(map.current!, operations.target), [operations.target])
     useEffect(() => attachReposition(map.current!, beginReposition), [beginReposition, link.telemetry.identity])
-    // This preview deliberately supplies an offline map surface. Provider selection
-    // is retained in settings; complete provider-backed maps remain on the public app.
+    useEffect(() => { if (!offline) return attachTiles(map.current!, display) }, [offline, display.tiles, display.googleKey])
     return <main id="map" ref={element} aria-label="Vehicle map" data-provider={display.tiles} />
 }

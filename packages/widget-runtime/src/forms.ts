@@ -9,7 +9,8 @@ export interface WidgetForm {
     checkValidity(data: Fields): boolean
     on(event: 'change', listener: (event: { changed?: unknown }) => void): void
     off(event: 'change', listener: (event: { changed?: unknown }) => void): void
-    destroy(): void
+    /** Release the form and remove its retained global registry entry when requested. */
+    destroy(deleteFromGlobal?: boolean): void
 }
 export interface FormFactory {
     createForm(element: HTMLElement, schema: Fields): Promise<WidgetForm>

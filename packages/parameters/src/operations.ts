@@ -8,6 +8,7 @@ export class MAVParam {
     connected: boolean;
     busy: boolean;
     private generation: number;
+    private writing = false;
     private readonly listeners: Set<(model: MAVParam) => void>;
     static readonly decode = decode;
     static readonly encodeUpload = encodeUpload;
@@ -33,13 +34,15 @@ export class MAVParam {
     emit(): void { for (const cb of this.listeners) cb(this); }
     /** Invalidate pending results and clear vehicle values; the owner cancels the transfer. */
     disconnect(): void { this.connected=false; this.generation++; this.params.clear(); this.emit(); }
+    /** Invalidate the pending transaction; clear cached values when a write may have reached the vehicle. */
+    cancelPending(): void { this.generation++; if (this.writing) { this.params.clear(); this.emit(); } }
     /** Serialize operations and restore busy state after success or rejection. */
     async transaction<T>(fn: (check: () => void) => Promise<T>): Promise<T> {
         if (!this.connected) throw new Error('Vehicle disconnected');
         if (this.busy) throw new Error('A parameter operation is already in progress');
         this.busy = true; this.emit();
         const generation = this.generation;
-        try { return await fn(()=>{if (!this.connected || generation !== this.generation) throw new Error('Vehicle disconnected');}); }
+        try { return await fn(()=>{if (!this.connected) throw new Error('Vehicle disconnected'); if (generation !== this.generation) throw new Error('Parameter operation cancelled');}); }
         finally { this.busy=false; this.emit(); }
     }
     /** Fetch and validate the complete packed file before replacing current values. */
@@ -70,6 +73,8 @@ export class MAVParam {
     /** Upload changes and require acknowledged close plus exact readback before reporting success. */
     async apply(values: ReadonlyMap<string, number>): Promise<ParameterChange[]> {
         return this.transaction(async check=>{
+            this.writing = true;
+            try {
             const changes = this.changes(values);
             if (!changes.length) return [];
             const bytes = encodeUpload(changes);
@@ -83,6 +88,7 @@ export class MAVParam {
             const rejected = changes.filter(p=>this.params.get(p.name)?.value !== p.value);
             if (rejected.length) throw new Error(`Vehicle did not retain requested values: ${rejected.map(p=>p.name).join(', ')}`);
             return changes;
+            } finally { this.writing = false; }
         });
     }
     /** Apply a known default through the same upload and verification path. */

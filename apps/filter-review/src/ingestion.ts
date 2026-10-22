@@ -134,3 +134,22 @@ export function initialRange(log: DataflashLog, start: number, end: number): [nu
     }
     return [first, last]
 }
+
+/** Preserve the rate advertised to FilterTool: maximum batch rate per physical
+ * gyro, or mean raw batch rate, increased by the logged IMU rate when present. */
+export function gyroRates(log: DataflashLog, recording: Recording): Record<number, number> {
+    const output: Record<number, number> = {}
+    for (const sensor of recording.sensors) {
+        const batches = recording.source === 'batch' ? recording.sensors.filter(value => value.sensor === sensor.sensor).flatMap(value => value.batches) : sensor.batches
+        let rate = recording.source === 'batch' ? Math.max(...batches.map(batch => batch.sample_rate)) : batches.reduce((sum, batch) => sum + batch.sample_rate, 0) / batches.length
+        const instance = recording.source === 'batch' ? sensor.sensor : sensor.instance
+        if (log.messageTypes.IMU?.instances?.[String(instance)]) {
+            const samples = numeric(log.get_instance('IMU', String(instance), 'GHz'), 'IMU.GHz')
+            let sum = 0
+            for (const value of samples) sum += value
+            rate = Math.max(rate, sum / samples.length)
+        }
+        output[sensor.instance] = rate
+    }
+    return output
+}

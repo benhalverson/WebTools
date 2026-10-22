@@ -1,0 +1,10 @@
+[
+  "vendor/mediamtx/reader.js",
+  "gcs_icon_32.png",
+  "README.md",
+  "cli_test.js",
+  "node_ftp.js",
+  "config.example.js",
+  "config.js",
+  "vendor/Leaflet.GoogleMutant.js"
+]

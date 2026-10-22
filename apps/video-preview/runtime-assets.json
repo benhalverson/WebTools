@@ -1,0 +1,6 @@
+{
+  "Default_Layout.json": "VideoOverlay/Default_Layout.json",
+  "Default_Palette.json": "VideoOverlay/Default_Palette.json",
+  "Widgets/SandBox.html": "VideoOverlay/Widgets/SandBox.html",
+  "modules/JsDataflashParser/parser.js": "modules/JsDataflashParser/parser.js"
+}

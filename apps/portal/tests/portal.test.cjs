@@ -6,6 +6,8 @@ const path = require('node:path');
 const { test } = require('node:test');
 const { chromium } = require('playwright');
 const assets = require('../legacy-assets.json');
+const dashboardAssets = require('../../dashboard-playback/runtime-assets.json');
+const { applicationBase } = require('@webtools/routing');
 const { listeningOrigin } = require('@webtools/routing/tooling');
 
 const app = path.resolve(__dirname, '..');
@@ -191,8 +193,10 @@ async function transferFile(browser, origin, base) {
     }
 }
 
-test('legacy HTML references are included in the runtime allowlist', async () => {
-    const allowed = new Set(assets);
+test('legacy HTML references are included in their owning application runtime allowlist', async () => {
+    // The gateway serves retained VideoOverlay dependencies from the dashboard's public mount.
+    const dashboardMount = applicationBase('dashboardPlayback').slice(1);
+    const allowed = new Set([...assets, ...Object.keys(dashboardAssets).map(file => dashboardMount + file)]);
     for (const file of assets.filter(file => file.endsWith('.html'))) {
         const html = await fs.readFile(path.join(root, file), 'utf8');
         for (const match of html.matchAll(/(?:src|href)\s*=\s*["']([^"'<>]*)["']/g)) {

@@ -10,6 +10,14 @@ const plotIds = ['waypoint_plot', 'pos_plot', 'vel_plot', 'accel_plot', 'jerk_pl
 // The same checked-in WASM executes in both environments; allow only floating-point roundoff.
 const tolerance = 1e-10;
 
+/** Log phase entry immediately so a test deadline identifies unfinished work. */
+async function phase(label, action) {
+    const started = performance.now();
+    console.log('SCurve phase start', label);
+    try { return await action(); }
+    finally { console.log('SCurve phase end', label, { durationMs: Math.round(performance.now() - started) }); }
+}
+
 /** Stops the complete server process group, including Workers, even after failed startup. */
 async function stopProcess(child) {
     if (child.exitCode !== null || child.signalCode !== null) return;
@@ -23,7 +31,7 @@ async function stopProcess(child) {
 
 /** Starts the same-origin gateway and rejects early exits with captured diagnostics. */
 async function startServer(mode, base) {
-    const child = spawn(process.execPath, ['tooling/serve.ts', mode, '--port', '0'], {
+    const child = spawn(process.execPath, ['tooling/serve.ts', mode, '--port', '0', '--apps', 'portal,scurveTool'], {
         cwd: root, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
         env: { ...process.env, WEBTOOLS_BASE_PATH: base, PORTAL_BASE_PATH: base, BROWSER: 'none' },
     });
@@ -46,9 +54,9 @@ async function startServer(mode, base) {
     } catch (error) { await stopProcess(child); throw error; }
 }
 
-/** Builds every independent workspace app for one common hosting prefix. */
+/** Build the asserted gateway apps and their dependencies with the original workspace hooks. */
 async function build(base) {
-    const child = spawn('corepack', ['pnpm@10.23.0', 'build'], {
+    const child = spawn('corepack', ['pnpm@10.23.0', '-r', '--workspace-concurrency=1', '--filter', 'portal...', '--filter', 'scurve-tool...', '--if-present', 'build'], {
         cwd: root, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
         env: { ...process.env, WEBTOOLS_BASE_PATH: base, PORTAL_BASE_PATH: base },
     });
@@ -223,11 +231,14 @@ async function checkControls(page, origin, base, oracle) {
 async function checkLifecycle(context, page, origin, base, oracle) {
     const app = origin + base + 'SCurveTool/';
     for (let iteration = 0; iteration < 3; iteration++) {
+        console.log('SCurve navigation cycle start', iteration, base);
         await page.goto(origin + base);
         await page.goto(app);
         await comparePlots(page, await oracle.runLegacy({}));
+        console.log('SCurve navigation cycle end', iteration, base);
     }
     for (const pattern of ['**/wpnav.wasm', '**/*plotly*.js*']) {
+        console.log('SCurve unavailable resource start', pattern, base);
         const unavailable = await context.newPage();
         await unavailable.route(pattern, route => route.abort());
         try {
@@ -237,6 +248,8 @@ async function checkLifecycle(context, page, origin, base, oracle) {
             await unavailable.reload();
             await comparePlots(unavailable, await oracle.runLegacy({}));
         } finally { await unavailable.close(); }
+        console.log('SCurve unavailable resource end', pattern, base);
+        console.log('SCurve interrupted resource start', pattern, base);
         const interrupted = await context.newPage();
         const started = performance.now();
         const timeline = [];
@@ -270,7 +283,7 @@ async function checkLifecycle(context, page, origin, base, oracle) {
         } catch (error) {
             console.error('Interrupted resource startup failure', { pattern, url: interrupted.url(), timeline });
             throw error;
-        } finally { clearTimeout(timer); release(); await interrupted.close(); }
+        } finally { clearTimeout(timer); release(); await interrupted.close(); console.log('SCurve interrupted resource end', pattern, base); }
     }
 }
 
@@ -347,10 +360,10 @@ test('SCurveTool real WASM and browser workflows at root and configured prefix',
     const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH || undefined, args: ['--enable-unsafe-swiftshader'] });
     try {
         for (const base of (process.env.SCURVE_BASE ? [process.env.SCURVE_BASE] : ['/Tools/WebTools/', '/'])) {
-            if (!process.env.SCURVE_SKIP_BUILD) await build(base);
+            if (!process.env.SCURVE_SKIP_BUILD) await phase(`build ${base}`, () => build(base));
             for (const mode of (process.env.SCURVE_MODE ? [process.env.SCURVE_MODE] : ['dev', 'preview'])) {
                 await t.test(`${mode} ${base}`, { timeout: 240000 }, async () => {
-                    const server = await startServer(mode, base);
+                    const server = await phase(`gateway start ${mode} ${base}`, () => startServer(mode, base));
                     const context = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
                     context.setDefaultTimeout(30000);
                     const errors = [];
@@ -358,16 +371,16 @@ test('SCurveTool real WASM and browser workflows at root and configured prefix',
                     await context.route('**/*', route => new URL(route.request().url()).origin === server.origin ? route.continue() : route.abort());
                     try {
                         const page = await context.newPage();
-                        await checkRoutes(context, page, server.origin, base);
+                        await phase(`routes ${mode} ${base}`, () => checkRoutes(context, page, server.origin, base));
                         console.log(`${mode} ${base}: routes passed`);
-                        await checkControls(page, server.origin, base, oracle);
+                        await phase(`controls and parity ${mode} ${base}`, () => checkControls(page, server.origin, base, oracle));
                         console.log(`${mode} ${base}: controls and parity passed`);
-                        await checkLifecycle(context, page, server.origin, base, oracle);
+                        await phase(`navigation and resource failures ${mode} ${base}`, () => checkLifecycle(context, page, server.origin, base, oracle));
                         console.log(`${mode} ${base}: navigation and failures passed`);
-                        await checkOwnedCleanup(page, server.origin, base, mode);
-                        await checkLinkedAxes(page);
+                        await phase(`owned cleanup ${mode} ${base}`, () => checkOwnedCleanup(page, server.origin, base, mode));
+                        await phase(`linked axes ${mode} ${base}`, () => checkLinkedAxes(page));
                         assert.deepEqual(errors, [], 'no unhandled browser errors');
-                    } catch (error) { console.error(error); throw error; } finally { await context.close(); await server.stop(); }
+                    } catch (error) { console.error(error); throw error; } finally { await phase(`context cleanup ${mode} ${base}`, () => context.close()); await phase(`gateway cleanup ${mode} ${base}`, () => server.stop()); }
                 });
             }
         }

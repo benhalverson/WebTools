@@ -17,6 +17,11 @@ loading default messages. `get` and `get_instance` expose numeric Float64Arrays,
 string arrays and arrays of numeric vectors, without normalization, timestamp
 conversion or precision changes. Missing fields/messages return undefined.
 
+For embedded files, call `parseAtOffset('FILE')` then `processFiles()` and read
+`files`. These expose the pinned parser's existing chunk order and binary-byte
+semantics. Copy bytes before clearing `messages.FILE` and `files` to release
+the parser's extraction buffers; no offsets or contents are repaired here.
+
 Instance discovery is `log.messageTypes[name]?.instances`. For instance-bearing
 messages use `get_instance(name, instance, field)`; calling `get(name)` for such a
 message can throw in upstream. Unsupported/corrupt inputs may throw or yield
@@ -44,3 +49,13 @@ also compare truncated headers/FMT/tails, empty input, junk prefix and malformed
 bytes, preserving either the output or exception class/message. Fixed recorded
 sentinels independently guard against identical regressions in both paths.
 Tests do not access external providers or hardware.
+
+Consumers that map local log timestamps to video frames can inspect the retained
+`buffer`, `FMT` indexes (`Format`, `Columns`, byte offsets and instance offsets),
+and reader `offset`. `parse_type('Q')` advances the upstream reader and preserves
+its numeric precision. These APIs coexist with the FILE extraction methods.
+
+Before `processData`, `buffer` is `null` and the initial FMT entry has no
+`FormatOffset` or `OffsetArray`. Instance indexing removes `OffsetArray` and
+provides `InstancesOffsetArray` instead. Consumers must narrow these optional
+indexes before reading offsets; the upstream runtime is unchanged.

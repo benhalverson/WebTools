@@ -1,0 +1,10 @@
+{
+  "images/AP_favicon.png": "images/AP_favicon.png",
+  "images/ArduPilot.png": "images/ArduPilot.png",
+  "images/github-mark.png": "images/github-mark.png",
+  "images/GitHub_Logo.png": "images/GitHub_Logo.png",
+  "GeofenceGenerator.js": "GeofenceGenerator/GeofenceGenerator.js",
+  "images/question-circle.svg": "images/question-circle.svg",
+  "vendor/FileSaver.js": "Libraries/FileSaver.js",
+  "Readme.md": "GeofenceGenerator/Readme.md"
+}

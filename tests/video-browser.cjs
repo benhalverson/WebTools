@@ -27,6 +27,9 @@ const {chromium} = require('playwright');
     try {
         browser=process.env.SIMPLEGCS_CDP_URL ? await chromium.connectOverCDP(process.env.SIMPLEGCS_CDP_URL) : await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||undefined});
         context=await browser.newContext();
+        const origin = `http://127.0.0.1:${server.address().port}`;
+        /** The legacy baseline uses only local fixtures; providers remain blocked. */
+        await context.route('**/*', route => new URL(route.request().url()).origin === origin ? route.continue() : route.abort());
         await context.addInitScript(()=>{
             localStorage.setItem('video.user','viewer');
             localStorage.setItem('video.pass','fixture-view');

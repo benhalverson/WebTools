@@ -1,0 +1,12 @@
+{
+  "images/AP_favicon.png": "images/AP_favicon.png",
+  "instructions.txt": "AILogAnalyzer/instructions.txt",
+  "assistantTools.json": "AILogAnalyzer/assistantTools.json",
+  "Readme.md": "AILogAnalyzer/Readme.md",
+  "parser/index.js": "packages/dataflash/dist/index.js",
+  "parser/log-helpers.js": "packages/dataflash/dist/log-helpers.js",
+  "parser/vendor/parser.js": "modules/JsDataflashParser/parser.js",
+  "parser/vendor/LICENSE": "modules/JsDataflashParser/LICENSE",
+  "logAnalyzer.js": "AILogAnalyzer/logAnalyzer.js",
+  "styles.css": "AILogAnalyzer/styles.css"
+}

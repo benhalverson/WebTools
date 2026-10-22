@@ -8,7 +8,8 @@ const { test } = require('node:test');
 const { chromium } = require('playwright');
 
 const root = path.resolve(__dirname, '../../..');
-const comparisonRevision = '0f4607db3dccbc7d06e5847c02465dab38d1eb80';
+const comparisonRevision = '6cd6a978dbe6e93709fb2e468f9b9085c3a7f7ce';
+const application = process.env.HARDWARE_REPORT_ROUTE || 'HardwareReport';
 const sections = ['warnings', 'INS', 'COMPASS', 'BARO', 'ARSPD', 'GPS'];
 
 /** Stops the complete server process group, including Workers, even after failed startup. */
@@ -161,25 +162,34 @@ async function legacyReference(context, origin, base, sources, fixtures) {
     } finally { await page.close(); }
 }
 
-/** Confirms intermediate migration leaves the complete public HardwareReport route untouched. */
+/** Verify the selected app owns its pages/assets and never falls back to an SPA for missing paths. */
 async function checkRoutes(context, origin, base, sources) {
-    for (const file of ['HardwareReport/index.html', 'HardwareReport/HardwareReport.js']) {
-        const response = await context.request.get(origin + base + file);
+    if (application === 'HardwareReportParameters') {
+        for (const file of ['HardwareReport/index.html', 'HardwareReport/HardwareReport.js']) {
+            const response = await context.request.get(origin + base + file);
+            assert.equal(response.status(), 200);
+            assert.deepEqual(await response.body(), sources[file], `public ${file} retains exact legacy bytes before cutover`);
+        }
+    } else {
+        const response = await context.request.get(origin + base + application + '/index.html');
         assert.equal(response.status(), 200);
-        assert.deepEqual(await response.body(), sources[file], `public ${file} retains exact legacy bytes`);
+        assert.ok((await response.text()).includes('id="root"'));
+        assert.equal((await context.request.get(origin + base + application + '/HardwareReport.js')).status(), 404);
     }
-    for (const missing of ['HardwareReportParameters/missing', 'HardwareReportParameters/assets/missing.js']) {
+    for (const missing of [application + '/missing', application + '/assets/missing.js']) {
         assert.equal((await context.request.get(origin + base + missing)).status(), 404);
     }
-    if (base !== '/') assert.equal((await context.request.get(origin + '/HardwareReportParameters/')).status(), 404);
+    if (base !== '/') assert.equal((await context.request.get(origin + '/' + application + '/')).status(), 404);
 }
 
 /** Compares all report sections, export choices, trace slots and exact downloaded bytes. */
 async function checkWorkflow(page, origin, base, fixtures, expected) {
-    await page.goto(origin + base + 'HardwareReportParameters/');
+    await page.goto(origin + base + application + '/');
     await page.locator('#fileItem').waitFor();
+    assert.equal(await page.locator('#OpenIn').isEnabled(), false);
     for (let index = 0; index < fixtures.length; index++) {
         await selectFile(page, fixtures[index]);
+        assert.equal(await page.locator('#OpenIn').isEnabled(), false, 'parameter files do not enable binary-log transfers');
         assert.deepEqual(await report(page), expected[index].report);
         assert.deepEqual(await choices(page), expected[index].choices);
         if (expected[index].plot) await page.waitForFunction(() => !!document.querySelector('#POS_OFFSETS .js-plotly-plot'));
@@ -239,7 +249,7 @@ async function checkPlotLifecycle(context, origin, base, fixture) {
     const page = await context.newPage();
     try {
         await page.route('**/*plotly*.js*', route => route.abort());
-        await page.goto(origin + base + 'HardwareReportParameters/');
+        await page.goto(origin + base + application + '/');
         await selectFile(page, fixture);
         await page.getByRole('alert').waitFor();
         await page.unroute('**/*plotly*.js*');
@@ -287,7 +297,7 @@ async function checkPlotLifecycle(context, origin, base, fixture) {
     const requested = new Promise(resolve => { observe = resolve; });
     await interrupted.route('**/*plotly*.js*', async route => { observe(); await hold; await route.abort().catch(() => {}); });
     try {
-        await interrupted.goto(origin + base + 'HardwareReportParameters/', { waitUntil: 'commit' });
+        await interrupted.goto(origin + base + application + '/', { waitUntil: 'commit' });
         await Promise.race([requested, new Promise((_, reject) => {
             const timer = setTimeout(() => reject(new Error('Expected held vendor request')), 15000);
             requested.then(() => clearTimeout(timer));
@@ -296,6 +306,37 @@ async function checkPlotLifecycle(context, origin, base, fixture) {
         release();
         assert.equal(await interrupted.locator('#POS_OFFSETS .js-plotly-plot').count(), 0);
     } finally { release(); await interrupted.close(); }
+}
+
+/** Exercises absent and transiently failing FileSaver resources through real downloads. */
+async function checkSaveLifecycle(context, origin, base, fixture) {
+    const page = await context.newPage();
+    try {
+        await page.route('**/vendor/FileSaver.js', route => route.abort());
+        await page.goto(origin + base + application + '/');
+        await selectFile(page, fixture);
+        await page.getByRole('button', { name: 'Save All Parameters', exact: true }).click();
+        await page.getByRole('alert').waitFor();
+        await page.unroute('**/vendor/FileSaver.js');
+        await page.route('**/vendor/FileSaver.js', async route => {
+            const response = await route.fetch();
+            await route.fulfill({ response, body: (await response.text()) + `
+                ;(() => {
+                    const save = window.saveAs;
+                    window.saveAs = (...args) => {
+                        if (window.rejectDownload) { window.rejectDownload = false; throw new Error('Simulated save failure'); }
+                        return save(...args);
+                    };
+                })();` });
+        });
+        await page.reload();
+        await selectFile(page, fixture);
+        await page.evaluate(() => { window.rejectDownload = true; });
+        await page.getByRole('button', { name: 'Save All Parameters', exact: true }).click();
+        await page.getByRole('alert').waitFor();
+        await download(page, 'Save All Parameters');
+        assert.equal(await page.getByRole('alert').count(), 0, 'successful export clears the previous failure');
+    } finally { await page.close(); }
 }
 
 /** Runs the application directly, proving gateway routing does not mask app Worker or Vite failures. */
@@ -335,6 +376,7 @@ test('HardwareReport parameter workflow matches unchanged legacy in real Chromiu
                         await checkWorkflow(page, server.origin, base, fixtures, expected);
                         await checkInterruptedReads(page, fixtures, expected);
                         await checkPlotLifecycle(context, server.origin, base, fixtures[0]);
+                        await checkSaveLifecycle(context, server.origin, base, fixtures[0]);
                         await checkIndependent(browser, mode, base, fixtures, expected);
                         assert.deepEqual(errors, [], 'no unhandled browser errors');
                     } catch (error) { console.error(error); throw error; } finally { await context.close(); await server.stop(); }

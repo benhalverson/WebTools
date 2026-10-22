@@ -33,13 +33,13 @@ removing one broader mapping and adding Hooks/component-export checks.
 introducing Biome's different recommended policy. Errors and warnings fail lint.
 This is not a claim of complete rule-for-rule equivalence.
 
-The full PR76 superset recommended-preset audit reported 497 errors, 2328 warnings and
+The initial recommended-preset audit reported 497 errors, 2328 warnings and
 739 informational diagnostics across 502 files. Those include new accessibility,
 non-null-assertion, coercion, callback-return and effect-dependency policies.
 They are not silently fixed during a tooling migration: changing legacy
 comparisons, numerical constants, React lifetimes or deliberate negative type
-contracts requires separate behavior-focused review. The full PR76 compatibility pass
-checked 463 JS/TS files after matching the old language scope.
+contracts requires separate behavior-focused review. The compatibility pass
+checks 463 JS/TS files after matching the old language scope.
 
 ## Deliberate mapping differences
 
