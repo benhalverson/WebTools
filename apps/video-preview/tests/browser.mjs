@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { chromium } from 'playwright'
 import { listeningOrigin } from '@webtools/routing/tooling'
+import { validateCapture } from './capture-browser.mjs'
 
 const root = resolve(fileURLToPath(new URL('../../../', import.meta.url)))
 const baseRevision = '298045cb9680943bb1f99e95082f86e84e167461'
@@ -707,6 +708,7 @@ for (const prefix of process.env.VIDEO_TEST_PREFIX ? [process.env.VIDEO_TEST_PRE
             const size=await page.locator('.video-container').boundingBox()
             await old.locator('.video-container').evaluate((element,size)=>{element.style.position='absolute';element.style.left=size.x+'px';element.style.top=size.y+'px';element.style.width=size.width+'px';element.style.height=size.height+'px'},size)
             await validateExports(page,old,await generateVideo(page))
+            await validateCapture(page)
             await page.getByRole('button',{name:'Close preview'}).click()
             await page.waitForFunction(()=>window.liveObjectUrls.size===0&&document.querySelectorAll('#dashboard iframe').length===0&&Object.keys(window.Formio.forms??{}).length===0)
             assert.equal(await snapshotClones(page),0)

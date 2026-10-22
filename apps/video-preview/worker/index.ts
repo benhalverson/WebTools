@@ -22,7 +22,7 @@ export default {
         return serveAssets(request, env.ASSETS, {
             base: import.meta.env.BASE_URL, assets: runtimeAssets,
             pages: { '': 'index.html', 'index.html': 'index.html' }, development: import.meta.env.DEV,
-            developmentPaths: ['main.tsx', 'default-html.ts', 'App.tsx', 'ExportControls.tsx', 'export.ts', 'format.ts', 'mapping.ts', 'Palette.tsx', 'WidgetSettings.tsx', 'SourceEditor.tsx', 'download.ts', 'code-editor.ts', 'vendor.ts', 'style.css'].map(file => 'src/' + file),
+            developmentPaths: ['main.tsx', 'default-html.ts', 'App.tsx', 'ExportControls.tsx', 'export.ts', 'overlay-capture.ts', 'format.ts', 'mapping.ts', 'Palette.tsx', 'WidgetSettings.tsx', 'SourceEditor.tsx', 'download.ts', 'code-editor.ts', 'vendor.ts', 'style.css'].map(file => 'src/' + file),
         })
     },
 } satisfies ExportedHandler<Env>
